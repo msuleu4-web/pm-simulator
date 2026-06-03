@@ -103,9 +103,9 @@ export type RandomEvent = {
   choices: RandomEventChoice[];
 };
 
-export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra' | 'maint-easy' | 'maint-hard';
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra' | 'maint-easy' | 'maint-hard' | 'pmo-support' | 'pmo-control' | 'pmo-directive';
 
-export type ProjectCategory = '新規開発' | '保守運用' | '移行・刷新';
+export type ProjectCategory = '新規開発' | '保守運用' | '移行・刷新' | 'PMO';
 
 export type ProjectTheme = {
   id: string;
@@ -114,6 +114,15 @@ export type ProjectTheme = {
   description: string;
   category?: ProjectCategory;
   statModifiers: Partial<Pick<GameState, 'quality' | 'cost' | 'schedule' | 'stakeholder' | 'morale'>>;
+};
+
+export type QuitEvent = {
+  name: string;
+  role: string;
+  affiliation: string;
+  reason: string;
+  condition: number;
+  motivation: number;
 };
 
 export type GameState = {
@@ -132,6 +141,7 @@ export type GameState = {
   pmMental: number;
   pendingEvent: RandomEvent | null;
   triggeredEventIds: string[];
+  lastQuitEvent: QuitEvent | null;
   difficulty: Difficulty;
   projectThemeId: string;
   gameStarted: boolean;
@@ -144,6 +154,8 @@ export type GameAction =
   | { type: 'assignMember'; taskId: string; memberId: string }
   | { type: 'performOneOnOne'; memberId: string }
   | { type: 'verifyMemberProgress'; memberId: string }
+  | { type: 'hireTeamMember'; memberId: string; phaseId: string }
+  | { type: 'clearQuitEvent' }
   | { type: 'setBufferFactor'; bufferFactor: number }
   | { type: 'nextPhase' }
   | { type: 'reset' }

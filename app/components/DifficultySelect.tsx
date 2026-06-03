@@ -11,13 +11,19 @@ const colorMap = {
   orange:  { card: 'border-orange-300 bg-orange-50',   badge: 'bg-orange-100 text-orange-700',   btn: 'bg-orange-600 hover:bg-orange-700',   ring: 'ring-orange-400',  header: 'text-orange-700'  },
   violet:  { card: 'border-violet-300 bg-violet-50',   badge: 'bg-violet-100 text-violet-700',   btn: 'bg-violet-600 hover:bg-violet-700',   ring: 'ring-violet-400',  header: 'text-violet-700'  },
   teal:    { card: 'border-teal-300 bg-teal-50',       badge: 'bg-teal-100 text-teal-700',       btn: 'bg-teal-600 hover:bg-teal-700',       ring: 'ring-teal-400',    header: 'text-teal-700'    },
+  indigo:  { card: 'border-indigo-300 bg-indigo-50',   badge: 'bg-indigo-100 text-indigo-700',   btn: 'bg-indigo-600 hover:bg-indigo-700',   ring: 'ring-indigo-400',  header: 'text-indigo-700'  },
 } as const;
 
 const devDifficulties: Difficulty[] = ['easy', 'normal', 'hard', 'ultra'];
 const maintDifficulties: Difficulty[] = ['maint-easy', 'maint-hard'];
-const starCount: Partial<Record<Difficulty, number>> = { easy: 1, normal: 2, hard: 3, ultra: 4, 'maint-easy': 1, 'maint-hard': 3 };
+const pmoDifficulties: Difficulty[] = ['pmo-support', 'pmo-control', 'pmo-directive'];
+const starCount: Partial<Record<Difficulty, number>> = {
+  easy: 1, normal: 2, hard: 3, ultra: 4,
+  'maint-easy': 1, 'maint-hard': 3,
+  'pmo-support': 1, 'pmo-control': 2, 'pmo-directive': 3,
+};
 
-type ProjectTab = 'dev' | 'maint';
+type ProjectTab = 'dev' | 'maint' | 'pmo';
 
 export function DifficultySelect({
   onStart,
@@ -49,7 +55,7 @@ export function DifficultySelect({
     }
   };
 
-  const currentList = tab === 'dev' ? devDifficulties : maintDifficulties;
+  const currentList = tab === 'dev' ? devDifficulties : tab === 'maint' ? maintDifficulties : pmoDifficulties;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-12">
@@ -62,7 +68,7 @@ export function DifficultySelect({
 
         {/* Tab: 新規開発 vs 保守運用 */}
         <div className="mt-8 flex justify-center gap-2">
-          {(['dev', 'maint'] as ProjectTab[]).map((t) => (
+          {(['dev', 'maint', 'pmo'] as ProjectTab[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -73,7 +79,7 @@ export function DifficultySelect({
                   : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {t === 'dev' ? '🆕 新規開発' : '🔧 保守・運用'}
+              {t === 'dev' ? '🆕 新規開発' : t === 'maint' ? '🔧 保守・運用' : '🏛️ PMO'}
             </button>
           ))}
         </div>
@@ -81,6 +87,11 @@ export function DifficultySelect({
         {tab === 'maint' && (
           <div className="mt-3 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-3 text-center text-sm text-teal-800">
             保守・運用モードは<strong>既存システムの維持・障害対応・改善</strong>が中心です。新規開発とは全く異なるPM判断が求められます。
+          </div>
+        )}
+        {tab === 'pmo' && (
+          <div className="mt-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-center text-sm text-indigo-800">
+            PMOモードは<strong>複数プロジェクトを横断的に支援・標準化・ガバナンス</strong>する役割。PM（プロジェクト担当）ではなく<strong>PM支援の仕組みを作る</strong>側です。
           </div>
         )}
 

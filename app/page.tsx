@@ -10,12 +10,15 @@ import { GanttChart } from './components/GanttChart';
 import { IssueTracker } from './components/IssueTracker';
 import { GlossaryPanel } from './components/GlossaryPanel';
 import { LearningLogPanel } from './components/LearningLogPanel';
+import { HiringPanel } from './components/HiringPanel';
+import { QuitEventBanner } from './components/QuitEventBanner';
 import { ProjectEvaluationPanel } from './components/ProjectEvaluationPanel';
 import { ScenarioCard } from './components/ScenarioCard';
 import { TaskAssignmentPanel } from './components/TaskAssignmentPanel';
 import { TeamCarePanel } from './components/TeamCarePanel';
 import { ProgressRealityPanel } from './components/ProgressRealityPanel';
 import { DashboardHeroPanel } from './components/DashboardHeroPanel';
+import { PmoDashboardPanel } from './components/PmoDashboardPanel';
 import { GrowthTrendPanel } from './components/GrowthTrendPanel';
 import { AbilityRadarPanel } from './components/AbilityRadarPanel';
 import { NextActionPanel } from './components/NextActionPanel';
@@ -35,8 +38,11 @@ const difficultyBadgeColor: Record<Difficulty, string> = {
   normal: 'bg-blue-100 text-blue-700',
   hard: 'bg-orange-100 text-orange-700',
   ultra: 'bg-violet-100 text-violet-700',
-  'maint-easy': 'bg-teal-100 text-teal-700',
-  'maint-hard': 'bg-teal-200 text-teal-800',
+  'maint-easy':    'bg-teal-100 text-teal-700',
+  'maint-hard':    'bg-teal-200 text-teal-800',
+  'pmo-support':   'bg-indigo-100 text-indigo-700',
+  'pmo-control':   'bg-indigo-200 text-indigo-800',
+  'pmo-directive': 'bg-violet-100 text-violet-800',
 };
 
 function HomeContent() {
@@ -197,6 +203,13 @@ function HomeContent() {
           </div>
         )}
 
+        {state.lastQuitEvent && (
+          <QuitEventBanner
+            event={state.lastQuitEvent}
+            onDismiss={() => dispatch({ type: 'clearQuitEvent' })}
+          />
+        )}
+
         {enjoLevel >= 2 && (
           <div className={`rounded-2xl border px-5 py-4 ${enjoLevel === 3 ? 'border-red-500 bg-red-50' : 'border-orange-400 bg-orange-50'}`}>
             <div className="flex items-center gap-3">
@@ -215,7 +228,10 @@ function HomeContent() {
           </div>
         )}
 
-        <DashboardHeroPanel state={state} xp={xp} level={level} streak={streak} nextAction={nextAction} />
+        {state.difficulty.startsWith('pmo')
+          ? <PmoDashboardPanel state={state} xp={xp} level={level} streak={streak} />
+          : <DashboardHeroPanel state={state} xp={xp} level={level} streak={streak} nextAction={nextAction} />
+        }
 
         <div className="grid gap-6 xl:grid-cols-[1.7fr_0.95fr]">
           <div className="space-y-6">
@@ -307,6 +323,13 @@ function HomeContent() {
               <PhaseStepper phases={activePhases} currentIndex={state.phaseIndex} />
               <GanttChart phases={activePhases} currentPhaseId={currentPhase.id} criticalPhaseIds={state.tasks.filter((t) => t.isCritical).map((t) => t.phaseId)} />
             </div>
+
+            <HiringPanel
+              currentMembers={state.members}
+              currentPhaseId={currentPhase.id}
+              currentCost={state.cost}
+              dispatch={dispatch}
+            />
 
             <IssueTracker phaseId={currentPhase.id} />
 

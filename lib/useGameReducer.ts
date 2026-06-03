@@ -5,11 +5,14 @@ import { ultraPhases } from './ultraPhases';
 import { randomEvents } from './randomEvents';
 import { difficultyConfigs, projectThemes } from './difficultyConfig';
 import { allTeamMembers } from './teamMembers';
+import { pmoPhases } from './pmoPhases';
+import { calculateFit, hiringCostKpi } from './hireUtils';
 
 export const allPhases = [...phases, ...ultraPhases];
 
 export const getPhasesForDifficulty = (difficulty: string) => {
   const config = difficultyConfigs[difficulty as import('./types').Difficulty];
+  if (config?.usePmoPhases) return pmoPhases.slice(0, config.phaseCount);
   if (config?.useMaintPhases) return ultraPhases.slice(0, config.phaseCount);
   return allPhases.slice(0, (config?.phaseCount ?? 5));
 };
@@ -62,6 +65,54 @@ const applyCascadeEffects = (state: GameState, difficulty: Difficulty): GameStat
     quality: clamp(state.quality + qDelta),
     stakeholder: clamp(state.stakeholder + stDelta),
     morale: clamp(state.morale + mDelta),
+  };
+};
+
+// 탈주 체크: 조건/모티베이션이 한계에 도달한 멤버가 이탈할 수 있음
+const checkMemberQuit = (state: GameState): GameState => {
+  // 최소 2명 이상 있어야 체크 (마지막 1명은 버팀)
+  if (state.members.length <= 1) return state;
+
+  const candidates = state.members.filter(member => {
+    const stress = (100 - member.condition) + (100 - member.motivation);
+    return stress >= 90; // 양쪽 합산 스트레스가 90 이상
+  });
+
+  if (candidates.length === 0) return state;
+
+  // 스트레스 높은 순으로 정렬, 1명만 처리
+  const sorted = [...candidates].sort(
+    (a, b) => (100 - b.condition + 100 - b.motivation) - (100 - a.condition + 100 - a.motivation)
+  );
+  const quitter = sorted[0];
+  const stress = (100 - quitter.condition) + (100 - quitter.motivation);
+
+  // 확률 계산 (스트레스 높을수록 높은 확률)
+  const chance = stress < 110 ? 0.07 : stress < 130 ? 0.16 : stress < 150 ? 0.28 : 0.42;
+  if (Math.random() >= chance) return state;
+
+  const reason =
+    quitter.condition < 25
+      ? 'コンディションが限界を超え、体調不良で離脱'
+      : quitter.motivation < 25
+      ? 'モチベーションが完全に失われ、退職を決意'
+      : quitter.isSiloed
+      ? 'チームからの長期孤立が限界となり突然の退職届'
+      : '過労と継続的なストレスに耐えられず退職';
+
+  return {
+    ...state,
+    members: state.members.filter(m => m.id !== quitter.id),
+    morale: clamp(state.morale - 10),   // チーム士気に打撃
+    quality: clamp(state.quality - 5),  // 知識流出で品質低下
+    lastQuitEvent: {
+      name: quitter.name,
+      role: quitter.role,
+      affiliation: quitter.affiliation,
+      reason,
+      condition: quitter.condition,
+      motivation: quitter.motivation,
+    },
   };
 };
 
@@ -129,6 +180,7 @@ const initialState: GameState = normalizeState({
   pmMental: 80,
   pendingEvent: null,
   triggeredEventIds: [],
+  lastQuitEvent: null,
   difficulty: 'normal',
   projectThemeId: 'retail-inventory',
   gameStarted: false,
@@ -215,10 +267,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
         );
         if (available.length > 0) {
           const event = available[Math.floor(Math.random() * available.length)];
-          return { ...baseNext, pendingEvent: event, triggeredEventIds: [...state.triggeredEventIds, event.id] };
+          return checkMemberQuit({ ...baseNext, pendingEvent: event, triggeredEventIds: [...state.triggeredEventIds, event.id] });
         }
       }
-      return baseNext;
+      return checkMemberQuit({ ...baseNext, lastQuitEvent: null });
     }
     case 'resolveEvent': {
       if (!state.pendingEvent) return state;
@@ -252,7 +304,8 @@ const reducer = (state: GameState, action: GameAction): GameState => {
         ],
       });
       const cascadedEvent = applyCascadeEffects(afterEvent, state.difficulty);
-      return { ...afterEvent, quality: cascadedEvent.quality, stakeholder: cascadedEvent.stakeholder, morale: cascadedEvent.morale };
+      const resolvedState = { ...afterEvent, quality: cascadedEvent.quality, stakeholder: cascadedEvent.stakeholder, morale: cascadedEvent.morale, lastQuitEvent: null };
+      return checkMemberQuit(resolvedState);
     }
     case 'assignMember': {
       const updatedTasks = state.tasks.map((task) =>
@@ -278,6 +331,23 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       );
       return normalizeState({ ...state, members: updatedMembers, pmMental: clamp(state.pmMental - 4) });
     }
+    case 'hireTeamMember': {
+      const candidate = allTeamMembers.find(m => m.id === action.memberId);
+      if (!candidate) return state;
+      if (state.members.find(m => m.id === action.memberId)) return state;
+      const cost = hiringCostKpi(candidate);
+      if (state.cost < cost) return state;
+      const fit = calculateFit(candidate, state.members, action.phaseId);
+      return normalizeState({
+        ...state,
+        members: [...state.members, { ...candidate, utilization: 0 }],
+        cost: clamp(state.cost - cost),
+        quality: clamp(state.quality + fit.qualityDelta),
+        morale: clamp(state.morale + fit.moraleDelta),
+      });
+    }
+    case 'clearQuitEvent':
+      return { ...state, lastQuitEvent: null };
     case 'setBufferFactor':
       return normalizeState({ ...state, bufferFactor: Math.min(2, Math.max(1, action.bufferFactor)) });
     case 'nextPhase': {
@@ -295,6 +365,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
         pmMental: action.state.pmMental ?? initialState.pmMental,
         pendingEvent: action.state.pendingEvent ?? null,
         triggeredEventIds: action.state.triggeredEventIds ?? [],
+        lastQuitEvent: action.state.lastQuitEvent ?? null,
         difficulty: action.state.difficulty ?? 'normal',
         projectThemeId: action.state.projectThemeId ?? 'retail-inventory',
         // 기존 세이브(gameStarted 미존재)는 결정이 있으면 진행 중으로 복원

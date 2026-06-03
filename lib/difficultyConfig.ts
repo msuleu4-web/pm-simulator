@@ -10,6 +10,7 @@ export type DifficultyConfig = {
   eventProbability: number;
   teamSize: number;
   useMaintPhases?: boolean;
+  usePmoPhases?: boolean;
   initialStats: {
     quality: number;
     cost: number;
@@ -111,6 +112,51 @@ export const difficultyConfigs: Record<Difficulty, DifficultyConfig> = {
     description: '大規模システムの24時間運用。深夜障害・SLA超過・レガシー刷新を同時に回す20人体制。',
     badge: '保守 上級',
     color: 'teal',
+  },
+  'pmo-support': {
+    id: 'pmo-support',
+    label: 'PMO 支援型',
+    weeks: 36,
+    phaseCount: 5,
+    scenariosPerPhase: 3,
+    effectMultiplier: 1.0,
+    eventProbability: 0.45,
+    teamSize: 8,
+    usePmoPhases: true,
+    initialStats: { quality: 50, cost: 80, schedule: 55, stakeholder: 55, morale: 60, pmMental: 40 },
+    description: '提案・説得しかできない支援型PMO。現場信頼度を地道に積み上げ、協力を引き出すスタイル。8人体制。',
+    badge: 'PMO 支援',
+    color: 'indigo',
+  },
+  'pmo-control': {
+    id: 'pmo-control',
+    label: 'PMO 統制型',
+    weeks: 52,
+    phaseCount: 5,
+    scenariosPerPhase: 3,
+    effectMultiplier: 1.2,
+    eventProbability: 0.55,
+    teamSize: 15,
+    usePmoPhases: true,
+    initialStats: { quality: 45, cost: 75, schedule: 48, stakeholder: 50, morale: 55, pmMental: 35 },
+    description: 'フレームワーク遵守を要求し是正権限を持つ統制型PMO。逸脱があれば改善を迫れる。15人体制。',
+    badge: 'PMO 統制',
+    color: 'indigo',
+  },
+  'pmo-directive': {
+    id: 'pmo-directive',
+    label: 'PMO 指揮型',
+    weeks: 60,
+    phaseCount: 5,
+    scenariosPerPhase: 3,
+    effectMultiplier: 1.4,
+    eventProbability: 0.65,
+    teamSize: 25,
+    usePmoPhases: true,
+    initialStats: { quality: 40, cost: 70, schedule: 42, stakeholder: 45, morale: 50, pmMental: 30 },
+    description: '中止命令・投資承認権を持つ指揮型PMO。強い権限があるが乱用すると現場信頼度が崩壊する。25人体制。',
+    badge: 'PMO 指揮',
+    color: 'indigo',
   },
 };
 
@@ -346,5 +392,26 @@ export const projectThemes: Record<Difficulty, ProjectTheme[]> = {
       category: '保守運用',
       statModifiers: { morale: -5, stakeholder: -6, cost: -4 },
     },
+  ],
+  'pmo-support': [
+    { id: 'pmos-sier-admin', title: 'SIerのプロジェクト事務局PMO', client: '大手SIer A社（PJ数12件・IT部門内PMO）', description: '各PMの報告書整理・定例運営・ツール管理が中心。まだ権限は弱く、現場からは「お役所的」と見られがち。', category: 'PMO', statModifiers: { stakeholder: -5, morale: -5 } },
+    { id: 'pmos-inhouse', title: '中堅IT企業の内製化支援PMO', client: '株式会社テクノソリューション（社員300名）', description: 'PM経験のない社員がPJを担当しており、PMO支援で底上げを図る。信頼関係ゼロからのスタート。', category: 'PMO', statModifiers: { schedule: -5, morale: -3 } },
+    { id: 'pmos-education', title: '教育機関DX推進PMO', client: '関東圏の私立大学（学生数8000名）', description: '教職員は変化を嫌い、IT部門は弱体化している。PMOとして外部知識で内部を動かす高難度の支援型。', category: 'PMO', statModifiers: { schedule: -6, stakeholder: -4, morale: -3 } },
+    { id: 'pmos-startup', title: 'スタートアップのプロジェクト管理改善PMO', client: '急成長SaaS企業（従業員80名）', description: '組織が急拡大する中でPJ管理がカオス状態。スピードを損なわず標準化するバランスが求められる。', category: 'PMO', statModifiers: { cost: -5, quality: -5 } },
+    { id: 'pmos-municipal', title: '地方自治体の情報化PMO支援', client: '関東圏A市（人口20万）', description: '縦割り組織と意思決定の遅さが最大の壁。行政特有の制約の中で横断的な標準化を進める。', category: 'PMO', statModifiers: { schedule: -8, morale: -5 } },
+  ],
+  'pmo-control': [
+    { id: 'pmoc-sier-cross', title: '大手SIer 複数PJ横断統制PMO', client: '大手SIer B社（PJ数25件・PMO部門20名）', description: '報告基準・ガバナンスの統制を持つ。プロジェクトの逸脱に是正要求を出せるが現場との衝突も多い。', category: 'PMO', statModifiers: { stakeholder: -6, morale: -4 } },
+    { id: 'pmoc-manufacturing-dx', title: '製造業 全社DXプログラムPMO', client: '東洋精機株式会社（従業員5000名）', description: '生産・物流・販売の3領域を横断するDXプログラム。PJ間の依存関係管理と優先度調整が中心業務。', category: 'PMO', statModifiers: { cost: -5, schedule: -5 } },
+    { id: 'pmoc-finance', title: '金融機関 システム刷新PMO', client: '東海地方銀行（支店80・口座50万）', description: '金融庁規制対応と旧システム刷新を並行するPMO。コンプライアンス要件が最優先で変更管理が厳格。', category: 'PMO', statModifiers: { quality: -5, stakeholder: -5 } },
+    { id: 'pmoc-hospital', title: '医療法人 IT基盤整備統制PMO', client: '医療法人みなと病院グループ（3病院）', description: '患者データの取り扱いに関わるため品質基準が最高レベル。PMOが次工程移行の承認権を持つ。', category: 'PMO', statModifiers: { morale: -5, quality: -4 } },
+    { id: 'pmoc-retail', title: '小売業 全社基幹システム統一PMO', client: '株式会社マルタカHD（グループ5社・店舗200）', description: 'グループ各社が独自システムを持ち、統一に向けて各社PMとの利害調整が複雑。指揮権なき調整が腕の見せ所。', category: 'PMO', statModifiers: { schedule: -6, stakeholder: -4 } },
+  ],
+  'pmo-directive': [
+    { id: 'pmod-gov-dx', title: '政府系 DX推進 指揮型PMO', client: '内閣府DX推進室（全省庁横断）', description: '複数省庁に対して方針・予算・スケジュールを指揮できる。政治的圧力と官僚組織の抵抗が最大の壁。', category: 'PMO', statModifiers: { schedule: -8, stakeholder: -6 } },
+    { id: 'pmod-bank-group', title: '大手銀行 グループIT戦略PMO', client: '太平洋銀行グループ（傘下12社・IT予算500億）', description: 'IT投資の承認権を持つ最上位PMO。ROIに基づくPJ選定・中止判断が主業務。政治力との戦い。', category: 'PMO', statModifiers: { cost: -6, morale: -5 } },
+    { id: 'pmod-pharma', title: '製薬会社 グローバルシステム統合PMO', client: '日本製薬株式会社（海外拠点15カ国）', description: '海外拠点のシステムを統合する指揮型PMO。文化・言語・規制の違いをまたいで標準化を強制する。', category: 'PMO', statModifiers: { cost: -8, schedule: -6 } },
+    { id: 'pmod-consulting', title: '大手コンサルファーム 参謀型PMO', client: '外資系コンサルティングファーム（クライアント企業向け）', description: '経営直結の意思決定支援PMO。ROI・リスク・組織能力を統合判断し経営層に直接提言する最高峰。', category: 'PMO', statModifiers: { stakeholder: -5, quality: -5 } },
+    { id: 'pmod-portfolio', title: '全社IT投資判断・ポートフォリオPMO', client: 'ある大手総合商社（IT投資年間300億）', description: '全PJの継続・中止・追加投資を判断する。現場から「恐怖の砦」と呼ばれないよう権限の使い方が問われる。', category: 'PMO', statModifiers: { morale: -8, stakeholder: -5 } },
   ],
 };

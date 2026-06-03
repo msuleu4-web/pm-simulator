@@ -9,6 +9,9 @@
       "Bash(npx vitest *)",
       "Bash(npm list *)",
       "Bash(npm install *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory"
     ]
   }
 }
