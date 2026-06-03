@@ -1,0 +1,175 @@
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import type { Difficulty } from '../../lib/types';
+import { difficultyConfigs, projectThemes } from '../../lib/difficultyConfig';
+
+const colorMap = {
+  emerald: { card: 'border-emerald-300 bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700', btn: 'bg-emerald-600 hover:bg-emerald-700', ring: 'ring-emerald-400', header: 'text-emerald-700' },
+  blue: { card: 'border-blue-300 bg-blue-50', badge: 'bg-blue-100 text-blue-700', btn: 'bg-blue-600 hover:bg-blue-700', ring: 'ring-blue-400', header: 'text-blue-700' },
+  orange: { card: 'border-orange-300 bg-orange-50', badge: 'bg-orange-100 text-orange-700', btn: 'bg-orange-600 hover:bg-orange-700', ring: 'ring-orange-400', header: 'text-orange-700' },
+  violet: { card: 'border-violet-300 bg-violet-50', badge: 'bg-violet-100 text-violet-700', btn: 'bg-violet-600 hover:bg-violet-700', ring: 'ring-violet-400', header: 'text-violet-700' },
+} as const;
+
+const difficultyOrder: Difficulty[] = ['easy', 'normal', 'hard', 'ultra'];
+
+const starCount = { easy: 1, normal: 2, hard: 3, ultra: 4 };
+
+export function DifficultySelect({
+  onStart,
+  ultraUnlocked,
+}: {
+  onStart: (difficulty: Difficulty, projectThemeId: string) => void;
+  ultraUnlocked: boolean;
+}) {
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
+  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
+
+  const handleDifficultyClick = (difficulty: Difficulty) => {
+    const isLocked = difficulty === 'ultra' && !ultraUnlocked;
+    if (isLocked) return;
+    setSelectedDifficulty(difficulty);
+    setSelectedThemeId(null);
+  };
+
+  const handleStart = () => {
+    if (selectedDifficulty && selectedThemeId) {
+      onStart(selectedDifficulty, selectedThemeId);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 px-4 py-12">
+      <div className="mx-auto max-w-4xl">
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-center"
+        >
+          <p className="text-xs uppercase tracking-[0.4em] text-slate-400">PM シミュレーター</p>
+          <h1 className="mt-3 text-3xl font-bold text-slate-900">難易度とプロジェクトを選択</h1>
+          <p className="mt-3 text-slate-500">まず難易度を選び、次に担当するプロジェクトを選んでください。</p>
+        </motion.div>
+
+        {/* Step 1: Difficulty */}
+        <div className="mt-10">
+          <p className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-500">Step 1 — 難易度</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {difficultyOrder.map((id, i) => {
+              const config = difficultyConfigs[id];
+              const colors = colorMap[config.color as keyof typeof colorMap];
+              const isLocked = id === 'ultra' && !ultraUnlocked;
+              const isSelected = selectedDifficulty === id;
+
+              return (
+                <motion.button
+                  key={id}
+                  type="button"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: i * 0.07 }}
+                  onClick={() => handleDifficultyClick(id)}
+                  disabled={isLocked}
+                  className={`relative rounded-3xl border-2 p-5 text-left transition ${
+                    isLocked
+                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60'
+                      : isSelected
+                      ? `${colors.card} ring-2 ${colors.ring} shadow-lg`
+                      : `border-slate-200 bg-white hover:${colors.card} hover:shadow-md`
+                  }`}
+                >
+                  {isLocked && (
+                    <span className="absolute right-3 top-3 text-lg">🔒</span>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${colors.badge}`}>{config.badge}</span>
+                    <span className="text-sm text-amber-400">{'★'.repeat(starCount[id])}</span>
+                  </div>
+                  <p className={`mt-3 text-lg font-bold ${colors.header}`}>{config.label}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{config.weeks}週間 · {config.phaseCount}フェーズ</p>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">{config.description}</p>
+                  {isLocked && config.unlockCondition && (
+                    <p className="mt-3 text-xs text-slate-400">🔓 {config.unlockCondition.label}</p>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Step 2: Project Theme */}
+        {selectedDifficulty && (
+          <motion.div
+            key={selectedDifficulty}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="mt-10"
+          >
+            <p className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-500">Step 2 — プロジェクト選択</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {projectThemes[selectedDifficulty].map((theme, i) => {
+                const config = difficultyConfigs[selectedDifficulty];
+                const colors = colorMap[config.color as keyof typeof colorMap];
+                const isSelected = selectedThemeId === theme.id;
+
+                return (
+                  <motion.button
+                    key={theme.id}
+                    type="button"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.25, delay: i * 0.05 }}
+                    onClick={() => setSelectedThemeId(theme.id)}
+                    className={`rounded-2xl border-2 p-4 text-left transition ${
+                      isSelected
+                        ? `${colors.card} ring-2 ${colors.ring} shadow-md`
+                        : 'border-slate-200 bg-white hover:shadow-sm hover:border-slate-300'
+                    }`}
+                  >
+                    <p className="text-sm font-bold text-slate-900 leading-snug">{theme.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{theme.client}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-600">{theme.description}</p>
+                    {Object.keys(theme.statModifiers).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {Object.entries(theme.statModifiers).map(([k, v]) => {
+                          const labels: Record<string, string> = { quality: '品質', cost: '予算', schedule: '納期', stakeholder: '顧客満足', morale: '士気' };
+                          const pos = (v ?? 0) > 0;
+                          return (
+                            <span key={k} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${pos ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                              {pos ? '↑' : '↓'}{labels[k]}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Start Button */}
+        {selectedDifficulty && selectedThemeId && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-8 flex justify-center"
+          >
+            <button
+              type="button"
+              onClick={handleStart}
+              className={`rounded-3xl px-10 py-4 text-base font-bold text-white shadow-lg transition ${colorMap[difficultyConfigs[selectedDifficulty].color as keyof typeof colorMap].btn}`}
+            >
+              プロジェクトを開始する →
+            </button>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
