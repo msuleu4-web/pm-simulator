@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(sed -n '118,121p' lib/difficultyConfig.ts)",
+      "Bash(sed -n '155,158p' lib/difficultyConfig.ts)",
+      "Bash(sed -n '192,195p' lib/difficultyConfig.ts)",
+      "Bash(sed -n '229,232p' lib/difficultyConfig.ts)",
+      "Bash(npx vitest *)",
+      "Bash(npm list *)",
+      "Bash(npm install *)"
     ]
   }
 }

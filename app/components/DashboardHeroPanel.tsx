@@ -23,7 +23,7 @@ export function DashboardHeroPanel({
   nextAction: string;
 }) {
   const totalScore = Math.round(
-    (state.quality + state.cost + Math.max(0, state.schedule) + state.stakeholder + state.morale) / 5
+    (state.quality + state.cost + Math.max(0, state.schedule + 50) + state.stakeholder + state.morale) / 5
   );
   const healthLabel = getHealthLabel(totalScore);
   const xpProgress = Math.min(100, (xp % 120) / 120 * 100);

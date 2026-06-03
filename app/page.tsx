@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { allPhases, useGameState } from '../lib/useGameReducer';
+import { allPhases, useGameState, getPhasesForDifficulty } from '../lib/useGameReducer';
 import { difficultyConfigs, projectThemes } from '../lib/difficultyConfig';
 import type { Difficulty } from '../lib/types';
 import { LoginPage } from './components/LoginPage';
@@ -35,12 +35,14 @@ const difficultyBadgeColor: Record<Difficulty, string> = {
   normal: 'bg-blue-100 text-blue-700',
   hard: 'bg-orange-100 text-orange-700',
   ultra: 'bg-violet-100 text-violet-700',
+  'maint-easy': 'bg-teal-100 text-teal-700',
+  'maint-hard': 'bg-teal-200 text-teal-800',
 };
 
 function HomeContent() {
   const { state, dispatch } = useGameState();
   const config = difficultyConfigs[state.difficulty];
-  const activePhases = allPhases.slice(0, config.phaseCount);
+  const activePhases = getPhasesForDifficulty(state.difficulty);
   const currentPhase = activePhases[state.phaseIndex] ?? activePhases[0];
   const scenarioLimit = config.scenariosPerPhase;
   const activeScenarios = currentPhase.scenarios.slice(0, scenarioLimit);
@@ -73,7 +75,7 @@ function HomeContent() {
   useEffect(() => {
     if (isGameComplete && state.difficulty === 'hard' && !ultraUnlocked) {
       const avgScore = Math.round(
-        (state.quality + state.cost + Math.max(0, state.schedule) + state.stakeholder + state.morale) / 5
+        (state.quality + state.cost + Math.max(0, state.schedule + 50) + state.stakeholder + state.morale) / 5
       );
       if (avgScore >= 75) {
         localStorage.setItem('pm-sim-ultra-unlocked', 'true');
@@ -85,9 +87,10 @@ function HomeContent() {
   const summaryItems = useMemo(
     () => state.decisions.map((decision) => ({
       ...decision,
-      phaseLabel: allPhases.find((phase) => phase.id === decision.phaseId)?.label ?? '',
+      phaseLabel: activePhases.find((phase) => phase.id === decision.phaseId)?.label ??
+        allPhases.find((phase) => phase.id === decision.phaseId)?.label ?? '',
     })),
-    [state.decisions]
+    [state.decisions, activePhases]
   );
 
   const decisionTagCounts = useMemo(() => {
@@ -101,6 +104,17 @@ function HomeContent() {
     const s = activeScenarios[state.scenarioIndex] ?? activeScenarios[0];
     return new Set(s.choices.flatMap((choice) => choice.pmBokTags));
   }, [activeScenarios, state.scenarioIndex]);
+
+  // 炎上レベル: KPIが悪いほどスノーボール警告
+  const enjoLevel = useMemo(() => {
+    const kpis = [state.quality, state.cost, Math.max(0, state.schedule + 50), state.stakeholder, state.morale];
+    const inCrisis = kpis.filter(v => v < 50).length;
+    const inSevere = kpis.filter(v => v < 35).length;
+    if (inSevere >= 2 || state.pmMental < 25) return 3;
+    if (inCrisis >= 3) return 2;
+    if (inCrisis >= 1) return 1;
+    return 0;
+  }, [state.quality, state.cost, state.schedule, state.stakeholder, state.morale, state.pmMental]);
 
   const xp = Math.min(2400, state.decisions.length * 20 + state.morale * 3 + state.pmMental * 2);
   const level = Math.max(1, Math.min(20, Math.floor(xp / 120) + 1));
@@ -183,6 +197,24 @@ function HomeContent() {
           </div>
         )}
 
+        {enjoLevel >= 2 && (
+          <div className={`rounded-2xl border px-5 py-4 ${enjoLevel === 3 ? 'border-red-500 bg-red-50' : 'border-orange-400 bg-orange-50'}`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{enjoLevel === 3 ? '🔥' : '⚠️'}</span>
+              <div>
+                <p className={`font-bold ${enjoLevel === 3 ? 'text-red-800' : 'text-orange-800'}`}>
+                  {enjoLevel === 3 ? '炎上中 ── プロジェクトが崩壊寸前です' : '赤信号 ── 複数のKPIが危険水域に入っています'}
+                </p>
+                <p className={`mt-0.5 text-sm ${enjoLevel === 3 ? 'text-red-700' : 'text-orange-700'}`}>
+                  {enjoLevel === 3
+                    ? '悪い判断が連鎖してKPIが雪だるま式に悪化しています。今すぐ立て直しの判断を。'
+                    : 'このまま放置すると炎上案件になります。チームの状態とKPIを確認してください。'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <DashboardHeroPanel state={state} xp={xp} level={level} streak={streak} nextAction={nextAction} />
 
         <div className="grid gap-6 xl:grid-cols-[1.7fr_0.95fr]">
@@ -237,6 +269,9 @@ function HomeContent() {
                     dispatch({ type: 'selectChoice', phaseId: currentPhase.id, scenarioId: scenario.id, choice });
                   }}
                   selectedTag={selectedTag ?? undefined}
+                  clientInfo={projectTheme ? { name: projectTheme.client, description: projectTheme.description } : undefined}
+                  kpiState={{ quality: state.quality, cost: state.cost, schedule: state.schedule, stakeholder: state.stakeholder, morale: state.morale }}
+                  phaseLabel={currentPhase.label}
                 />
               </div>
             )}

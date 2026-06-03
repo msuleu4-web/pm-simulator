@@ -4,8 +4,15 @@ import { phases } from './gameData';
 import { ultraPhases } from './ultraPhases';
 import { randomEvents } from './randomEvents';
 import { difficultyConfigs, projectThemes } from './difficultyConfig';
+import { allTeamMembers } from './teamMembers';
 
 export const allPhases = [...phases, ...ultraPhases];
+
+export const getPhasesForDifficulty = (difficulty: string) => {
+  const config = difficultyConfigs[difficulty as import('./types').Difficulty];
+  if (config?.useMaintPhases) return ultraPhases.slice(0, config.phaseCount);
+  return allPhases.slice(0, (config?.phaseCount ?? 5));
+};
 
 const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
 
@@ -28,6 +35,35 @@ const normalizeState = (state: GameState): GameState => ({
     utilization: computeMemberUtilization(member, state.tasks),
   })),
 });
+
+// Cascade: bad KPIs drag other KPIs down, creating the 炎上 snowball
+const applyCascadeEffects = (state: GameState, difficulty: Difficulty): GameState => {
+  const m = Math.min(difficultyConfigs[difficulty].effectMultiplier, 1.6);
+  let qDelta = 0, stDelta = 0, mDelta = 0;
+
+  // Low morale → quality degrades (tired teams make mistakes)
+  if (state.morale < 50) { qDelta -= Math.round(1 * m); mDelta -= Math.round(1 * m); }
+  if (state.morale < 35) { qDelta -= Math.round(2 * m); mDelta -= Math.round(1 * m); }
+
+  // Schedule overrun → stakeholder trust erodes
+  const schedNorm = state.schedule + 50; // normalize to 0-100
+  if (schedNorm < 35) { stDelta -= Math.round(2 * m); }
+  if (schedNorm < 20) { stDelta -= Math.round(3 * m); mDelta -= Math.round(2 * m); }
+
+  // Budget crisis → morale pressure
+  if (state.cost < 55) { mDelta -= Math.round(2 * m); }
+  if (state.cost < 35) { mDelta -= Math.round(2 * m); qDelta -= Math.round(1 * m); }
+
+  // Quality issues → stakeholder complaints
+  if (state.quality < 55) { stDelta -= Math.round(2 * m); }
+
+  return {
+    ...state,
+    quality: clamp(state.quality + qDelta),
+    stakeholder: clamp(state.stakeholder + stDelta),
+    morale: clamp(state.morale + mDelta),
+  };
+};
 
 const applyMemberEffects = (members: TeamMember[], effect: Effect): TeamMember[] =>
   members.map((member) => {
@@ -69,6 +105,14 @@ const initialTasks: Task[] = [
   { id: 't5', title: 'リリース調整とドキュメント', phaseId: 'release', requiredManMonths: 1.1, bufferFactor: 1.3, assignedMembers: ['m1', 'm4'], isCritical: false },
 ];
 
+const maintenanceTasks: Task[] = [
+  { id: 't1', title: '運用体制・オンコール整備', phaseId: 'operations', requiredManMonths: 1.0, bufferFactor: 1.3, assignedMembers: ['m1', 'm2'], isCritical: true },
+  { id: 't2', title: '機能改善・バグ修正バックログ', phaseId: 'expansion', requiredManMonths: 1.5, bufferFactor: 1.2, assignedMembers: ['m2', 'm3'], isCritical: true },
+  { id: 't3', title: '組織変革・体制移行対応', phaseId: 'organizational-change', requiredManMonths: 1.2, bufferFactor: 1.4, assignedMembers: ['m1', 'm3'], isCritical: false },
+  { id: 't4', title: 'レガシー刷新計画・実施', phaseId: 'legacy-renewal', requiredManMonths: 2.0, bufferFactor: 1.5, assignedMembers: ['m3', 'm4'], isCritical: true },
+  { id: 't5', title: '終息処理・引き継ぎドキュメント', phaseId: 'project-closure', requiredManMonths: 0.8, bufferFactor: 1.2, assignedMembers: ['m1', 'm2'], isCritical: false },
+];
+
 const initialState: GameState = normalizeState({
   phaseIndex: 0,
   scenarioIndex: 0,
@@ -96,11 +140,15 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       const config = difficultyConfigs[action.difficulty];
       const theme = projectThemes[action.difficulty].find((t) => t.id === action.projectThemeId);
       const mods = theme?.statModifiers ?? {};
+      const teamMembers = allTeamMembers.slice(0, config.teamSize);
+      const tasks = config.useMaintPhases ? maintenanceTasks : initialTasks;
       return normalizeState({
         ...initialState,
         difficulty: action.difficulty,
         projectThemeId: action.projectThemeId,
         gameStarted: true,
+        members: teamMembers,
+        tasks,
         quality: clamp((config.initialStats.quality) + (mods.quality ?? 0)),
         cost: clamp((config.initialStats.cost) + (mods.cost ?? 0)),
         schedule: clamp((config.initialStats.schedule) + (mods.schedule ?? 0), -100, 100),
@@ -111,21 +159,31 @@ const reducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'selectChoice': {
       const config = difficultyConfigs[state.difficulty];
+      const activePhaseList = getPhasesForDifficulty(state.difficulty);
       const rawEffect = action.choice.effects;
       const effect = scaleEffect(rawEffect, state.difficulty);
       const nextScenarioIndex = state.scenarioIndex + 1;
-      const currentPhase = allPhases[state.phaseIndex];
+      const currentPhase = activePhaseList[state.phaseIndex];
       const scenarioLimit = config.scenariosPerPhase;
       const willFinishPhase = nextScenarioIndex >= Math.min(currentPhase.scenarios.length, scenarioLimit);
 
-      const baseNext: GameState = normalizeState({
+      // 連続失策ペナルティ: 直近2回が悪手 & 今回も悪手 → 炎上加速
+      const last2 = state.decisions.slice(-2);
+      const consecutiveBad = last2.length === 2 &&
+        last2.every(d => d.effects.quality + d.effects.cost + d.effects.schedule + d.effects.stakeholder + d.effects.morale < -3);
+      const thisChoiceBad = effect.quality + effect.cost + effect.schedule + effect.stakeholder + effect.morale < -3;
+      const penaltyMorale = consecutiveBad && thisChoiceBad ? clamp(-Math.round(6 * config.effectMultiplier), -30, 0) : 0;
+      const penaltyPmMental = consecutiveBad && thisChoiceBad ? -5 : 0;
+
+      const afterChoice: GameState = normalizeState({
         ...state,
         scenarioIndex: nextScenarioIndex,
         quality: clamp(state.quality + effect.quality),
         cost: clamp(state.cost + effect.cost),
         schedule: clamp(state.schedule + effect.schedule, -100, 100),
         stakeholder: clamp(state.stakeholder + effect.stakeholder),
-        morale: clamp(state.morale + effect.morale),
+        morale: clamp(state.morale + effect.morale + penaltyMorale),
+        pmMental: clamp(state.pmMental + penaltyPmMental),
         members: applyMemberEffects(state.members, effect),
         decisions: [
           ...state.decisions,
@@ -144,6 +202,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
           ? { ...state.phaseFlags, [action.choice.flag]: 'true' }
           : state.phaseFlags,
       });
+
+      // カスケード効果を適用（悪いKPIが他を道連れに） — 이뮤터블로
+      const cascaded = applyCascadeEffects(afterChoice, state.difficulty);
+      const baseNext: GameState = { ...afterChoice, quality: cascaded.quality, stakeholder: cascaded.stakeholder, morale: cascaded.morale };
 
       if (!willFinishPhase && state.pendingEvent === null && Math.random() < config.eventProbability) {
         const phaseId = currentPhase.id;
@@ -164,7 +226,8 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       const choice = event.choices.find((c) => c.id === action.choiceId);
       if (!choice) return state;
       const effect = scaleEffect(choice.effects, state.difficulty);
-      return normalizeState({
+      const resolvePhases = getPhasesForDifficulty(state.difficulty);
+      const afterEvent = normalizeState({
         ...state,
         pendingEvent: null,
         quality: clamp(state.quality + effect.quality),
@@ -176,7 +239,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
         decisions: [
           ...state.decisions,
           {
-            phaseId: allPhases[state.phaseIndex].id,
+            phaseId: (resolvePhases[state.phaseIndex] ?? resolvePhases[0]).id,
             scenarioId: event.id,
             choiceId: choice.id,
             choiceLabel: choice.label,
@@ -188,6 +251,8 @@ const reducer = (state: GameState, action: GameAction): GameState => {
           },
         ],
       });
+      const cascadedEvent = applyCascadeEffects(afterEvent, state.difficulty);
+      return { ...afterEvent, quality: cascadedEvent.quality, stakeholder: cascadedEvent.stakeholder, morale: cascadedEvent.morale };
     }
     case 'assignMember': {
       const updatedTasks = state.tasks.map((task) =>
@@ -208,7 +273,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
     case 'verifyMemberProgress': {
       const updatedMembers = state.members.map((member) =>
         member.id === action.memberId
-          ? { ...member, reportedProgress: Math.min(100, Math.max(member.actualProgress, member.reportedProgress)) }
+          ? { ...member, reportedProgress: member.actualProgress }  // 実態を露わにする
           : member
       );
       return normalizeState({ ...state, members: updatedMembers, pmMental: clamp(state.pmMental - 4) });

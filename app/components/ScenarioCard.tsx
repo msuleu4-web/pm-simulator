@@ -1,8 +1,12 @@
 'use client';
 
-import type { Scenario, Choice, Effect } from '../../lib/types';
+import { useState } from 'react';
+import type { Scenario, Choice, Effect, GameState } from '../../lib/types';
 import { Tooltip } from './Tooltip';
 import { pmBokDefinitions } from '../../lib/pmBokDefinitions';
+import { ClientChatModal } from './ClientChatModal';
+
+type KpiState = Pick<GameState, 'quality' | 'cost' | 'schedule' | 'stakeholder' | 'morale'>;
 
 const effectItems: { key: keyof Effect; label: string }[] = [
   { key: 'quality', label: '品質' },
@@ -21,12 +25,7 @@ function EffectHints({ effects }: { effects: Effect }) {
         const val = effects[e.key];
         const positive = val > 0;
         return (
-          <span
-            key={e.key}
-            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-              positive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-            }`}
-          >
+          <span key={e.key} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${positive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
             {positive ? '↑' : '↓'} {e.label}
           </span>
         );
@@ -39,11 +38,19 @@ export function ScenarioCard({
   scenario,
   onSelectChoice,
   selectedTag,
+  clientInfo,
+  kpiState,
+  phaseLabel,
 }: {
   scenario: Scenario;
   onSelectChoice: (choice: Choice) => void;
   selectedTag?: string;
+  clientInfo?: { name: string; description: string };
+  kpiState?: KpiState;
+  phaseLabel?: string;
 }) {
+  const [showClientChat, setShowClientChat] = useState(false);
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-soft">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -58,6 +65,23 @@ export function ScenarioCard({
         <div className="mt-4 flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <span className="mt-0.5 text-base">💡</span>
           <p className="text-sm leading-6 text-emerald-800">{scenario.pmTip}</p>
+        </div>
+      )}
+
+      {/* クライアント相談ボタン */}
+      {scenario.clientChat && clientInfo && kpiState && (
+        <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-amber-800">📞 クライアントに確認できます</p>
+            <p className="text-xs text-amber-700">判断前にクライアントと直接話して状況を把握できます（最大7ターン）</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowClientChat(true)}
+            className="ml-4 shrink-0 rounded-2xl bg-amber-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-amber-600"
+          >
+            相談する
+          </button>
         </div>
       )}
 
@@ -102,6 +126,18 @@ export function ScenarioCard({
           );
         })}
       </div>
+
+      {showClientChat && clientInfo && kpiState && (
+        <ClientChatModal
+          scenarioTitle={scenario.title}
+          scenarioDescription={scenario.description}
+          phaseLabel={phaseLabel ?? ''}
+          clientName={clientInfo.name}
+          clientDescription={clientInfo.description}
+          state={kpiState}
+          onClose={() => setShowClientChat(false)}
+        />
+      )}
     </div>
   );
 }

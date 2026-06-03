@@ -28,6 +28,7 @@ export type Scenario = {
   title: string;
   description: string;
   pmTip?: string;
+  clientChat?: boolean;
   docs: DocReference[];
   choices: Choice[];
 };
@@ -39,8 +40,8 @@ export type Phase = {
   scenarios: Scenario[];
 };
 
-export type MemberAffiliation = '自社プロパー' | '協力会社A' | '協力会社B' | 'SES（客先常駐）';
-export type MemberRole = 'PL' | 'SE' | 'PG' | 'テスター';
+export type MemberAffiliation = '自社プロパー' | '協力会社A' | '協力会社B' | '協力会社C' | 'SES（客先常駐）' | 'オフショア';
+export type MemberRole = 'PL' | 'SE' | 'PG' | 'テスター' | 'インフラ' | 'DBA' | 'デザイナー' | 'QA' | 'アナリスト' | 'PM';
 
 export type TeamMember = {
   id: string;
@@ -102,13 +103,16 @@ export type RandomEvent = {
   choices: RandomEventChoice[];
 };
 
-export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra';
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra' | 'maint-easy' | 'maint-hard';
+
+export type ProjectCategory = '新規開発' | '保守運用' | '移行・刷新';
 
 export type ProjectTheme = {
   id: string;
   title: string;
   client: string;
   description: string;
+  category?: ProjectCategory;
   statModifiers: Partial<Pick<GameState, 'quality' | 'cost' | 'schedule' | 'stakeholder' | 'morale'>>;
 };
 
