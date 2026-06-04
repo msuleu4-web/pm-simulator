@@ -159,13 +159,27 @@ function HomeContent() {
 
   if (!state.gameStarted) {
     return (
-      <DifficultySelect
-        ultraUnlocked={ultraUnlocked}
-        onStart={(difficulty: Difficulty, projectThemeId: string) => {
-          dispatch({ type: 'startGame', difficulty, projectThemeId });
-          setLastFeedback(null);
-        }}
-      />
+      <div className="relative">
+        {loggedInUser && (
+          <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">{loggedInUser}</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
+            >
+              ログアウト
+            </button>
+          </div>
+        )}
+        <DifficultySelect
+          ultraUnlocked={ultraUnlocked}
+          onStart={(difficulty: Difficulty, projectThemeId: string) => {
+            dispatch({ type: 'startGame', difficulty, projectThemeId });
+            setLastFeedback(null);
+          }}
+        />
+      </div>
     );
   }
 
