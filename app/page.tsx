@@ -28,6 +28,7 @@ import { NextActionPanel } from './components/NextActionPanel';
 import { RoadmapPanel } from './components/RoadmapPanel';
 import { CompactTeamSummary } from './components/CompactTeamSummary';
 import { DifficultySelect } from './components/DifficultySelect';
+import { EndingScreen } from './components/EndingScreen';
 import TermModal from './components/TermModal';
 import { RandomEventCard } from './components/RandomEventCard';
 import { pmBokDefinitions } from '../lib/pmBokDefinitions';
@@ -72,6 +73,7 @@ function HomeContent() {
   );
   const [clientChatOpen, setClientChatOpen] = useState<'player' | 'client' | null>(null);
   const [activeTab, setActiveTab] = useState<'team' | 'progress' | 'records'>('team');
+  const [showEnding, setShowEnding] = useState(false);
   const learning = useLearningProgress();
 
   const isPmoMode = state.difficulty.startsWith('pmo');
@@ -283,7 +285,21 @@ function HomeContent() {
                     </button>
                   )}
                 </div>
-                {!hasMorePhase && <ProjectEvaluationPanel state={state} />}
+                {!hasMorePhase && (
+                  <>
+                    <ProjectEvaluationPanel state={state} />
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowEnding(true)}
+                        className="mt-2 inline-flex items-center gap-2 rounded-3xl bg-gradient-to-r from-brand-600 to-violet-600 px-8 py-4 text-base font-black text-white shadow-lg transition hover:from-brand-700 hover:to-violet-700 hover:shadow-xl active:scale-95"
+                      >
+                        <span className="text-xl">🎬</span>
+                        エンディングを見る
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-6">
@@ -428,6 +444,14 @@ function HomeContent() {
           <TermModal term={selectedTag} description={pmBokDefinitions[selectedTag]} onClose={() => setSelectedTag(null)} />
         )}
       </div>
+
+      {showEnding && (
+        <EndingScreen
+          state={state}
+          onPlayAgain={() => { setShowEnding(false); dispatch({ type: 'reset' }); setLastFeedback(null); }}
+          onBackToEvaluation={() => setShowEnding(false)}
+        />
+      )}
 
       {clientChatOpen && projectTheme && (
         <ClientChatModal

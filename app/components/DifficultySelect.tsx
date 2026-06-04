@@ -66,14 +66,73 @@ export function DifficultySelect({
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="mx-auto max-w-4xl">
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="text-center">
+
+        {/* ── ① RPGゲーム：ダークヒーローバナー ── */}
+        <motion.a
+          href="/game"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="group mt-10 flex flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900 shadow-xl transition hover:shadow-2xl hover:scale-[1.01]"
+          style={{ backgroundImage: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)' }}
+        >
+          <div className="flex items-start justify-between gap-4 p-7 pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-brand-500 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">NEW · RPG</span>
+              </div>
+              <p className="mt-3 text-2xl font-black text-white sm:text-3xl">配属先は、現場。</p>
+              <p className="mt-1 text-sm font-semibold text-brand-300">SIer現場体験ストーリーRPG</p>
+            </div>
+            <span className="shrink-0 text-5xl opacity-80">🎮</span>
+          </div>
+
+          <div className="grid gap-0 sm:grid-cols-[1fr_auto]">
+            <div className="px-7 pb-7">
+              <p className="text-sm leading-7 text-slate-300">
+                新人SEとして2Dマップを歩き、NPCに話しかけながら現場の判断を体験する<strong className="text-white">物語型RPG</strong>。
+                要件定義・基本設計・テスト・炎上対応・リリースまで全7章。
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {['🗺️ マップ探索', '💬 選択肢分岐', '📚 教育ポイント解説', '⏱️ 約15分'].map((tag) => (
+                  <span key={tag} className="rounded-full border border-slate-600 px-3 py-1 text-xs text-slate-300">{tag}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-end justify-end p-7 pt-0 sm:pt-7">
+              <span className="inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-6 py-3 text-sm font-black text-white shadow-lg transition group-hover:bg-brand-400">
+                ゲームをプレイ <span className="text-base">→</span>
+              </span>
+            </div>
+          </div>
+        </motion.a>
+
+        {/* ── 区切り ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="my-10 flex items-center gap-4"
+        >
+          <div className="h-px flex-1 bg-slate-200" />
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400">または — PMシミュレーターをプレイ</p>
+          <div className="h-px flex-1 bg-slate-200" />
+        </motion.div>
+
+        {/* ── ② PMシミュレーター：ヘッダーだけ（カードなし） ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.35 }}
+          className="mb-8 text-center"
+        >
           <p className="text-xs uppercase tracking-[0.4em] text-slate-400">PM シミュレーター</p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">プロジェクトタイプと難易度を選択</h1>
-          <p className="mt-3 text-slate-500">まずプロジェクトの種類を選び、難易度とプロジェクトを決めてください。</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">プロジェクトタイプと難易度を選択</h2>
+          <p className="mt-2 text-sm text-slate-500">まずプロジェクトの種類を選び、難易度とプロジェクトを決めてください。</p>
         </motion.div>
 
         {/* Tab: 新規開発 vs 保守運用 */}
-        <div className="mt-8 flex justify-center gap-2">
+        <div className="flex justify-center gap-2">
           {(['dev', 'maint', 'member', 'pmo'] as ProjectTab[]).map((t) => (
             <button
               key={t}

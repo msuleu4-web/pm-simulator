@@ -35,7 +35,17 @@
       "Bash(curl -s -X POST https://lqltqwexmpaufxlvfxjt.supabase.co/auth/v1/token?grant_type=password -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbHRxd2V4bXBhdWZ4bHZmeGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Nzk1NzIsImV4cCI6MjA5NjA1NTU3Mn0.cekz0zIYoutYbSZ7CagKKvqHd_xENRt7fDAAxCkAeOU' -H 'Content-Type: application/json' -d '{\"email\":\"pmtest1780558821674@gmail.com\",\"password\":\"Testpass123!\"}')",
       "Bash(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3003/api/chat-1on1 -H 'Content-Type: application/json' -d '{}')",
       "Bash(curl -s -X POST http://localhost:3003/api/chat-1on1 -H 'Content-Type: application/json' -d '{}')",
-      "Bash(curl -s -X POST http://localhost:3003/api/chat-1on1 -H 'Content-Type: application/json' --cookie sb-access-token=fake-invalid-token -d '{}')"
+      "Bash(curl -s -X POST http://localhost:3003/api/chat-1on1 -H 'Content-Type: application/json' --cookie sb-access-token=fake-invalid-token -d '{}')",
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem -Path . -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Sort-Object PSIsContainer -Descending)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pm-simulator\" -Recurse -Force)",
+      "Bash(Select-Object -First 20 Name)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\" | Where-Object { $_.PSIsContainer -eq $true } | Select-Object Name)",
+      "Bash(node -e \"const p = require\\('./node_modules/phaser/package.json'\\); console.log\\('phaser', p.version\\);\")",
+      "Bash(node -e \"const sb = require\\('./lib/supabase'\\); console.log\\('supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET'\\)\")",
+      "Bash(Get-ChildItem \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\" -Filter \".env*\" -Force)"
     ],
     "additionalDirectories": [
       "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory"
