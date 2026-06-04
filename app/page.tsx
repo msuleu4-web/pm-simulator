@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { allPhases, useGameState, getPhasesForDifficulty } from '../lib/useGameReducer';
 import { difficultyConfigs, projectThemes } from '../lib/difficultyConfig';
 import type { Difficulty } from '../lib/types';
@@ -80,7 +81,8 @@ function HomeContent() {
     setLoggedInUser(localStorage.getItem('pm-sim-username') ?? '');
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    await supabase.auth.signOut();
     localStorage.removeItem('pm-sim-auth');
     localStorage.removeItem('pm-sim-username');
     window.location.reload();
@@ -434,11 +436,48 @@ function HomeContent() {
   );
 }
 
+function setAuthCookie(token: string) {
+  document.cookie = `sb-access-token=${token}; path=/; max-age=3600; SameSite=Strict`;
+}
+
+function clearAuthCookie() {
+  document.cookie = 'sb-access-token=; path=/; max-age=0; SameSite=Strict';
+}
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setAuthed(localStorage.getItem('pm-sim-auth') === 'true');
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        const username = data.session.user.user_metadata?.username ?? data.session.user.email ?? '';
+        setAuthCookie(data.session.access_token);
+        localStorage.setItem('pm-sim-auth', 'true');
+        localStorage.setItem('pm-sim-username', username);
+        setAuthed(true);
+      } else {
+        clearAuthCookie();
+        localStorage.removeItem('pm-sim-auth');
+        setAuthed(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+        const username = session.user.user_metadata?.username ?? session.user.email ?? '';
+        setAuthCookie(session.access_token);
+        localStorage.setItem('pm-sim-auth', 'true');
+        localStorage.setItem('pm-sim-username', username);
+        setAuthed(true);
+      } else if (event === 'SIGNED_OUT') {
+        clearAuthCookie();
+        localStorage.removeItem('pm-sim-auth');
+        localStorage.removeItem('pm-sim-username');
+        setAuthed(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (authed === null) return null;
