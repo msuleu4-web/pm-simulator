@@ -15,11 +15,13 @@ const conditionStyle = (v: number) =>
 export function OneOnOneChatModal({
   member,
   phaseLabel,
+  difficulty,
   onComplete,
   onClose,
 }: {
   member: TeamMember;
   phaseLabel: string;
+  difficulty?: string;
   onComplete: () => void;
   onClose: () => void;
 }) {
@@ -52,6 +54,7 @@ export function OneOnOneChatModal({
           },
           messages: msgs,
           phaseLabel,
+          difficulty,
           isInitial,
         }),
       });

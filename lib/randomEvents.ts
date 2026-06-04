@@ -8,6 +8,7 @@ export const randomEvents: RandomEvent[] = [
       '部長から突然「競合の動きが早いから、現計画より1ヶ月早くリリースしてほしい」と直接指示が入った。チームキャパと品質基準を考えると、そのまま受け入れるのは難しい状況です。',
     severity: 'high',
     phaseIds: ['all'],
+    excludeDifficulties: ['maint-easy', 'maint-hard', 'ops-easy', 'ops-normal', 'ops-hard', 'pmo-support', 'pmo-control', 'pmo-directive'],
     choices: [
       {
         id: 'negotiate-scope',
@@ -452,6 +453,7 @@ export const randomEvents: RandomEvent[] = [
       '競合他社が同様のシステムに新機能を追加リリース。顧客から「競合と同等の機能を入れたい。どうにかなりませんか？」という非公式な打診が来ています。現在のスコープとスケジュールへの影響が懸念されます。',
     severity: 'medium',
     phaseIds: ['requirements', 'basicDesign'],
+    excludeDifficulties: ['maint-easy', 'maint-hard', 'ops-easy', 'ops-normal', 'ops-hard', 'pmo-support', 'pmo-control', 'pmo-directive'],
     choices: [
       {
         id: 'formal-change-request',
@@ -526,6 +528,7 @@ export const randomEvents: RandomEvent[] = [
       '高熱が続き医師から「3日は安静に」と言われた。急いで対処しなければならない課題がいくつかあり、完全な不在は難しいが、フル対応も無理な状況です。チームと顧客への影響をどう最小化するかが問われます。',
     severity: 'medium',
     phaseIds: ['all'],
+    excludeDifficulties: ['maint-easy', 'maint-hard', 'ops-easy', 'ops-normal', 'ops-hard', 'pmo-support', 'pmo-control', 'pmo-directive'],
     choices: [
       {
         id: 'delegate-to-pl',
@@ -702,6 +705,7 @@ export const randomEvents: RandomEvent[] = [
       '長い戦いをなんとか乗り越え、リリース完了の達成感に浸っていたその夜、「来週から次のプロジェクトのキックオフです」というメールが届いた。休む間がない。PM自身が燃え尽き状態なのに、また同じことが始まろうとしています。',
     severity: 'high',
     phaseIds: ['release'],
+    excludeDifficulties: ['maint-easy', 'maint-hard', 'ops-easy', 'ops-normal', 'ops-hard', 'pmo-support', 'pmo-control', 'pmo-directive'],
     choices: [
       {
         id: 'jump-to-next',
@@ -769,6 +773,7 @@ export const randomEvents: RandomEvent[] = [
     description:
       'チームのミスが怖くて、いつの間にかPM自身が設計書レビュー・議事録作成・顧客メール・進捗確認を全部抱え込んでいる。PMが作業者になってしまい、マネジメントに使える時間がゼロになっています。',
     severity: 'medium',
+    excludeDifficulties: ['ops-easy', 'ops-normal', 'ops-hard'],
     phaseIds: ['all'],
     choices: [
       {

@@ -11,6 +11,7 @@ export type DifficultyConfig = {
   teamSize: number;
   useMaintPhases?: boolean;
   usePmoPhases?: boolean;
+  useMemberPhases?: boolean;
   initialStats: {
     quality: number;
     cost: number;
@@ -157,6 +158,51 @@ export const difficultyConfigs: Record<Difficulty, DifficultyConfig> = {
     description: '中止命令・投資承認権を持つ指揮型PMO。強い権限があるが乱用すると現場信頼度が崩壊する。25人体制。',
     badge: 'PMO 指揮',
     color: 'indigo',
+  },
+  'ops-easy': {
+    id: 'ops-easy',
+    label: 'メンバー Easy',
+    weeks: 20,
+    phaseCount: 3,
+    scenariosPerPhase: 3,
+    effectMultiplier: 0.6,
+    eventProbability: 0.15,
+    teamSize: 6,
+    useMemberPhases: true,
+    initialStats: { quality: 78, cost: 90, schedule: 72, stakeholder: 76, morale: 78, pmMental: 82 },
+    description: '定常業務と軽い問い合わせ対応が中心。深夜呼び出しほぼなし。まず運用の流れを体験する入門モード。',
+    badge: 'メンバー 入門',
+    color: 'teal',
+  },
+  'ops-normal': {
+    id: 'ops-normal',
+    label: 'メンバー Normal',
+    weeks: 36,
+    phaseCount: 4,
+    scenariosPerPhase: 4,
+    effectMultiplier: 1.0,
+    eventProbability: 0.45,
+    teamSize: 6,
+    useMemberPhases: true,
+    initialStats: { quality: 70, cost: 80, schedule: 62, stakeholder: 68, morale: 65, pmMental: 70 },
+    description: '深夜アラート・繰り返す障害・属人化のリアルを体験する。判断ミスが積み重なるとSLAが崩れていく。',
+    badge: 'メンバー 標準',
+    color: 'teal',
+  },
+  'ops-hard': {
+    id: 'ops-hard',
+    label: 'メンバー Hard',
+    weeks: 52,
+    phaseCount: 4,
+    scenariosPerPhase: 4,
+    effectMultiplier: 1.5,
+    eventProbability: 0.65,
+    teamSize: 6,
+    useMemberPhases: true,
+    initialStats: { quality: 58, cost: 65, schedule: 52, stakeholder: 55, morale: 50, pmMental: 58 },
+    description: 'すでに疲弊気味の状態でスタート。SLA超過ギリギリ・オンコール過多・属人化が進んだ限界の現場。',
+    badge: 'メンバー 上級',
+    color: 'teal',
   },
 };
 
@@ -413,5 +459,21 @@ export const projectThemes: Record<Difficulty, ProjectTheme[]> = {
     { id: 'pmod-pharma', title: '製薬会社 グローバルシステム統合PMO', client: '日本製薬株式会社（海外拠点15カ国）', description: '海外拠点のシステムを統合する指揮型PMO。文化・言語・規制の違いをまたいで標準化を強制する。', category: 'PMO', statModifiers: { cost: -8, schedule: -6 } },
     { id: 'pmod-consulting', title: '大手コンサルファーム 参謀型PMO', client: '外資系コンサルティングファーム（クライアント企業向け）', description: '経営直結の意思決定支援PMO。ROI・リスク・組織能力を統合判断し経営層に直接提言する最高峰。', category: 'PMO', statModifiers: { stakeholder: -5, quality: -5 } },
     { id: 'pmod-portfolio', title: '全社IT投資判断・ポートフォリオPMO', client: 'ある大手総合商社（IT投資年間300億）', description: '全PJの継続・中止・追加投資を判断する。現場から「恐怖の砦」と呼ばれないよう権限の使い方が問われる。', category: 'PMO', statModifiers: { morale: -8, stakeholder: -5 } },
+  ],
+  'ops-easy': [
+    { id: 'ops-easy-intranet', title: '社内グループウェア 運用サポート', client: '中堅製造業 情報システム部（社員300名）', description: '社内ツールのヘルプデスク対応・定期メンテが中心。大きな障害は少なく、業務時間内の対応がほとんど。', statModifiers: { morale: 5 } },
+    { id: 'ops-easy-erp', title: '中小企業 基幹ERPの保守', client: '株式会社ミタカ産業（従業員120名・製造業）', description: '既存ERPの月次バッチ管理と操作サポート。システムは安定しており、スキルアップの基礎を固める現場。', statModifiers: { cost: 5 } },
+    { id: 'ops-easy-portal', title: '社内ポータルサイト 運用管理', client: '都内サービス業 IT推進室（社員500名）', description: 'コンテンツ更新・アカウント管理・問い合わせ対応が日常業務。障害は少なく、手順化しやすい環境。', statModifiers: { stakeholder: 5 } },
+  ],
+  'ops-normal': [
+    { id: 'ops-normal-banking', title: '銀行基幹システム 夜間バッチ運用', client: '第一信用銀行（口座数800万）', description: '毎晩数百本のバッチが走り、失敗すれば翌朝業務が止まる。深夜監視・障害対応が日常の金融系運用現場。', statModifiers: { schedule: -5, morale: -5 } },
+    { id: 'ops-normal-ec', title: 'ECサイト インフラ・障害対応', client: 'ショッピングモールOnnet（月間1,000万UU）', description: 'セール期間の急激なトラフィック・決済障害。24時間監視が必要な高負荷ECプラットフォーム運用。', statModifiers: { stakeholder: -5, cost: -5 } },
+    { id: 'ops-normal-hospital', title: '病院電子カルテ 保守・サポート', client: '東都総合医療センター（病床800・外来1日600人）', description: '医師・看護師が日中使い続けるシステム。停止は患者対応に直結するため、メンテ時間が限られる高責任運用。', statModifiers: { quality: -5, schedule: -5 } },
+    { id: 'ops-normal-logistics', title: '物流管理システム 24h運用', client: '全国配送株式会社（拠点200・日次出荷10万件）', description: '深夜の出荷データ連携・翌朝の集計バッチが核心。1件のデータ不整合が全国の配送に波及する精密運用現場。', statModifiers: { morale: -5, cost: -5 } },
+  ],
+  'ops-hard': [
+    { id: 'ops-hard-fintech', title: '決済プラットフォーム 24h対応', client: 'FinPay株式会社（加盟店5万店・決済処理秒間3,000件）', description: '1分の停止が数千万円の損失。セキュリティインシデント・不正検知・SLA99.99%という極限環境の運用現場。', statModifiers: { schedule: -8, morale: -8, cost: -5 } },
+    { id: 'ops-hard-telecom', title: '通信インフラ 基盤運用', client: '全国通信キャリア 設備管理部門', description: '数千台のサーバを少人数で管理。オンコール当番が重く、レガシーと最新設備が混在する難易度最高の現場。', statModifiers: { quality: -8, stakeholder: -5, morale: -8 } },
+    { id: 'ops-hard-gov', title: '自治体システム 統合保守', client: '大都市圏 政令指定都市（住民250万人）', description: '住民サービスに直結するシステムを複数並行保守。予算制約・レガシーの山・政治的プレッシャーが重なる過酷環境。', statModifiers: { cost: -8, schedule: -8, morale: -5 } },
   ],
 };

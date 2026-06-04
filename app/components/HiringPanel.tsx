@@ -81,7 +81,6 @@ export function HiringPanel({
         </div>
       </div>
 
-      {/* 採用結果フィードバック */}
       <AnimatePresence>
         {lastResult && (
           <motion.div
@@ -119,7 +118,6 @@ export function HiringPanel({
         )}
       </AnimatePresence>
 
-      {/* ロールフィルター */}
       <div className="mt-5 flex flex-wrap gap-2">
         <button
           type="button"
@@ -143,7 +141,6 @@ export function HiringPanel({
         })}
       </div>
 
-      {/* 候補者リスト */}
       <div className="mt-4 space-y-3">
         {filtered.slice(0, 12).map((item, i) => {
           const fl = fitLabel[item.fit.level];
@@ -178,7 +175,6 @@ export function HiringPanel({
                     </div>
                     <span className="text-xs text-slate-400">経験 {item.member.experienceYears}年</span>
                   </div>
-                  {/* フィット理由 */}
                   <div className="mt-2 flex flex-wrap gap-1">
                     {item.fit.reasons.map((r, ri) => (
                       <span key={ri} className="rounded-full bg-white/70 px-2 py-0.5 text-xs text-slate-600 border border-slate-200">{r}</span>

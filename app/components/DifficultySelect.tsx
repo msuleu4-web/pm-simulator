@@ -17,13 +17,15 @@ const colorMap = {
 const devDifficulties: Difficulty[] = ['easy', 'normal', 'hard', 'ultra'];
 const maintDifficulties: Difficulty[] = ['maint-easy', 'maint-hard'];
 const pmoDifficulties: Difficulty[] = ['pmo-support', 'pmo-control', 'pmo-directive'];
+const memberDifficulties: Difficulty[] = ['ops-easy', 'ops-normal', 'ops-hard'];
 const starCount: Partial<Record<Difficulty, number>> = {
   easy: 1, normal: 2, hard: 3, ultra: 4,
   'maint-easy': 1, 'maint-hard': 3,
   'pmo-support': 1, 'pmo-control': 2, 'pmo-directive': 3,
+  'ops-easy': 1, 'ops-normal': 2, 'ops-hard': 3,
 };
 
-type ProjectTab = 'dev' | 'maint' | 'pmo';
+type ProjectTab = 'dev' | 'maint' | 'pmo' | 'member';
 
 export function DifficultySelect({
   onStart,
@@ -55,7 +57,11 @@ export function DifficultySelect({
     }
   };
 
-  const currentList = tab === 'dev' ? devDifficulties : tab === 'maint' ? maintDifficulties : pmoDifficulties;
+  const currentList =
+    tab === 'dev' ? devDifficulties :
+    tab === 'maint' ? maintDifficulties :
+    tab === 'pmo' ? pmoDifficulties :
+    memberDifficulties;
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-12">
@@ -68,7 +74,7 @@ export function DifficultySelect({
 
         {/* Tab: 新規開発 vs 保守運用 */}
         <div className="mt-8 flex justify-center gap-2">
-          {(['dev', 'maint', 'pmo'] as ProjectTab[]).map((t) => (
+          {(['dev', 'maint', 'member', 'pmo'] as ProjectTab[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -79,14 +85,19 @@ export function DifficultySelect({
                   : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {t === 'dev' ? '🆕 新規開発' : t === 'maint' ? '🔧 保守・運用' : '🏛️ PMO'}
+              {t === 'dev' ? '新規開発' : t === 'maint' ? '保守・運用（PM）' : t === 'member' ? '開発メンバー' : 'PMO'}
             </button>
           ))}
         </div>
 
         {tab === 'maint' && (
           <div className="mt-3 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-3 text-center text-sm text-teal-800">
-            保守・運用モードは<strong>既存システムの維持・障害対応・改善</strong>が中心です。新規開発とは全く異なるPM判断が求められます。
+            保守・運用（PM）モードは<strong>既存システムの維持・障害対応・改善をPM視点で管理</strong>するモードです。
+          </div>
+        )}
+        {tab === 'member' && (
+          <div className="mt-3 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-3 text-center text-sm text-teal-800">
+            <strong>あなた自身が保守運用チームの一員</strong>として判断します。深夜アラート・属人化・SLAプレッシャー・評価されにくさ——現場エンジニアのリアルを体験してください。
           </div>
         )}
         {tab === 'pmo' && (

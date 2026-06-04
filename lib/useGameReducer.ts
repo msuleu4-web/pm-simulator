@@ -3,9 +3,12 @@ import type { GameAction, GameState, TeamMember, Task, Effect, Difficulty } from
 import { phases } from './gameData';
 import { ultraPhases } from './ultraPhases';
 import { randomEvents } from './randomEvents';
+import { pmoRandomEvents } from './pmoRandomEvents';
 import { difficultyConfigs, projectThemes } from './difficultyConfig';
 import { allTeamMembers } from './teamMembers';
 import { pmoPhases } from './pmoPhases';
+import { memberPhases } from './memberPhases';
+import { memberRandomEvents } from './memberRandomEvents';
 import { calculateFit, hiringCostKpi } from './hireUtils';
 
 export const allPhases = [...phases, ...ultraPhases];
@@ -13,6 +16,7 @@ export const allPhases = [...phases, ...ultraPhases];
 export const getPhasesForDifficulty = (difficulty: string) => {
   const config = difficultyConfigs[difficulty as import('./types').Difficulty];
   if (config?.usePmoPhases) return pmoPhases.slice(0, config.phaseCount);
+  if (config?.useMemberPhases) return memberPhases.slice(0, config.phaseCount);
   if (config?.useMaintPhases) return ultraPhases.slice(0, config.phaseCount);
   return allPhases.slice(0, (config?.phaseCount ?? 5));
 };
@@ -39,25 +43,20 @@ const normalizeState = (state: GameState): GameState => ({
   })),
 });
 
-// Cascade: bad KPIs drag other KPIs down, creating the 炎上 snowball
 const applyCascadeEffects = (state: GameState, difficulty: Difficulty): GameState => {
   const m = Math.min(difficultyConfigs[difficulty].effectMultiplier, 1.6);
   let qDelta = 0, stDelta = 0, mDelta = 0;
 
-  // Low morale → quality degrades (tired teams make mistakes)
   if (state.morale < 50) { qDelta -= Math.round(1 * m); mDelta -= Math.round(1 * m); }
   if (state.morale < 35) { qDelta -= Math.round(2 * m); mDelta -= Math.round(1 * m); }
 
-  // Schedule overrun → stakeholder trust erodes
-  const schedNorm = state.schedule + 50; // normalize to 0-100
+  const schedNorm = state.schedule + 50;
   if (schedNorm < 35) { stDelta -= Math.round(2 * m); }
   if (schedNorm < 20) { stDelta -= Math.round(3 * m); mDelta -= Math.round(2 * m); }
 
-  // Budget crisis → morale pressure
   if (state.cost < 55) { mDelta -= Math.round(2 * m); }
   if (state.cost < 35) { mDelta -= Math.round(2 * m); qDelta -= Math.round(1 * m); }
 
-  // Quality issues → stakeholder complaints
   if (state.quality < 55) { stDelta -= Math.round(2 * m); }
 
   return {
@@ -68,26 +67,22 @@ const applyCascadeEffects = (state: GameState, difficulty: Difficulty): GameStat
   };
 };
 
-// 탈주 체크: 조건/모티베이션이 한계에 도달한 멤버가 이탈할 수 있음
 const checkMemberQuit = (state: GameState): GameState => {
-  // 최소 2명 이상 있어야 체크 (마지막 1명은 버팀)
   if (state.members.length <= 1) return state;
 
   const candidates = state.members.filter(member => {
     const stress = (100 - member.condition) + (100 - member.motivation);
-    return stress >= 90; // 양쪽 합산 스트레스가 90 이상
+    return stress >= 90;
   });
 
   if (candidates.length === 0) return state;
 
-  // 스트레스 높은 순으로 정렬, 1명만 처리
   const sorted = [...candidates].sort(
     (a, b) => (100 - b.condition + 100 - b.motivation) - (100 - a.condition + 100 - a.motivation)
   );
   const quitter = sorted[0];
   const stress = (100 - quitter.condition) + (100 - quitter.motivation);
 
-  // 확률 계산 (스트레스 높을수록 높은 확률)
   const chance = stress < 110 ? 0.07 : stress < 130 ? 0.16 : stress < 150 ? 0.28 : 0.42;
   if (Math.random() >= chance) return state;
 
@@ -181,10 +176,36 @@ const initialState: GameState = normalizeState({
   pendingEvent: null,
   triggeredEventIds: [],
   lastQuitEvent: null,
+  pendingClientMeeting: null,
+  clientMeetingTriggeredPhaseIdx: -1,
   difficulty: 'normal',
   projectThemeId: 'retail-inventory',
   gameStarted: false,
 });
+
+const tryTriggerClientMeeting = (state: GameState, prevStakeholder: number): GameState => {
+  if (state.pendingClientMeeting !== null) return state;
+  if (state.difficulty.startsWith('pmo')) return state;
+  if (state.difficulty.startsWith('ops')) return state;
+  if (state.clientMeetingTriggeredPhaseIdx === state.phaseIndex) return state;
+
+  const drop = prevStakeholder - state.stakeholder;
+  const isLow = state.stakeholder < 35;
+  const isSharpDrop = drop >= 15 && state.stakeholder < 55;
+
+  if (!isLow && !isSharpDrop) return state;
+
+  const urgency = state.stakeholder < 25 ? 'urgent' : 'normal';
+  const reason = urgency === 'urgent'
+    ? '「このままでは契約の継続を検討せざるを得ません」と強い懸念が届いています。'
+    : '「プロジェクトの現状について直接確認したい」と面談要請が届いています。';
+
+  return {
+    ...state,
+    pendingClientMeeting: { reason, urgency },
+    clientMeetingTriggeredPhaseIdx: state.phaseIndex,
+  };
+};
 
 const reducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
@@ -219,7 +240,6 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       const scenarioLimit = config.scenariosPerPhase;
       const willFinishPhase = nextScenarioIndex >= Math.min(currentPhase.scenarios.length, scenarioLimit);
 
-      // 連続失策ペナルティ: 直近2回が悪手 & 今回も悪手 → 炎上加速
       const last2 = state.decisions.slice(-2);
       const consecutiveBad = last2.length === 2 &&
         last2.every(d => d.effects.quality + d.effects.cost + d.effects.schedule + d.effects.stakeholder + d.effects.morale < -3);
@@ -255,22 +275,26 @@ const reducer = (state: GameState, action: GameAction): GameState => {
           : state.phaseFlags,
       });
 
-      // カスケード効果を適用（悪いKPIが他を道連れに） — 이뮤터블로
       const cascaded = applyCascadeEffects(afterChoice, state.difficulty);
       const baseNext: GameState = { ...afterChoice, quality: cascaded.quality, stakeholder: cascaded.stakeholder, morale: cascaded.morale };
 
       if (!willFinishPhase && state.pendingEvent === null && Math.random() < config.eventProbability) {
         const phaseId = currentPhase.id;
-        const available = randomEvents.filter(
+        const isPmo = state.difficulty.startsWith('pmo');
+        const isOps = state.difficulty.startsWith('ops');
+        const eventPool = isPmo ? pmoRandomEvents : isOps ? memberRandomEvents : randomEvents;
+        const available = eventPool.filter(
           (e) => (e.phaseIds.includes('all') || e.phaseIds.includes(phaseId)) &&
-            !state.triggeredEventIds.includes(e.id)
+            !state.triggeredEventIds.includes(e.id) &&
+            !(e.excludeDifficulties?.includes(state.difficulty))
         );
         if (available.length > 0) {
           const event = available[Math.floor(Math.random() * available.length)];
           return checkMemberQuit({ ...baseNext, pendingEvent: event, triggeredEventIds: [...state.triggeredEventIds, event.id] });
         }
       }
-      return checkMemberQuit({ ...baseNext, lastQuitEvent: null });
+      const withQuit = checkMemberQuit({ ...baseNext, lastQuitEvent: null });
+      return tryTriggerClientMeeting(withQuit, state.stakeholder);
     }
     case 'resolveEvent': {
       if (!state.pendingEvent) return state;
@@ -305,7 +329,8 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       });
       const cascadedEvent = applyCascadeEffects(afterEvent, state.difficulty);
       const resolvedState = { ...afterEvent, quality: cascadedEvent.quality, stakeholder: cascadedEvent.stakeholder, morale: cascadedEvent.morale, lastQuitEvent: null };
-      return checkMemberQuit(resolvedState);
+      const withQuitEvent = checkMemberQuit(resolvedState);
+      return tryTriggerClientMeeting(withQuitEvent, state.stakeholder);
     }
     case 'assignMember': {
       const updatedTasks = state.tasks.map((task) =>
@@ -348,6 +373,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'clearQuitEvent':
       return { ...state, lastQuitEvent: null };
+    case 'acceptClientMeeting':
+      return { ...state, pendingClientMeeting: null };
+    case 'dismissClientMeeting':
+      return { ...state, pendingClientMeeting: null, stakeholder: clamp(state.stakeholder - 8) };
     case 'setBufferFactor':
       return normalizeState({ ...state, bufferFactor: Math.min(2, Math.max(1, action.bufferFactor)) });
     case 'nextPhase': {
@@ -366,9 +395,10 @@ const reducer = (state: GameState, action: GameAction): GameState => {
         pendingEvent: action.state.pendingEvent ?? null,
         triggeredEventIds: action.state.triggeredEventIds ?? [],
         lastQuitEvent: action.state.lastQuitEvent ?? null,
+        pendingClientMeeting: action.state.pendingClientMeeting ?? null,
+        clientMeetingTriggeredPhaseIdx: action.state.clientMeetingTriggeredPhaseIdx ?? -1,
         difficulty: action.state.difficulty ?? 'normal',
         projectThemeId: action.state.projectThemeId ?? 'retail-inventory',
-        // 기존 세이브(gameStarted 미존재)는 결정이 있으면 진행 중으로 복원
         gameStarted: action.state.gameStarted ?? (action.state.decisions?.length > 0),
       });
     case 'reset':

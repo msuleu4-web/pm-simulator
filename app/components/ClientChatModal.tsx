@@ -9,6 +9,21 @@ const WARN_TURNS = 5;
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
+type ClientPersonality = 'cooperative' | 'demanding' | 'skeptical';
+
+function pickPersonality(stakeholder: number): ClientPersonality {
+  const r = Math.random();
+  if (stakeholder >= 65) return r < 0.70 ? 'cooperative' : r < 0.90 ? 'demanding' : 'skeptical';
+  if (stakeholder >= 45) return r < 0.35 ? 'cooperative' : r < 0.75 ? 'demanding' : 'skeptical';
+  return r < 0.15 ? 'cooperative' : r < 0.60 ? 'demanding' : 'skeptical';
+}
+
+const personalityLabel: Record<ClientPersonality, { label: string; color: string }> = {
+  cooperative: { label: '協力的',  color: 'bg-emerald-100 text-emerald-700' },
+  demanding:   { label: '高圧的',  color: 'bg-red-100 text-red-700' },
+  skeptical:   { label: '懐疑的',  color: 'bg-amber-100 text-amber-700' },
+};
+
 export function ClientChatModal({
   scenarioTitle,
   scenarioDescription,
@@ -16,6 +31,8 @@ export function ClientChatModal({
   clientName,
   clientDescription,
   state,
+  meetingReason,
+  meetingInitiator,
   onClose,
 }: {
   scenarioTitle: string;
@@ -24,12 +41,15 @@ export function ClientChatModal({
   clientName: string;
   clientDescription: string;
   state: Pick<GameState, 'quality' | 'cost' | 'schedule' | 'stakeholder' | 'morale'>;
+  meetingReason?: string;
+  meetingInitiator?: 'player' | 'client';
   onClose: () => void;
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [turnCount, setTurnCount] = useState(0);
+  const [personality] = useState<ClientPersonality>(() => pickPersonality(state.stakeholder));
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,6 +72,9 @@ export function ClientChatModal({
           messages: msgs,
           turnCount: turn,
           maxTurns: MAX_TURNS,
+          meetingReason,
+          meetingInitiator,
+          clientPersonality: personality,
         }),
       });
       const data: { content: string } = await res.json();
@@ -113,6 +136,9 @@ export function ClientChatModal({
               <p className="font-semibold text-slate-900 text-sm">{clientName}</p>
               <p className="text-xs text-slate-500">クライアント · {phaseLabel}</p>
             </div>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${personalityLabel[personality].color}`}>
+              {personalityLabel[personality].label}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${isMaxReached ? 'bg-red-100 text-red-700' : isWarnPhase ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -122,9 +148,17 @@ export function ClientChatModal({
           </div>
         </div>
 
-        {/* Scenario context */}
         <div className="border-b border-slate-100 bg-slate-50 px-5 py-2.5">
-          <p className="text-xs text-slate-500">📋 <span className="font-semibold text-slate-700">{scenarioTitle}</span></p>
+          {meetingReason ? (
+            <p className="text-xs text-slate-500">
+              {meetingInitiator === 'client' ? '📩 ' : '📞 '}
+              <span className="font-semibold text-slate-700">
+                {meetingInitiator === 'client' ? 'クライアントからの面談要請' : 'こちらから面談を申し込みました'}
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500">📋 <span className="font-semibold text-slate-700">{scenarioTitle}</span></p>
+          )}
         </div>
 
         {/* Messages */}

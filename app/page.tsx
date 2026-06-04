@@ -12,6 +12,8 @@ import { GlossaryPanel } from './components/GlossaryPanel';
 import { LearningLogPanel } from './components/LearningLogPanel';
 import { HiringPanel } from './components/HiringPanel';
 import { QuitEventBanner } from './components/QuitEventBanner';
+import { ClientMeetingBanner } from './components/ClientMeetingBanner';
+import { ClientChatModal } from './components/ClientChatModal';
 import { ProjectEvaluationPanel } from './components/ProjectEvaluationPanel';
 import { ScenarioCard } from './components/ScenarioCard';
 import { TaskAssignmentPanel } from './components/TaskAssignmentPanel';
@@ -43,6 +45,9 @@ const difficultyBadgeColor: Record<Difficulty, string> = {
   'pmo-support':   'bg-indigo-100 text-indigo-700',
   'pmo-control':   'bg-indigo-200 text-indigo-800',
   'pmo-directive': 'bg-violet-100 text-violet-800',
+  'ops-easy':   'bg-teal-100 text-teal-700',
+  'ops-normal': 'bg-teal-200 text-teal-800',
+  'ops-hard':   'bg-teal-300 text-teal-900',
 };
 
 function HomeContent() {
@@ -64,7 +69,12 @@ function HomeContent() {
   const [ultraUnlocked, setUltraUnlocked] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('pm-sim-ultra-unlocked') === 'true' : false
   );
+  const [clientChatOpen, setClientChatOpen] = useState<'player' | 'client' | null>(null);
+  const [activeTab, setActiveTab] = useState<'team' | 'progress' | 'records'>('team');
   const learning = useLearningProgress();
+
+  const isPmoMode = state.difficulty.startsWith('pmo');
+  const isOpsMode = state.difficulty.startsWith('ops');
 
   useEffect(() => {
     setLoggedInUser(localStorage.getItem('pm-sim-username') ?? '');
@@ -76,7 +86,6 @@ function HomeContent() {
     window.location.reload();
   }
 
-  // Check Ultra unlock after Hard mode completion
   const isGameComplete = hasFinishedPhase && !hasMorePhase;
   useEffect(() => {
     if (isGameComplete && state.difficulty === 'hard' && !ultraUnlocked) {
@@ -146,7 +155,6 @@ function HomeContent() {
     Math.min(100, state.morale),
   ];
 
-  // Show difficulty select if game not started
   if (!state.gameStarted) {
     return (
       <DifficultySelect
@@ -195,7 +203,6 @@ function HomeContent() {
           </div>
         </header>
 
-        {/* Ultra unlock banner */}
         {isGameComplete && state.difficulty === 'hard' && ultraUnlocked && (
           <div className="rounded-2xl border border-violet-300 bg-violet-50 px-5 py-4">
             <p className="text-sm font-bold text-violet-800">🎉 ウルトラモード解放！</p>
@@ -207,6 +214,14 @@ function HomeContent() {
           <QuitEventBanner
             event={state.lastQuitEvent}
             onDismiss={() => dispatch({ type: 'clearQuitEvent' })}
+          />
+        )}
+
+        {state.pendingClientMeeting && (
+          <ClientMeetingBanner
+            meeting={state.pendingClientMeeting}
+            onAccept={() => { dispatch({ type: 'acceptClientMeeting' }); setClientChatOpen('client'); }}
+            onDismiss={() => dispatch({ type: 'dismissClientMeeting' })}
           />
         )}
 
@@ -256,6 +271,21 @@ function HomeContent() {
               </div>
             ) : (
               <div className="space-y-6">
+                {!isPmoMode && !isOpsMode && projectTheme && (
+                  <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3">
+                    <div>
+                      <p className="text-xs font-semibold text-amber-800">クライアントとの直接対話</p>
+                      <p className="text-xs text-amber-700 mt-0.5">{projectTheme.client} — 随時、状況確認・交渉・情報収集ができます</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setClientChatOpen('player')}
+                      className="shrink-0 rounded-2xl bg-amber-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-amber-600"
+                    >
+                      面談を申し込む
+                    </button>
+                  </div>
+                )}
                 {selectedTag && (
                   <div className="rounded-3xl border border-brand-200 bg-brand-50/70 p-4 text-sm text-brand-900">
                     選択中の用語: <span className="font-semibold">{selectedTag}</span>。関連する選択肢を強調表示しています。
@@ -292,10 +322,6 @@ function HomeContent() {
               </div>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <GrowthTrendPanel values={growthValues} />
-              <AbilityRadarPanel state={state} />
-            </div>
           </div>
 
           <aside className="space-y-6">
@@ -305,57 +331,105 @@ function HomeContent() {
           </aside>
         </div>
 
-        <details className="group rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-soft transition hover:shadow-lg group-open:border-brand-300">
-          <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold text-slate-900 transition hover:text-brand-700">
-            詳細インサイトを展開
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">すべての機能</span>
-          </summary>
-          <div className="mt-5 space-y-6">
-            <div className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-              <TaskAssignmentPanel tasks={state.tasks} members={state.members} currentPhaseId={currentPhase.id} dispatch={dispatch} />
-              <div className="space-y-6">
-                <TeamCarePanel members={state.members} dispatch={dispatch} currentPhaseLabel={currentPhase.label} />
-                <ProgressRealityPanel members={state.members} dispatch={dispatch} />
-              </div>
-            </div>
+        {/* Tab navigation */}
+        <div className="rounded-3xl border border-slate-200 bg-white/95 shadow-soft overflow-hidden">
+          <div className="flex gap-1 border-b border-slate-100 px-4 pt-3">
+            {([
+              { id: 'team', label: 'チーム管理' },
+              { id: 'progress', label: '進捗・分析' },
+              { id: 'records', label: '記録・学習' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-t-xl px-5 py-2.5 text-sm font-semibold transition ${
+                  activeTab === tab.id
+                    ? 'bg-brand-600 text-white'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            <div className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-              <PhaseStepper phases={activePhases} currentIndex={state.phaseIndex} />
-              <GanttChart phases={activePhases} currentPhaseId={currentPhase.id} criticalPhaseIds={state.tasks.filter((t) => t.isCritical).map((t) => t.phaseId)} />
-            </div>
-
-            <HiringPanel
-              currentMembers={state.members}
-              currentPhaseId={currentPhase.id}
-              currentCost={state.cost}
-              dispatch={dispatch}
-            />
-
-            <IssueTracker phaseId={currentPhase.id} />
-
-            <GlossaryPanel
-              activeTags={[...currentScenarioTags]}
-              tagUsage={decisionTagCounts}
-              selectedTag={selectedTag}
-              onSelectTag={(tag) => setSelectedTag(tag === selectedTag ? null : tag)}
-            />
-
-            {summaryItems.length > 0 && (
-              <LearningLogPanel items={summaryItems} />
+          <div className="p-5 space-y-6">
+            {activeTab === 'team' && (
+              <>
+                <div className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+                  <TaskAssignmentPanel tasks={state.tasks} members={state.members} currentPhaseId={currentPhase.id} dispatch={dispatch} />
+                  <div className="space-y-6">
+                    <TeamCarePanel members={state.members} dispatch={dispatch} currentPhaseLabel={currentPhase.label} difficulty={state.difficulty} />
+                    <ProgressRealityPanel members={state.members} dispatch={dispatch} />
+                  </div>
+                </div>
+                <HiringPanel
+                  currentMembers={state.members}
+                  currentPhaseId={currentPhase.id}
+                  currentCost={state.cost}
+                  dispatch={dispatch}
+                />
+              </>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-3">
-              <ProgressPanel count={learning.count} />
-              <QuizSummaryPanel scores={learning.scores} />
-              <LearningActivityPanel progress={learning.progress} scores={learning.scores} />
-            </div>
+            {activeTab === 'progress' && (
+              <>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <GrowthTrendPanel values={growthValues} />
+                  <AbilityRadarPanel state={state} />
+                </div>
+                <div className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+                  <PhaseStepper phases={activePhases} currentIndex={state.phaseIndex} />
+                  <GanttChart phases={activePhases} currentPhaseId={currentPhase.id} criticalPhaseIds={state.tasks.filter((t) => t.isCritical).map((t) => t.phaseId)} />
+                </div>
+              </>
+            )}
 
-            {selectedTag && (
-              <TermModal term={selectedTag} description={pmBokDefinitions[selectedTag]} onClose={() => setSelectedTag(null)} />
+            {activeTab === 'records' && (
+              <>
+                <IssueTracker phaseId={currentPhase.id} />
+                <GlossaryPanel
+                  activeTags={[...currentScenarioTags]}
+                  tagUsage={decisionTagCounts}
+                  selectedTag={selectedTag}
+                  onSelectTag={(tag) => setSelectedTag(tag === selectedTag ? null : tag)}
+                />
+                {summaryItems.length > 0 && (
+                  <LearningLogPanel items={summaryItems} />
+                )}
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <ProgressPanel count={learning.count} />
+                  <QuizSummaryPanel scores={learning.scores} />
+                  <LearningActivityPanel progress={learning.progress} scores={learning.scores} />
+                </div>
+              </>
             )}
           </div>
-        </details>
+        </div>
+
+        {selectedTag && (
+          <TermModal term={selectedTag} description={pmBokDefinitions[selectedTag]} onClose={() => setSelectedTag(null)} />
+        )}
       </div>
+
+      {clientChatOpen && projectTheme && (
+        <ClientChatModal
+          scenarioTitle={currentPhase.label}
+          scenarioDescription={projectTheme.description}
+          phaseLabel={currentPhase.label}
+          clientName={projectTheme.client}
+          clientDescription={projectTheme.description}
+          state={state}
+          meetingReason={
+            clientChatOpen === 'client' && state.pendingClientMeeting
+              ? state.pendingClientMeeting.reason
+              : undefined
+          }
+          meetingInitiator={clientChatOpen}
+          onClose={() => setClientChatOpen(null)}
+        />
+      )}
     </main>
   );
 }

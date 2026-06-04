@@ -30,7 +30,6 @@ export const calculateFit = (
 ): FitResult => {
   const reasons: string[] = [];
 
-  // 1. 役割の不足度 (0~40)
   const roleCounts = team.reduce<Record<string, number>>((acc, m) => {
     acc[m.role] = (acc[m.role] ?? 0) + 1;
     return acc;
@@ -48,7 +47,6 @@ export const calculateFit = (
     reasons.push(`${candidate.role}は既に${existingCount}名在籍`);
   }
 
-  // 2. フェーズ適合度 (0~30)
   const goodRoles = phaseRoleMap[currentPhaseId] ?? [];
   const phaseScore = goodRoles.includes(candidate.role) ? 30 : 0;
   if (phaseScore > 0) {
@@ -57,7 +55,6 @@ export const calculateFit = (
     reasons.push(`現フェーズへの直接貢献は限定的`);
   }
 
-  // 3. スキルレベル (0~30)
   const skillScore = candidate.skillLevel * 6;
   if (candidate.skillLevel >= 4) {
     reasons.push(`スキルレベル${candidate.skillLevel}のベテラン`);
@@ -65,7 +62,6 @@ export const calculateFit = (
     reasons.push(`経験が浅くキャッチアップが必要`);
   }
 
-  // 4. サイロリスクペナルティ
   const siloCount = team.filter(m => m.isSiloed).length;
   const siloPenalty = siloCount >= 3 ? -10 : 0;
   if (siloPenalty < 0) reasons.push('既存のサイロ化リスクを悪化させる可能性');

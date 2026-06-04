@@ -18,10 +18,12 @@ export function TeamCarePanel({
   members,
   dispatch,
   currentPhaseLabel = 'プロジェクト進行中',
+  difficulty,
 }: {
   members: TeamMember[];
   dispatch: Dispatch<GameAction>;
   currentPhaseLabel?: string;
+  difficulty?: string;
 }) {
   const [activeMemberId, setActiveMemberId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -137,6 +139,7 @@ export function TeamCarePanel({
         <OneOnOneChatModal
           member={activeMember}
           phaseLabel={currentPhaseLabel}
+          difficulty={difficulty}
           onComplete={handleComplete}
           onClose={() => setActiveMemberId(null)}
         />

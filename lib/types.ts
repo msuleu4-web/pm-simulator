@@ -100,10 +100,11 @@ export type RandomEvent = {
   description: string;
   severity: RandomEventSeverity;
   phaseIds: string[];
+  excludeDifficulties?: Difficulty[];
   choices: RandomEventChoice[];
 };
 
-export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra' | 'maint-easy' | 'maint-hard' | 'pmo-support' | 'pmo-control' | 'pmo-directive';
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra' | 'maint-easy' | 'maint-hard' | 'pmo-support' | 'pmo-control' | 'pmo-directive' | 'ops-easy' | 'ops-normal' | 'ops-hard';
 
 export type ProjectCategory = '新規開発' | '保守運用' | '移行・刷新' | 'PMO';
 
@@ -125,6 +126,11 @@ export type QuitEvent = {
   motivation: number;
 };
 
+export type ClientMeetingRequest = {
+  reason: string;
+  urgency: 'normal' | 'urgent';
+};
+
 export type GameState = {
   phaseIndex: number;
   scenarioIndex: number;
@@ -142,6 +148,8 @@ export type GameState = {
   pendingEvent: RandomEvent | null;
   triggeredEventIds: string[];
   lastQuitEvent: QuitEvent | null;
+  pendingClientMeeting: ClientMeetingRequest | null;
+  clientMeetingTriggeredPhaseIdx: number;
   difficulty: Difficulty;
   projectThemeId: string;
   gameStarted: boolean;
@@ -156,6 +164,8 @@ export type GameAction =
   | { type: 'verifyMemberProgress'; memberId: string }
   | { type: 'hireTeamMember'; memberId: string; phaseId: string }
   | { type: 'clearQuitEvent' }
+  | { type: 'acceptClientMeeting' }
+  | { type: 'dismissClientMeeting' }
   | { type: 'setBufferFactor'; bufferFactor: number }
   | { type: 'nextPhase' }
   | { type: 'reset' }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
+type ClientPersonality = 'cooperative' | 'demanding' | 'skeptical';
+
 type Body = {
   scenarioTitle: string;
   scenarioDescription: string;
@@ -12,6 +14,9 @@ type Body = {
   messages: Msg[];
   turnCount: number;
   maxTurns: number;
+  meetingReason?: string;
+  meetingInitiator?: 'player' | 'client';
+  clientPersonality: ClientPersonality;
 };
 
 export async function POST(request: Request) {
@@ -21,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const body: Body = await request.json();
-  const { scenarioTitle, scenarioDescription, clientName, clientDescription, phaseLabel, kpiSummary, messages, turnCount, maxTurns } = body;
+  const { scenarioTitle, scenarioDescription, clientName, clientDescription, phaseLabel, kpiSummary, messages, turnCount, maxTurns, meetingReason, meetingInitiator, clientPersonality } = body;
 
   const remainingTurns = maxTurns - turnCount;
   const isAlmostDone = remainingTurns <= 2;
@@ -33,30 +38,64 @@ export async function POST(request: Request) {
     kpiSummary.stakeholder < 60 ? '顧客との関係が不安定' : '',
   ].filter(Boolean).join('、');
 
-  const systemPrompt = `あなたは「${clientName}」の担当者です。
-クライアントのプロフィール: ${clientDescription}
+  const contextSection = meetingReason
+    ? `【面談の経緯】\n${meetingReason}${meetingInitiator === 'client' ? '\nあなたが面談を要請した立場です。懸念や要求をしっかり伝えてください。' : ''}`
+    : `【現在のフェーズ】${phaseLabel}\n【状況】${scenarioTitle} — ${scenarioDescription}`;
 
-【現在のシナリオ】
-フェーズ: ${phaseLabel}
-状況: ${scenarioTitle}
-詳細: ${scenarioDescription}
+  const personalityGuide =
+    clientPersonality === 'demanding'
+      ? `【あなたの性格・態度】
+- 要求水準が高く、遅延・品質問題に対して厳しい
+- 「なぜできないのですか」「前回もそう言っていましたよね」と詰める場面もある
+- コスト削減・納期短縮を強く求める。感情的になることもある
+- 相手の言い訳より「結果」を求める`
+      : clientPersonality === 'skeptical'
+      ? `【あなたの性格・態度】
+- ベンダーへの信頼が低く、報告内容を疑う
+- 「その数字の根拠は？」「本当に大丈夫ですか？」と確認を求める
+- 過去のトラブルを引き合いに出すことがある
+- 慎重で、すぐには納得しない`
+      : `【あなたの性格・態度】
+- 基本的に協力的で建設的
+- 問題があれば率直に伝えるが、感情的にはならない
+- PMの提案を聞いた上で条件を出す`;
 
-${kpiNote ? `【プロジェクトの現状（あなたは知らないが参考に】: ${kpiNote}】` : ''}
+  const initialMessage = meetingInitiator === 'client'
+    ? 'お時間をいただきありがとうございます。今日は直接お話ししたいことがありまして。'
+    : 'お時間をいただきありがとうございます。今日の件について確認させてください。';
 
-【あなたの話し方ルール】
-- 日本語でビジネス敬語を使う
-- クライアントとしての立場・利益を守りながら発言する
-- 2〜3文で簡潔に返答する
-- 要求・懸念・条件があれば率直に伝える
-- PMの提案に対して条件付きで応じることもある
-- 完全に拒絶せず、交渉の余地を残す
-${isAlmostDone ? '- そろそろ会議を締めくくる方向で、結論に向けた発言をしてください。' : ''}
-- 残り会議時間は約${remainingTurns}ターン`;
+  const systemPrompt = `【役割設定】
+あなた＝「${clientName}」の担当者（システム開発を発注したクライアント企業の人間）
+相手＝ベンダー会社のPM（システム開発を請け負っている側）
+
+この会話はクライアントとベンダーPMの打ち合わせです。
+あなたはシステムを発注した側として、要件・要求・懸念をベンダーPMに伝えます。
+
+【絶対に守るルール】
+- 自分のことは「こちら」「弊社」「私ども」と言う
+- 相手（ベンダーPM）のことは「御社」「担当の方」と呼ぶ
+- 「${clientName}」という名前を相手への呼びかけに使わない
+
+【クライアント情報】${clientDescription}
+
+${personalityGuide}
+
+【プロジェクト状況】
+${contextSection}
+${kpiNote ? `\n現在の懸念事項：${kpiNote}` : ''}
+
+【話し方】
+- ビジネス敬語、2〜3文で簡潔に
+- 要求・懸念は率直に伝える。完全拒絶はしない
+${isAlmostDone ? '- 結論に向けてまとめてください。' : ''}
+- 残り会議時間：約${remainingTurns}ターン`;
 
   const groqMessages = [
     { role: 'system', content: systemPrompt },
     ...(messages.length === 0
-      ? [{ role: 'user', content: 'お時間をいただきありがとうございます。今日の件について確認させてください。' }]
+      ? [
+          { role: 'user', content: initialMessage },
+        ]
       : messages),
   ];
 
