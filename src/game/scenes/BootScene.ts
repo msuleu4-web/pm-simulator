@@ -19,6 +19,11 @@ export class BootScene extends Phaser.Scene {
     this.isRelay = data?.relay === true;
   }
 
+  preload() {
+    // Load document images for in-game item viewing
+    this.load.image('wbs', '/game-assets/wbs.png');
+  }
+
   create() {
     if (!this.isRelay) {
       // Initial start — reset everything except playerName

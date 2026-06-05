@@ -1,8 +1,9 @@
 import * as Phaser from 'phaser';
 import { getChapter } from '../data/chapters';
-import type { ChapterDefinition, NPCDefinition } from '../data/chapters';
+import type { ChapterDefinition, NPCDefinition, DocumentItem } from '../data/chapters';
 import { gameState } from '../state/gameState';
 import { sfx } from '../utils/audio';
+import { getRandomEventForChapter } from '../data/randomEvents';
 
 const TILE = 32;
 const MAP_COLS = 25;
@@ -15,7 +16,166 @@ const CANVAS_H = 598;
 // Japanese-friendly font for readable status/hint text
 const JP = '"Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", Arial, sans-serif';
 
-// Tile type → fill color
+// ── Pixel art character sprites ──────────────────────────────────────────────
+// 10 cols × 14 rows, rendered at 2 game-px per cell = 20 × 28 game pixels.
+// 0 = transparent. Every character has a dark outline (0x111111) for crispness.
+
+const O  = 0x111111; // outline / shoes / black
+const SK = 0xFFCE9E; // skin
+const SS = 0xD4956A; // skin shadow
+const EY = 0x2C1A0E; // eye
+const WH = 0xF8F8FF; // white shirt
+const HB = 0x1A0E00; // dark hair base
+const HD = 0x0A0500; // dark hair deep shadow
+
+// Player
+const YB = 0xF8C800; // hat bright yellow
+const YD = 0xC49000; // hat dark yellow
+const JL = 0x5498D8; // jacket highlight
+const JC = 0x2F6EA0; // jacket base
+const JD = 0x1A4270; // jacket shadow
+const PC = 0x1A2850; // pants base
+const PD = 0x0A1428; // pants shadow
+
+// PM
+const NC = 0x22223A; // navy suit
+const ND = 0x0E0E20; // navy dark
+const TI = 0xCC2222; // red tie
+const GA = 0x888888; // glasses
+
+// Senior / green
+const GL = 0x2E8858; // green light
+const GD = 0x185030; // green dark
+
+// Client / slate
+const CL = 0x3A68B0; // slate light
+const CD = 0x1C3870; // slate dark
+
+// Contractor / orange + light hair
+const LH = 0xC89040; // light hair
+const LD = 0x8A5C1A; // light hair dark
+const OL = 0xD87030; // orange light
+const OD = 0x9A4010; // orange dark
+
+// Tech / ops
+const TL = 0x4A9AD8; // tech blue light
+const TD = 0x1A5080; // tech blue dark
+
+const SPRITES: Record<string, number[][]> = {
+  player: [
+    [0, 0, YD, YB, YB, YB, YB, YD, 0, 0],  // hat
+    [0,YD, YB, YB, YB, YB, YB, YB,YD, 0],  // hat brim
+    [0, O,  O, SK, SK, SK, SK,  O,  0, 0],  // forehead outline
+    [0, O, SK, SK, SK, SK, SK,  O,  0, 0],  // forehead
+    [0, O, SK, EY, SK, EY, SK,  O,  0, 0],  // eyes
+    [0, O, SK, SK, SS, SS, SK,  O,  0, 0],  // lower face / shadow
+    [0, 0,  O, SK, SK, SK,  O,  0,  0, 0],  // neck
+    [0, O, JL, JC, WH, WH, JC, JL,  O, 0], // collar
+    [0, O, JD, JC, JL, JL, JC, JD,  O, 0], // chest
+    [0, O, JD, JD, JC, JC, JD, JD,  O, 0], // waist
+    [0, O, PD, PC,  O,  O, PC, PD,  O, 0], // pants split
+    [0, O, PC, PC,  O,  O, PC, PC,  O, 0], // pants
+    [0, O,  O,  O,  O,  O,  O,  O,  O, 0], // shoe top (outline)
+    [O,  O,  O,  O,  O,  O,  O,  O,  O, 0], // shoes
+  ],
+
+  pm: [
+    [0,  O, HB, HB, HB, HB, HB,  O,  0, 0], // hair
+    [0, HB, HD, HD, HB, HB, HD, HB,  0, 0], // hair shade
+    [0,  O,  O, SK, SK, SK, SK,  O,  0, 0], // forehead
+    [0,  O, GA, SK, GA, SK, GA,  O,  0, 0], // glasses
+    [0,  O, SK, SK, SS, SS, SK,  O,  0, 0], // lower face
+    [0,  0,  O, SK, SK, SK,  O,  0,  0, 0], // neck
+    [0,  O, NC, NC, WH, WH, NC, NC,  O, 0], // collar
+    [0,  O, ND, NC, TI, TI, NC, ND,  O, 0], // suit + tie
+    [0,  O, ND, NC, TI, TI, NC, ND,  O, 0], // suit + tie
+    [0,  O, ND, ND, NC, NC, ND, ND,  O, 0], // waist
+    [0,  O, ND, NC,  O,  O, NC, ND,  O, 0], // pants
+    [0,  O, NC, NC,  O,  O, NC, NC,  O, 0], // pants
+    [0,  O,  O,  O,  O,  O,  O,  O,  O, 0], // shoe top
+    [O,   O,  O,  O,  O,  O,  O,  O,  O, 0], // shoes
+  ],
+
+  senior: [
+    [0,  O, HB, HB, HB, HB, HB,  O,  0, 0],
+    [0, HB, HD, HD, HB, HB, HD, HB,  0, 0],
+    [0,  O,  O, SK, SK, SK, SK,  O,  0, 0],
+    [0,  O, SK, EY, SK, EY, SK,  O,  0, 0],
+    [0,  O, SK, SK, SS, SS, SK,  O,  0, 0],
+    [0,  0,  O, SK, SK, SK,  O,  0,  0, 0],
+    [0,  O, GL, GL, WH, WH, GL, GL,  O, 0],
+    [0,  O, GD, GL, GL, GL, GL, GD,  O, 0],
+    [0,  O, GD, GL, GD, GD, GL, GD,  O, 0],
+    [0,  O, GD, GD, GL, GL, GD, GD,  O, 0],
+    [0,  O, PD, PC,  O,  O, PC, PD,  O, 0],
+    [0,  O, PC, PC,  O,  O, PC, PC,  O, 0],
+    [0,  O,  O,  O,  O,  O,  O,  O,  O, 0],
+    [O,   O,  O,  O,  O,  O,  O,  O,  O, 0],
+  ],
+
+  client: [
+    [0,  O, HB, HB, HB, HB, HB,  O,  0, 0],
+    [0, HB, HD, HD, HB, HB, HD, HB,  0, 0],
+    [0,  O,  O, SK, SK, SK, SK,  O,  0, 0],
+    [0,  O, SK, EY, SK, EY, SK,  O,  0, 0],
+    [0,  O, SK, SK, SS, SS, SK,  O,  0, 0],
+    [0,  0,  O, SK, SK, SK,  O,  0,  0, 0],
+    [0,  O, CL, CL, WH, WH, CL, CL,  O, 0],
+    [0,  O, CD, CL, CL, CL, CL, CD,  O, 0],
+    [0,  O, CD, CL, CD, CD, CL, CD,  O, 0],
+    [0,  O, CD, CD, CL, CL, CD, CD,  O, 0],
+    [0,  O, CD, CL,  O,  O, CL, CD,  O, 0],
+    [0,  O, CL, CL,  O,  O, CL, CL,  O, 0],
+    [0,  O,  O,  O,  O,  O,  O,  O,  O, 0],
+    [O,   O,  O,  O,  O,  O,  O,  O,  O, 0],
+  ],
+
+  contractor: [
+    [0,  O, LH, LH, LH, LH, LH,  O,  0, 0], // light hair (older)
+    [0, LH, LD, LD, LH, LH, LD, LH,  0, 0],
+    [0,  O,  O, SK, SK, SK, SK,  O,  0, 0],
+    [0,  O, SK, EY, SK, EY, SK,  O,  0, 0],
+    [0,  O, SK, SK, SS, SS, SK,  O,  0, 0],
+    [0,  0,  O, SK, SK, SK,  O,  0,  0, 0],
+    [0,  O, OL, OL, WH, WH, OL, OL,  O, 0],
+    [0,  O, OD, OL, OL, OL, OL, OD,  O, 0],
+    [0,  O, OD, OL, OD, OD, OL, OD,  O, 0],
+    [0,  O, OD, OD, OL, OL, OD, OD,  O, 0],
+    [0,  O, PD, PC,  O,  O, PC, PD,  O, 0],
+    [0,  O, PC, PC,  O,  O, PC, PC,  O, 0],
+    [0,  O,  O,  O,  O,  O,  O,  O,  O, 0],
+    [O,   O,  O,  O,  O,  O,  O,  O,  O, 0],
+  ],
+
+  tech: [
+    [0,  O, HB, HB, HB, HB, HB,  O,  0, 0],
+    [0, HB, HD, HD, HB, HB, HD, HB,  0, 0],
+    [0,  O,  O, SK, SK, SK, SK,  O,  0, 0],
+    [0,  O, SK, EY, SK, EY, SK,  O,  0, 0],
+    [0,  O, SK, SK, SS, SS, SK,  O,  0, 0],
+    [0,  0,  O, SK, SK, SK,  O,  0,  0, 0],
+    [0,  O, TL, TL, WH, WH, TL, TL,  O, 0],
+    [0,  O, TD, TL, TL, TL, TL, TD,  O, 0],
+    [0,  O, TD, TL, TD, TD, TL, TD,  O, 0],
+    [0,  O, TD, TD, TL, TL, TD, TD,  O, 0],
+    [0,  O, PD, PC,  O,  O, PC, PD,  O, 0],
+    [0,  O, PC, PC,  O,  O, PC, PC,  O, 0],
+    [0,  O,  O,  O,  O,  O,  O,  O,  O, 0],
+    [O,   O,  O,  O,  O,  O,  O,  O,  O, 0],
+  ],
+};
+
+function spriteKeyForNpc(id: string): string {
+  if (id.startsWith('tanaka')) return 'pm';
+  if (id.startsWith('sato'))   return 'senior';
+  if (id.startsWith('client')) return 'client';
+  if (id.startsWith('suzuki')) return 'contractor';
+  if (id.startsWith('ops'))    return 'tech';
+  if (id.startsWith('other'))  return 'tech';
+  return 'senior';
+}
+
+// ── Tile type → fill color
 const TILE_COLORS: Record<number, number> = {
   0: 0xd4d9e3,  // floor
   1: 0x3d4252,  // wall
@@ -106,23 +266,45 @@ export class MapScene extends Phaser.Scene {
     this.confirmKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.enterKey   = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
-    // Listen for EventScene completing
+    // Listen for EventScene / RandomEventScene / DocumentScene completing
     this.game.events.on('sier-event-complete', this.onEventComplete, this);
+    this.game.events.on('sier-random-event-done', this.onRandomEventDone, this);
+    this.game.events.on('sier-document-closed', this.onDocumentClosed, this);
 
-    // Redraw status & chars when resuming from EventScene — ALWAYS reset interacting
+    // Redraw status & chars when resuming — ALWAYS reset interacting
     this.events.on('resume', () => {
-      this.interacting = false;   // reset first so update() can run again
-      this.moveCooldown = 300;    // brief grace period after resume
+      this.interacting = false;
+      this.moveCooldown = 300;
       this.updateStatusBar();
       this.drawChars();
       this.checkProximity();
     });
 
-    // Also reset interacting if scene wakes (in case of sleep/wake instead of pause/resume)
     this.events.on('wake', () => {
       this.interacting = false;
       this.moveCooldown = 300;
     });
+
+    // Trigger random event for this chapter (after intro is dismissed)
+    this.time.delayedCall(800, () => this.tryTriggerRandomEvent());
+  }
+
+  private tryTriggerRandomEvent() {
+    if (this.introShown || this.advancing) return;
+    const randEvt = getRandomEventForChapter(
+      this.chapter.id,
+      gameState.triggeredRandomEvents,
+      gameState.difficulty,
+    );
+    if (!randEvt) return;
+    this.interacting = true;
+    this.scene.launch('RandomEventScene', { event: randEvt });
+    this.scene.pause('MapScene');
+  }
+
+  private onRandomEventDone() {
+    this.updateStatusBar();
+    this.drawChars();
   }
 
   // ── Map drawing ─────────────────────────────────────────────
@@ -207,6 +389,9 @@ export class MapScene extends Phaser.Scene {
 
     const allDone = this.chapter.events.every((id) => gameState.completedEvents.has(id));
 
+    // Draw document items (papers on desks)
+    this.drawDocuments();
+
     // Draw NPCs
     this.chapter.npcs.forEach((npc) => {
       const done = gameState.completedEvents.has(npc.eventId);
@@ -220,55 +405,119 @@ export class MapScene extends Phaser.Scene {
     this.updateHint(allDone);
   }
 
+  private drawDocuments() {
+    const docs = this.chapter.documents ?? [];
+    const { col: pc, row: pr } = this.playerTile;
+    docs.forEach((doc) => {
+      const x = doc.col * TILE;
+      const y = MAP_Y + doc.row * TILE;
+
+      // Paper visual on desk tile
+      this.charGfx.fillStyle(0xF5F0D0, 1);
+      this.charGfx.fillRect(x + 5, y + 8, 12, 16);
+      this.charGfx.fillStyle(0xC8C080, 0.7);
+      this.charGfx.fillRect(x + 7, y + 11, 8, 1);
+      this.charGfx.fillRect(x + 7, y + 13, 8, 1);
+      this.charGfx.fillRect(x + 7, y + 15, 8, 1);
+      this.charGfx.lineStyle(1, 0x886640, 0.9);
+      this.charGfx.strokeRect(x + 5, y + 8, 12, 16);
+
+      // Sparkle/attention dot when player is close
+      const near = Math.abs(doc.col - pc) <= 1 && Math.abs(doc.row - pr) <= 1;
+      if (near) {
+        this.charGfx.fillStyle(0xFFDD00, 0.95);
+        this.charGfx.fillCircle(x + 11, y + 4, 4);
+        this.charGfx.fillStyle(0xFFFFAA, 1);
+        this.charGfx.fillCircle(x + 11, y + 4, 2);
+      }
+    });
+  }
+
+  /** Render a pixel-art sprite centred at (cx, cy). px = game-pixels per logical pixel. */
+  private drawSprite(
+    gfx: Phaser.GameObjects.Graphics,
+    sprite: number[][],
+    cx: number, cy: number,
+    alpha = 1, px = 2,
+  ) {
+    const rows = sprite.length;
+    const cols = sprite[0].length;
+    const ox = cx - (cols * px) / 2;
+    const oy = cy - (rows * px) / 2;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const col = sprite[r][c];
+        if (col !== 0) {
+          gfx.fillStyle(col, alpha);
+          gfx.fillRect(ox + c * px, oy + r * px, px, px);
+        }
+      }
+    }
+  }
+
+  /** Draw grayscale version of a sprite (completed NPC). */
+  private drawSpriteGray(
+    gfx: Phaser.GameObjects.Graphics,
+    sprite: number[][],
+    cx: number, cy: number,
+    px = 2,
+  ) {
+    const rows = sprite.length;
+    const cols = sprite[0].length;
+    const ox = cx - (cols * px) / 2;
+    const oy = cy - (rows * px) / 2;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const col = sprite[r][c];
+        if (col !== 0) {
+          // Convert to grayscale luminance
+          const rr = (col >> 16) & 0xff;
+          const gg = (col >> 8) & 0xff;
+          const bb = col & 0xff;
+          const lum = Math.round(rr * 0.299 + gg * 0.587 + bb * 0.114);
+          const gray = (lum << 16) | (lum << 8) | lum;
+          gfx.fillStyle(gray, 0.5);
+          gfx.fillRect(ox + c * px, oy + r * px, px, px);
+        }
+      }
+    }
+  }
+
   private drawNPC(npc: NPCDefinition, completed: boolean) {
-    const x = npc.col * TILE + TILE / 2;
-    const y = MAP_Y + npc.row * TILE + TILE / 2;
-    const color = completed ? 0x666666 : npc.color;
-    const alpha = completed ? 0.45 : 1;
+    const cx = npc.col * TILE + TILE / 2;
+    const cy = MAP_Y + npc.row * TILE + TILE / 2 + 2;
+    const sprite = SPRITES[spriteKeyForNpc(npc.id)] ?? SPRITES['senior'];
 
-    // Body
-    this.charGfx.fillStyle(color, alpha);
-    this.charGfx.fillRect(x - 9, y - 4, 18, 16);
+    // Shadow
+    this.charGfx.fillStyle(0x000000, completed ? 0.08 : 0.18);
+    this.charGfx.fillEllipse(cx, cy + 13, 18, 5);
 
-    // Head
-    this.charGfx.fillStyle(0xffe0b2, alpha);
-    this.charGfx.fillCircle(x, y - 12, 9);
-
-    // Completed check
     if (completed) {
-      this.charGfx.fillStyle(0xaaaaaa, 0.6);
-      this.charGfx.fillCircle(x, y - 12, 5);
+      this.drawSpriteGray(this.charGfx, sprite, cx, cy);
+      // Small ✓ badge
+      this.charGfx.fillStyle(0x33cc66, 0.9);
+      this.charGfx.fillCircle(cx + 9, cy - 13, 5);
+      this.charGfx.fillStyle(0xffffff, 1);
+      this.charGfx.fillRect(cx + 6, cy - 14, 2, 4);
+      this.charGfx.fillRect(cx + 8, cy - 10, 4, 2);
+    } else {
+      this.drawSprite(this.charGfx, sprite, cx, cy);
     }
   }
 
   private drawPlayer() {
-    const x = this.playerTile.col * TILE + TILE / 2;
-    const y = MAP_Y + this.playerTile.row * TILE + TILE / 2;
+    const cx = this.playerTile.col * TILE + TILE / 2;
+    const cy = MAP_Y + this.playerTile.row * TILE + TILE / 2 + 2;
 
     // Shadow
-    this.charGfx.fillStyle(0x000000, 0.18);
-    this.charGfx.fillEllipse(x, y + 12, 20, 8);
+    this.charGfx.fillStyle(0x000000, 0.2);
+    this.charGfx.fillEllipse(cx, cy + 13, 20, 6);
 
-    // Body (blue suit)
-    this.charGfx.fillStyle(0x2c5f8a, 1);
-    this.charGfx.fillRect(x - 9, y - 4, 18, 16);
+    this.drawSprite(this.charGfx, SPRITES['player'], cx, cy);
 
-    // Head (skin)
-    this.charGfx.fillStyle(0xffd5a0, 1);
-    this.charGfx.fillCircle(x, y - 13, 9);
-
-    // Hair
-    this.charGfx.fillStyle(0x3d2b1a, 1);
-    this.charGfx.fillRect(x - 8, y - 22, 16, 6);
-
-    // Tie
-    this.charGfx.fillStyle(0xcc2222, 1);
-    this.charGfx.fillTriangle(x - 2, y - 4, x + 2, y - 4, x, y + 5);
-
-    // "YOU" badge
-    this.charGfx.fillStyle(0xffff00, 0.85);
-    this.charGfx.fillRect(x - 10, y - 28, 20, 8);
-    // (text drawn separately via hint text)
+    // "▼YOU" arrow above player
+    this.charGfx.fillStyle(0xffff00, 0.9);
+    this.charGfx.fillTriangle(cx - 4, cy - 28, cx + 4, cy - 28, cx, cy - 22);
   }
 
   // ── Status bar ───────────────────────────────────────────────
@@ -379,11 +628,20 @@ export class MapScene extends Phaser.Scene {
   }
 
   private updateHint(allDone: boolean) {
+    const nearbyDoc = this.getNearbyDocument();
+    if (nearbyDoc) {
+      this.hintText.setText('📄 Zキーで資料を確認する');
+      return;
+    }
     const nearby = this.getNearbyNPC();
     if (nearby && !gameState.completedEvents.has(nearby.eventId)) {
       this.hintText.setText(`【${nearby.name}】に近づいてZキーで話しかける`);
     } else if (allDone) {
-      this.hintText.setText('全員と話し終えました！右下の出口（緑タイル）へ進んでください');
+      const unreadDoc = (this.chapter.documents ?? [])
+        .find((d) => d.required && gameState.getFlag(`doc-seen-${d.id}`) !== 'true');
+      this.hintText.setText(unreadDoc
+        ? '📄 机の上の資料を確認してから出口へ進もう'
+        : '全員と話し終えました！右下の出口（緑タイル）へ進んでください');
     } else {
       const remaining = this.chapter.events.filter((id) => !gameState.completedEvents.has(id)).length;
       this.hintText.setText(`残りNPC: ${remaining}人`);
@@ -523,23 +781,63 @@ export class MapScene extends Phaser.Scene {
     this.moveCooldown = 160;
   }
 
+  private getNearbyDocument(): DocumentItem | null {
+    const docs = this.chapter.documents ?? [];
+    const { col, row } = this.playerTile;
+    return docs.find((doc) =>
+      Math.abs(doc.col - col) <= 1 && Math.abs(doc.row - row) <= 1
+    ) ?? null;
+  }
+
+  private onDocumentClosed(docId: string) {
+    // Save "seen" flag so exit gate can check it
+    gameState.setFlag(`doc-seen-${docId}`, 'true');
+    this.drawChars();
+  }
+
   private tryInteract() {
-    // Safety: never double-launch EventScene
+    // Safety: never double-launch EventScene or DocumentScene
     if (this.scene.isActive('EventScene') || this.scene.isSleeping('EventScene')) return;
+    if (this.scene.isActive('DocumentScene') || this.scene.isSleeping('DocumentScene')) return;
 
-    const allDone = this.chapter.events.every((id) => gameState.completedEvents.has(id));
-    const nearby = this.getNearbyNPC();
-
-    if (nearby && !gameState.completedEvents.has(nearby.eventId)) {
+    // Check document items first
+    const nearbyDoc = this.getNearbyDocument();
+    if (nearbyDoc) {
       this.interacting = true;
-      this.moveCooldown = 200;
-      this.scene.launch('EventScene', { eventId: nearby.eventId });
+      this.scene.launch('DocumentScene', { document: nearbyDoc });
       this.scene.pause('MapScene');
       sfx.select();
       return;
     }
 
+    const allDone = this.chapter.events.every((id) => gameState.completedEvents.has(id));
+    const nearby = this.getNearbyNPC();
+
+    // NPC interaction — always launchable (even if already talked)
+    if (nearby) {
+      if (!gameState.completedEvents.has(nearby.eventId)) {
+        // First talk: triggers the event
+        this.interacting = true;
+        this.moveCooldown = 200;
+        this.scene.launch('EventScene', { eventId: nearby.eventId });
+        this.scene.pause('MapScene');
+        sfx.select();
+        return;
+      } else {
+        // Already talked: show a quick re-greeting notice (no full event)
+        this.showNotice(`${nearby.name}：「もし他にも疑問があれば聞いてね。」`, 2200);
+        return;
+      }
+    }
+
     if (allDone && this.isNearExit()) {
+      // Check required documents before advancing
+      const unreadDoc = (this.chapter.documents ?? [])
+        .find((d) => d.required && gameState.getFlag(`doc-seen-${d.id}`) !== 'true');
+      if (unreadDoc) {
+        this.showNotice(unreadDoc.blockedHint ?? '周りをもう少し探索してみよう…', 2800);
+        return;
+      }
       this.advanceChapter();
       return;
     }
@@ -594,8 +892,18 @@ export class MapScene extends Phaser.Scene {
     if (onExit) {
       const allDone = this.chapter.events.every((id) => gameState.completedEvents.has(id));
       if (allDone) {
-        this.advanceChapter();
-        return;
+        const unreadDoc = (this.chapter.documents ?? [])
+          .find((d) => d.required && gameState.getFlag(`doc-seen-${d.id}`) !== 'true');
+        if (unreadDoc) {
+          // Show notice only when it's not already visible (prevent per-frame spam)
+          if (!this.noticeText.text) {
+            this.showNotice(unreadDoc.blockedHint ?? '周りをもう少し探索してみよう…', 2800);
+          }
+          // NO return here — player must still be able to move away
+        } else {
+          this.advanceChapter();
+          return;
+        }
       }
     }
 
@@ -627,5 +935,7 @@ export class MapScene extends Phaser.Scene {
   // Clean up global listeners when scene is destroyed/restarted
   shutdown() {
     this.game.events.off('sier-event-complete', this.onEventComplete, this);
+    this.game.events.off('sier-random-event-done', this.onRandomEventDone, this);
+    this.game.events.off('sier-document-closed', this.onDocumentClosed, this);
   }
 }

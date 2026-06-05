@@ -7,6 +7,17 @@ export interface NPCDefinition {
   color: number;
 }
 
+export interface DocumentItem {
+  id: string;
+  col: number;        // desk tile where the doc sits (impassable — approach from adjacent)
+  row: number;
+  label: string;      // short label shown above the item
+  dialog: string;     // flavor text shown before the image
+  imageKey: string;   // Phaser texture key
+  required?: boolean; // if true, must be viewed before advancing to next chapter
+  blockedHint?: string; // message shown when player tries to advance without reading
+}
+
 export interface ChapterDefinition {
   id: number;
   title: string;
@@ -20,6 +31,7 @@ export interface ChapterDefinition {
   events: string[];
   floorColor: number;
   wallColor: number;
+  documents?: DocumentItem[];
 }
 
 // Tile legend:
@@ -58,6 +70,19 @@ export const chapters: ChapterDefinition[] = [
     playerStart: { col: 12, row: 11 },
     exitTile: { col: 23, row: 12 },
     events: ['event-1-1', 'event-1-2'],
+    documents: [
+      {
+        id: 'doc-wbs',
+        col: 2,
+        row: 2,
+        label: '資料📄',
+        dialog:
+          '机の上に古いバインダーが置いてある。\n\n表紙には「〇〇銀行 次世代勘定系プロジェクト\nWBS v2.3 ── 過去案件参考資料」と書かれている。\n\n「...これが実際のWBSか。\n自分の業務範囲がここまで細かく分解されているんだな。参考にしよう。」',
+        imageKey: 'wbs',
+        required: true,
+        blockedHint: '机の上の資料もチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。',
+      },
+    ],
   },
   {
     id: 2,

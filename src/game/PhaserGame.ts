@@ -2,6 +2,8 @@ import * as Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { MapScene } from './scenes/MapScene';
 import { EventScene } from './scenes/EventScene';
+import { RandomEventScene } from './scenes/RandomEventScene';
+import { DocumentScene } from './scenes/DocumentScene';
 import { EndingScene } from './scenes/EndingScene';
 import { RankingScene } from './scenes/RankingScene';
 import { gameState } from './state/gameState';
@@ -17,7 +19,7 @@ export function createGame(parent: HTMLElement, playerName?: string): Phaser.Gam
     height: 598,
     parent,
     backgroundColor: '#0d1a2e',
-    scene: [BootScene, MapScene, EventScene, EndingScene, RankingScene],
+    scene: [BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene],
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

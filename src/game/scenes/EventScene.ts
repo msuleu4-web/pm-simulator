@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { scenarios } from '../data/scenarios';
 import type { GameEvent, EventChoice } from '../data/scenarios';
-import { gameState } from '../state/gameState';
+import { gameState, DIFFICULTY_MULTIPLIER } from '../state/gameState';
 import { sfx } from '../utils/audio';
 
 // ── Layout constants ─────────────────────────────────────────
@@ -61,8 +61,20 @@ export class EventScene extends Phaser.Scene {
 
   init(data: { eventId: string }) {
     this.event = scenarios[data.eventId];
-    // Shuffle choices so correct answer isn't always A
-    this.shuffledChoices = [...this.event.choices].sort(() => Math.random() - 0.5);
+
+    // Build choice pool based on difficulty, then shuffle
+    const base = [...this.event.choices];
+    const extras = this.event.extraChoices ?? [];
+    const diff = gameState.difficulty;
+    let pool: typeof base;
+    if (diff === 'easy') {
+      pool = base;
+    } else if (diff === 'normal') {
+      pool = [...base, ...(extras.slice(0, 1))];   // +1 trap choice
+    } else {
+      pool = [...base, ...extras];                  // +2 trap choices
+    }
+    this.shuffledChoices = pool.sort(() => Math.random() - 0.5);
     this.phase = 'situation';
     this.selectedChoice = 0;
     this.chosenChoice = null;
@@ -296,7 +308,15 @@ export class EventScene extends Phaser.Scene {
     else if (grade === '×') sfx.wrong();
     else sfx.neutral();
 
-    gameState.applyEffects(this.chosenChoice.effects);
+    // Scale effects by difficulty multiplier
+    const mult = DIFFICULTY_MULTIPLIER[gameState.difficulty];
+    const scaledEffects = {
+      quality:  this.chosenChoice.effects.quality  ? Math.round(this.chosenChoice.effects.quality  * mult) : undefined,
+      cost:     this.chosenChoice.effects.cost     ? Math.round(this.chosenChoice.effects.cost     * mult) : undefined,
+      delivery: this.chosenChoice.effects.delivery ? Math.round(this.chosenChoice.effects.delivery * mult) : undefined,
+      trust:    this.chosenChoice.effects.trust    ? Math.round(this.chosenChoice.effects.trust    * mult) : undefined,
+    };
+    gameState.applyEffects(scaledEffects);
     if (this.event.flagKey) gameState.setFlag(this.event.flagKey, this.chosenChoice.id);
 
     // Effect summary badge

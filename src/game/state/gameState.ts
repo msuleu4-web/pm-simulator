@@ -1,4 +1,11 @@
 export type QCDKey = 'quality' | 'cost' | 'delivery' | 'trust';
+export type DifficultyLevel = 'easy' | 'normal' | 'hard';
+
+export const DIFFICULTY_MULTIPLIER: Record<DifficultyLevel, number> = {
+  easy:   0.65,
+  normal: 1.0,
+  hard:   1.5,
+};
 
 export interface ScoreEffects {
   quality?: number;
@@ -16,6 +23,8 @@ export interface GameStateType {
   currentChapter: number;
   completedEvents: Set<string>;
   flags: Record<string, string>;
+  difficulty: DifficultyLevel;
+  triggeredRandomEvents: Set<string>;
 }
 
 function clamp(v: number): number {
@@ -31,6 +40,8 @@ const state: GameStateType = {
   currentChapter: 1,
   completedEvents: new Set(),
   flags: {},
+  difficulty: 'normal',
+  triggeredRandomEvents: new Set(),
 };
 
 export const gameState = {
@@ -47,6 +58,11 @@ export const gameState = {
 
   get completedEvents() { return state.completedEvents; },
   get flags() { return state.flags; },
+
+  get difficulty() { return state.difficulty; },
+  set difficulty(v: DifficultyLevel) { state.difficulty = v; },
+
+  get triggeredRandomEvents() { return state.triggeredRandomEvents; },
 
   applyEffects(effects: ScoreEffects) {
     if (effects.quality !== undefined) state.quality = clamp(state.quality + effects.quality);
@@ -80,5 +96,7 @@ export const gameState = {
     state.currentChapter = 1;
     state.completedEvents.clear();
     state.flags = {};
+    state.difficulty = 'normal';
+    state.triggeredRandomEvents.clear();
   },
 };
