@@ -245,6 +245,9 @@ export const randomEvents: RandomEvent[] = [
 ];
 
 // Get a random event for the current chapter and difficulty
+// Set true to always fire an event in chapter 3 (for testing)
+const FORCE_CHAPTER3_EVENT = true;
+
 export function getRandomEventForChapter(
   chapterId: number,
   triggeredIds: Set<string>,
@@ -252,14 +255,19 @@ export function getRandomEventForChapter(
 ): RandomEvent | null {
   if (difficulty === 'easy') return null;
 
-  // Probability: normal=25%, hard=50%
-  const prob = difficulty === 'hard' ? 0.5 : 0.25;
-  if (Math.random() > prob) return null;
-
   const candidates = randomEvents.filter(
     (e) => e.chapters.includes(chapterId) && !triggeredIds.has(e.id)
   );
   if (candidates.length === 0) return null;
+
+  // Force an event in chapter 3 for testing
+  if (FORCE_CHAPTER3_EVENT && chapterId === 3) {
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // Probability: normal=25%, hard=50%
+  const prob = difficulty === 'hard' ? 0.5 : 0.25;
+  if (Math.random() > prob) return null;
 
   return candidates[Math.floor(Math.random() * candidates.length)];
 }

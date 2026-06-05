@@ -6,8 +6,20 @@ import { sfx } from '../utils/audio';
 const CANVAS_W = 800;
 const CANVAS_H = 600;
 const JP = '"Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", Arial, sans-serif';
-const BOX_X = 20, BOX_Y = 80, BOX_W = 760, BOX_H = 200;
-const PAD = 18;
+
+// ── Layout ─────────────────────────────────────────
+// Banner     : y= 0 – 52
+// Title      : y=60
+// Situation  : y=76 – 240  (BOX_H=164)
+// Choices    : y=248 – 440 (3×60px+gap)
+// Indicator  : y=CANVAS_H-20
+const BANNER_H  = 52;
+const SIT_Y     = 76;
+const SIT_H     = 164;
+const CHOICE_Y0 = SIT_Y + SIT_H + 8;   // 248
+const CHOICE_H  = 56;
+const CHOICE_G  = 6;
+const PAD       = 16;
 
 type Phase = 'situation' | 'choices' | 'result' | 'done';
 
@@ -20,17 +32,19 @@ export class RandomEventScene extends Phaser.Scene {
   private typeTimer: Phaser.Time.TimerEvent | null = null;
   private typeOnComplete: (() => void) | null = null;
 
-  private gfx!: Phaser.GameObjects.Graphics;
-  private titleText!: Phaser.GameObjects.Text;
-  private bodyText!: Phaser.GameObjects.Text;
+  private bgGfx!: Phaser.GameObjects.Graphics;
+  private sitBox!: Phaser.GameObjects.Graphics;
+  private situationText!: Phaser.GameObjects.Text;
   private nextIndicator!: Phaser.GameObjects.Text;
   private choiceTexts: Phaser.GameObjects.Text[] = [];
+  private choicePromptText?: Phaser.GameObjects.Text;
+  private effectLabel!: Phaser.GameObjects.Text;
 
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private confirmKey!: Phaser.Input.Keyboard.Key;
   private enterKey!: Phaser.Input.Keyboard.Key;
   private upKey!: Phaser.Input.Keyboard.Key;
   private downKey!: Phaser.Input.Keyboard.Key;
+  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private inputCooldown = 0;
 
   constructor() { super({ key: 'RandomEventScene' }); }
@@ -42,52 +56,60 @@ export class RandomEventScene extends Phaser.Scene {
     this.charIndex = 0;
     this.fullText = '';
     this.typeOnComplete = null;
-    this.inputCooldown = 0;
+    this.inputCooldown = 400;
   }
 
   create() {
-    // Semi-transparent dark overlay (MapScene stays paused behind)
-    const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 0.65);
-    overlay.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    // ── Background ────────────────────────────────
+    this.bgGfx = this.add.graphics();
+    this.bgGfx.fillStyle(0x000000, 0.72);
+    this.bgGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Warning banner at top
-    const banner = this.add.graphics();
-    banner.fillStyle(0x8B1A1A, 1);
-    banner.fillRect(0, 0, CANVAS_W, 60);
-    banner.lineStyle(2, 0xFF4444, 1);
-    banner.strokeRect(0, 0, CANVAS_W, 60);
+    // ── Warning banner ────────────────────────────
+    this.bgGfx.fillStyle(0x7A1010, 1);
+    this.bgGfx.fillRect(0, 0, CANVAS_W, BANNER_H);
+    this.bgGfx.lineStyle(2, 0xFF5555, 1);
+    this.bgGfx.strokeRect(0, 0, CANVAS_W, BANNER_H);
 
-    this.add.text(CANVAS_W / 2, 30, `${this.event.emoji}  ランダムイベント発生！  ${this.event.emoji}`, {
-      fontSize: '18px', fontStyle: 'bold', color: '#FFD0D0', fontFamily: JP,
+    this.add.text(CANVAS_W / 2, BANNER_H / 2,
+      `${this.event.emoji}  ランダムイベント発生！  ${this.event.emoji}`, {
+        fontSize: '17px', fontStyle: 'bold',
+        color: '#FFD0D0', fontFamily: JP,
+      }).setOrigin(0.5);
+
+    // ── Event title ───────────────────────────────
+    this.add.text(CANVAS_W / 2, 62, this.event.title, {
+      fontSize: '18px', fontStyle: 'bold',
+      color: '#FFE88A', fontFamily: JP,
     }).setOrigin(0.5);
 
-    // Event title
-    this.add.text(CANVAS_W / 2, 72, this.event.title, {
-      fontSize: '20px', fontStyle: 'bold', color: '#FFEEAA', fontFamily: JP,
-    }).setOrigin(0.5);
+    // ── Situation box ──────────────────────────────
+    this.sitBox = this.add.graphics();
+    this.drawSitBox(0x0A1828);
 
-    // Main box
-    this.gfx = this.add.graphics();
-    this.drawBox();
-
-    // Body text
-    this.bodyText = this.add.text(BOX_X + PAD, BOX_Y + PAD, '', {
-      fontSize: '15px', color: '#F0F4FF',
-      fontFamily: JP,
-      wordWrap: { width: BOX_W - PAD * 2, useAdvancedWrap: true },
+    // Situation body text
+    this.situationText = this.add.text(PAD + 8, SIT_Y + PAD, '', {
+      fontSize: '14px', color: '#E8F0FF', fontFamily: JP,
+      wordWrap: { width: CANVAS_W - (PAD + 8) * 2, useAdvancedWrap: true },
       lineSpacing: 6,
-      fixedWidth: BOX_W - PAD * 2,
+      fixedWidth: CANVAS_W - (PAD + 8) * 2,
     });
 
-    // Indicator
-    this.nextIndicator = this.add.text(BOX_X + BOX_W - PAD, BOX_Y + BOX_H - 10, '', {
-      fontSize: '14px', color: '#88BBFF', fontFamily: JP,
-    }).setOrigin(1, 1);
+    // Next/proceed indicator (bottom right)
+    this.nextIndicator = this.add.text(
+      CANVAS_W - PAD, CANVAS_H - 18, '', {
+        fontSize: '13px', color: '#88BBFF', fontFamily: JP,
+      }).setOrigin(1, 1);
 
-    this.titleText = this.add.text(0, 0, '', { fontSize: '1px' }); // placeholder
+    // Effect label — appears below sitBox in result phase (choices are gone by then)
+    this.effectLabel = this.add.text(
+      CANVAS_W / 2, SIT_Y + SIT_H + 12, '', {
+        fontSize: '14px', fontStyle: 'bold', color: '#FFDD44', fontFamily: JP,
+        backgroundColor: '#1A1800DD', padding: { x: 14, y: 6 },
+        align: 'center',
+      }).setOrigin(0.5, 0).setDepth(10);
 
-    // Keyboard
+    // ── Input ─────────────────────────────────────
     this.cursors    = this.input.keyboard!.createCursorKeys();
     this.confirmKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     this.enterKey   = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
@@ -96,41 +118,44 @@ export class RandomEventScene extends Phaser.Scene {
 
     this.input.on('pointerdown', () => {
       if (this.inputCooldown > 0) return;
+      // Choices must be tapped directly on their buttons — block global tap during choice phase
+      if (this.phase === 'choices') return;
       this.handleConfirm();
     });
 
     this.startTypewriter(this.event.situation, () => {
-      this.phase = 'situation';
       this.nextIndicator.setText('▼ Zキー / タップで選択肢へ');
       this.tweens.add({
-        targets: this.nextIndicator, alpha: { from: 1, to: 0.2 },
-        yoyo: true, loop: -1, duration: 550,
+        targets: this.nextIndicator,
+        alpha: { from: 1, to: 0.2 }, yoyo: true, loop: -1, duration: 600,
       });
     });
   }
 
-  private drawBox(bgColor = 0x0D1C3A) {
-    this.gfx.clear();
-    this.gfx.fillStyle(bgColor, 0.97);
-    this.gfx.fillRoundedRect(BOX_X, BOX_Y, BOX_W, BOX_H, 10);
-    this.gfx.lineStyle(2, 0xFF4444, 0.6);
-    this.gfx.strokeRoundedRect(BOX_X, BOX_Y, BOX_W, BOX_H, 10);
-    this.gfx.lineStyle(3, 0xFF4444, 0.4);
-    this.gfx.strokeRect(0, 58, CANVAS_W, 2);
+  // ── Drawing ────────────────────────────────────────────────────
+
+  private drawSitBox(bg: number) {
+    this.sitBox.clear();
+    this.sitBox.fillStyle(bg, 0.95);
+    this.sitBox.fillRoundedRect(PAD, SIT_Y, CANVAS_W - PAD * 2, SIT_H, 8);
+    this.sitBox.lineStyle(2, 0xCC3333, 0.7);
+    this.sitBox.strokeRoundedRect(PAD, SIT_Y, CANVAS_W - PAD * 2, SIT_H, 8);
   }
+
+  // ── Typewriter ──────────────────────────────────────────────────
 
   private startTypewriter(text: string, onComplete: () => void) {
     this.fullText = text;
     this.charIndex = 0;
     this.typeOnComplete = onComplete;
-    this.bodyText.setText('');
+    this.situationText.setText('');
     if (this.typeTimer) { this.typeTimer.destroy(); this.typeTimer = null; }
 
     this.typeTimer = this.time.addEvent({
       delay: 20,
       callback: () => {
         this.charIndex++;
-        this.bodyText.setText(this.fullText.substring(0, this.charIndex));
+        this.situationText.setText(this.fullText.substring(0, this.charIndex));
         if (this.charIndex % 3 === 0) sfx.typeChar();
         if (this.charIndex >= this.fullText.length) {
           this.typeTimer?.destroy(); this.typeTimer = null;
@@ -144,7 +169,7 @@ export class RandomEventScene extends Phaser.Scene {
 
   private skipTypewriter() {
     if (this.typeTimer) { this.typeTimer.destroy(); this.typeTimer = null; }
-    this.bodyText.setText(this.fullText);
+    this.situationText.setText(this.fullText);
     this.charIndex = this.fullText.length;
     if (this.typeOnComplete) {
       const cb = this.typeOnComplete; this.typeOnComplete = null;
@@ -152,39 +177,35 @@ export class RandomEventScene extends Phaser.Scene {
     }
   }
 
+  // ── Choices ─────────────────────────────────────────────────────
+
   private showChoices() {
     this.phase = 'choices';
-    this.nextIndicator.setText('');
-    this.tweens.killAll();
+    // Longer cooldown when entering choices — prevents the same tap that dismissed
+    // the situation text from immediately firing on a choice button (mobile)
+    this.inputCooldown = 400;
+    this.tweens.killTweensOf(this.nextIndicator);
+    this.nextIndicator.setAlpha(1).setText('↑↓で選択　Zキー / タップで決定');
     this.clearChoices();
 
-    const choiceH = 52, gap = 6;
-    const total = this.event.choices.length * (choiceH + gap);
-    const startY = BOX_Y - total - 10;
-
-    this.bodyText.setText('どう対応しますか？');
+    // "どう対応しますか？" label — tracked so clearChoices() can destroy it
+    this.choicePromptText = this.add.text(PAD + 4, CHOICE_Y0 - 18, '▼  どう対応しますか？', {
+      fontSize: '12px', color: '#AABBCC', fontFamily: JP,
+    });
 
     this.event.choices.forEach((choice, i) => {
-      const y = startY + i * (choiceH + gap);
-      const txt = this.add.text(BOX_X + PAD, y, '', {
-        fontSize: '14px', color: '#AABBCC',
-        wordWrap: { width: BOX_W - PAD * 2 - 20, useAdvancedWrap: true },
-        fontFamily: JP, backgroundColor: '#0A1828',
-        padding: { x: 10, y: 8 }, fixedWidth: BOX_W - PAD * 2,
+      const y = CHOICE_Y0 + i * (CHOICE_H + CHOICE_G);
+      const txt = this.add.text(PAD + 4, y, '', {
+        fontSize: '13px', color: '#AABBCC', fontFamily: JP,
+        wordWrap: { width: CANVAS_W - (PAD + 4) * 2 - 20, useAdvancedWrap: true },
+        backgroundColor: '#091420',
+        padding: { x: 10, y: 9 },
+        fixedWidth: CANVAS_W - (PAD + 4) * 2,
         lineSpacing: 3,
       });
       txt.setInteractive({ useHandCursor: true });
-      txt.on('pointerdown', () => {
-        this.inputCooldown = 350;
-        this.selectedChoice = i;
-        this.confirmChoice();
-      });
-      txt.on('pointerover', () => {
-        if (this.selectedChoice !== i) {
-          this.selectedChoice = i;
-          this.updateHighlight();
-        }
-      });
+      txt.on('pointerdown', () => { this.inputCooldown = 300; this.selectedChoice = i; this.confirmChoice(); });
+      txt.on('pointerover', () => { if (this.selectedChoice !== i) { this.selectedChoice = i; this.updateHighlight(); } });
       this.choiceTexts.push(txt);
     });
     this.updateHighlight();
@@ -194,7 +215,7 @@ export class RandomEventScene extends Phaser.Scene {
     this.choiceTexts.forEach((t, i) => {
       const sel = i === this.selectedChoice;
       t.setColor(sel ? '#FFFF66' : '#8899AA');
-      t.setBackgroundColor(sel ? '#1A3050' : '#0A1828');
+      t.setBackgroundColor(sel ? '#162840' : '#091420');
       t.setText((sel ? '▶  ' : '      ') + this.event.choices[i].text);
     });
   }
@@ -202,46 +223,47 @@ export class RandomEventScene extends Phaser.Scene {
   private clearChoices() {
     this.choiceTexts.forEach((t) => t.destroy());
     this.choiceTexts = [];
+    this.choicePromptText?.destroy();
+    this.choicePromptText = undefined;
   }
+
+  // ── Confirm choice ──────────────────────────────────────────────
 
   private confirmChoice() {
     const choice = this.event.choices[this.selectedChoice];
     sfx.select();
+    this.clearChoices();
 
-    // Apply effects scaled by difficulty
     const mult = DIFFICULTY_MULTIPLIER[gameState.difficulty];
+    const efx = choice.effects;
     const scaled = {
-      quality:  choice.effects.quality  ? Math.round(choice.effects.quality  * mult) : undefined,
-      cost:     choice.effects.cost     ? Math.round(choice.effects.cost     * mult) : undefined,
-      delivery: choice.effects.delivery ? Math.round(choice.effects.delivery * mult) : undefined,
-      trust:    choice.effects.trust    ? Math.round(choice.effects.trust    * mult) : undefined,
+      quality:  efx.quality  !== undefined ? Math.round(efx.quality  * mult) : undefined,
+      cost:     efx.cost     !== undefined ? Math.round(efx.cost     * mult) : undefined,
+      delivery: efx.delivery !== undefined ? Math.round(efx.delivery * mult) : undefined,
+      trust:    efx.trust    !== undefined ? Math.round(efx.trust    * mult) : undefined,
     };
     gameState.applyEffects(scaled);
-
-    this.phase = 'result';
-    this.clearChoices();
-    this.drawBox(0x0D1C30);
-    this.nextIndicator.setText('');
 
     // Effect summary
     const parts: string[] = [];
     if (scaled.quality)  parts.push(`品質 ${scaled.quality  > 0 ? '+' : ''}${scaled.quality}`);
     if (scaled.cost)     parts.push(`コスト ${scaled.cost   > 0 ? '+' : ''}${scaled.cost}`);
-    if (scaled.delivery) parts.push(`納期 ${scaled.delivery  > 0 ? '+' : ''}${scaled.delivery}`);
-    if (scaled.trust)    parts.push(`信頼度 ${scaled.trust   > 0 ? '+' : ''}${scaled.trust}`);
-    if (parts.length) {
-      this.add.text(CANVAS_W / 2, BOX_Y - 28, parts.join('  '), {
-        fontSize: '14px', fontStyle: 'bold', color: '#FFDD44',
-        fontFamily: JP, backgroundColor: '#1A1800CC',
-        padding: { x: 12, y: 5 },
-      }).setOrigin(0.5);
-    }
+    if (scaled.delivery) parts.push(`納期 ${scaled.delivery > 0 ? '+' : ''}${scaled.delivery}`);
+    if (scaled.trust)    parts.push(`信頼度 ${scaled.trust  > 0 ? '+' : ''}${scaled.trust}`);
+    if (parts.length) this.effectLabel.setText(parts.join('  '));
+
+    // Show result in situation box
+    this.phase = 'result';
+    this.drawSitBox(0x0A1C10);
+    this.nextIndicator.setText('');
 
     this.startTypewriter(choice.result, () => {
       this.phase = 'done';
       this.nextIndicator.setText('▼ Zキー / タップで続ける');
     });
   }
+
+  // ── Finish ─────────────────────────────────────────────────────
 
   private finishEvent() {
     gameState.triggeredRandomEvents.add(this.event.id);
@@ -250,12 +272,18 @@ export class RandomEventScene extends Phaser.Scene {
     this.scene.stop('RandomEventScene');
   }
 
+  // ── Input ──────────────────────────────────────────────────────
+
   private handleConfirm() {
+    this.inputCooldown = 250;
     switch (this.phase) {
       case 'situation':
-        if (this.typeTimer) { this.skipTypewriter(); return; }
-        this.inputCooldown = 200;
-        this.showChoices();
+        if (this.typeTimer) { this.skipTypewriter(); }
+        else {
+          this.tweens.killAll();
+          this.nextIndicator.setAlpha(1);
+          this.showChoices();
+        }
         break;
       case 'choices':
         this.confirmChoice();
@@ -269,7 +297,7 @@ export class RandomEventScene extends Phaser.Scene {
     }
   }
 
-  update(_time: number, delta: number) {
+  update(_t: number, delta: number) {
     this.inputCooldown = Math.max(0, this.inputCooldown - delta);
     if (this.inputCooldown > 0) return;
 
@@ -289,8 +317,14 @@ export class RandomEventScene extends Phaser.Scene {
       Phaser.Input.Keyboard.JustDown(this.enterKey) ||
       Phaser.Input.Keyboard.JustDown(this.cursors.space)
     ) {
-      this.inputCooldown = 200;
+      this.inputCooldown = 250;
       this.handleConfirm();
     }
+  }
+
+  shutdown() {
+    if (this.typeTimer) { this.typeTimer.destroy(); this.typeTimer = null; }
+    this.typeOnComplete = null;
+    this.clearChoices();
   }
 }

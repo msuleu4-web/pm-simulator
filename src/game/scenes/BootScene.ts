@@ -20,8 +20,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Load document images for in-game item viewing
-    this.load.image('wbs', '/game-assets/wbs.png');
+    // Document images for in-game item viewing
+    this.load.image('wbs',          '/game-assets/wbs.png');
+    this.load.image('subcontract1', '/game-assets/subcontract1.png');
+    this.load.image('subcontract2', '/game-assets/subcontract2.png');
+    this.load.image('v-model',      '/game-assets/v-model.png');
+    this.load.image('qcd',          '/game-assets/qcd.png');
   }
 
   create() {

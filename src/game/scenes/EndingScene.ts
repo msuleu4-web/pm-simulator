@@ -80,7 +80,7 @@ export class EndingScene extends Phaser.Scene {
     this.drawStoryCard(ending, theme);
     this.drawScoreSection(theme, total);
     this.drawAdvice(ending, theme);
-    this.drawButtons(theme);
+    this.drawButtons(theme, endingType, total);
     this.setupKeyboard();
 
     try {
@@ -261,27 +261,50 @@ export class EndingScene extends Phaser.Scene {
     }).setOrigin(0.5);
   }
 
-  private drawButtons(t: Theme) {
-    const BW = 200, BH = 46, BY = 476, GAP = 20;
+  private drawButtons(t: Theme, endingType: string, total: number) {
+    const BW = 190, BH = 44, BY = 472, GAP = 10;
+    const g = this.add.graphics();
+
+    // ── Row 1: Reflection chat (full width) ──
+    const chatBtnX = CANVAS_W / 2 - (BW + GAP / 2 + BW / 2 + GAP / 2) / 2 - 20;
+    this.makeButton(g, 32, BY, CANVAS_W - 64, 44, 0x1a3a5c, '💬 クライアントと振り返る（AI）', '#a8d8ff', () => {
+      sfx.select();
+      // Dispatch to React wrapper to open chat overlay
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sier-open-reflection', {
+          detail: {
+            playerName: gameState.playerName,
+            endingType,
+            quality:  gameState.quality,
+            cost:     gameState.cost,
+            delivery: gameState.delivery,
+            trust:    gameState.trust,
+            total,
+          },
+        }));
+      }
+    }, 0x254a6a);
+    void chatBtnX;
+
+    // ── Row 2: Ranking + Play again ──
     const leftX = CANVAS_W / 2 - BW - GAP / 2;
     const rightX = CANVAS_W / 2 + GAP / 2;
+    const BY2 = BY + 54;
 
-    // Ranking button (primary)
-    const g = this.add.graphics();
-    this.makeButton(g, leftX, BY, BW, BH, t.btnPrimary, 'ランキングを見る 🏆', '#ffffff', () => {
+    this.makeButton(g, leftX, BY2, BW, BH, t.btnPrimary, 'ランキングを見る 🏆', '#ffffff', () => {
       sfx.select();
       this.scene.start('RankingScene');
     }, t.btnPrimaryHover);
 
     // Play again button (secondary)
-    this.makeButton(g, rightX, BY, BW, BH, 0x3a3a3a, 'もう一度プレイ ↺', '#ffffff', () => {
+    this.makeButton(g, rightX, BY2, BW, BH, 0x3a3a3a, 'もう一度プレイ ↺', '#ffffff', () => {
       sfx.select();
       gameState.reset();
       this.scene.start('BootScene', { relay: false });
     }, 0x555555);
 
     // Keyboard hint
-    this.add.text(CANVAS_W / 2, BY + BH + 20, 'R：ランキング　P：もう一度プレイ', {
+    this.add.text(CANVAS_W / 2, BY2 + BH + 14, 'R：ランキング　P：もう一度プレイ', {
       fontSize: '11px', color: '#888888', fontFamily: JP,
     }).setOrigin(0.5);
   }

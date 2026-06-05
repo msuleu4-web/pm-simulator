@@ -64,11 +64,12 @@ export const gameState = {
 
   get triggeredRandomEvents() { return state.triggeredRandomEvents; },
 
-  applyEffects(effects: ScoreEffects) {
-    if (effects.quality !== undefined) state.quality = clamp(state.quality + effects.quality);
-    if (effects.cost !== undefined) state.cost = clamp(state.cost + effects.cost);
-    if (effects.delivery !== undefined) state.delivery = clamp(state.delivery + effects.delivery);
-    if (effects.trust !== undefined) state.trust = clamp(state.trust + effects.trust);
+  applyEffects(effects: ScoreEffects | null | undefined) {
+    if (!effects) return;
+    if (effects.quality  !== undefined && !Number.isNaN(effects.quality))  state.quality  = clamp(state.quality  + effects.quality);
+    if (effects.cost     !== undefined && !Number.isNaN(effects.cost))     state.cost     = clamp(state.cost     + effects.cost);
+    if (effects.delivery !== undefined && !Number.isNaN(effects.delivery)) state.delivery = clamp(state.delivery + effects.delivery);
+    if (effects.trust    !== undefined && !Number.isNaN(effects.trust))    state.trust    = clamp(state.trust    + effects.trust);
   },
 
   markComplete(eventId: string) {

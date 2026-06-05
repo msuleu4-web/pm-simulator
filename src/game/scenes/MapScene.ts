@@ -228,9 +228,14 @@ export class MapScene extends Phaser.Scene {
   }
 
   init(data: { chapterId: number }) {
-    const id = data?.chapterId ?? gameState.currentChapter;
+    const id = Math.min(7, Math.max(1, data?.chapterId ?? gameState.currentChapter));
     gameState.currentChapter = id;
-    this.chapter = getChapter(id);
+    try {
+      this.chapter = getChapter(id);
+    } catch {
+      // Fallback to chapter 1 if invalid id
+      this.chapter = getChapter(1);
+    }
     this.tileMap = this.chapter.mapRows.map((row) => row.split('').map(Number));
     this.playerTile = { ...this.chapter.playerStart };
     this.moveCooldown = 0;
@@ -285,12 +290,11 @@ export class MapScene extends Phaser.Scene {
       this.moveCooldown = 300;
     });
 
-    // Trigger random event for this chapter (after intro is dismissed)
-    this.time.delayedCall(800, () => this.tryTriggerRandomEvent());
+    // Random event is triggered from the chapter-intro dismiss callback (not a fixed timer)
   }
 
   private tryTriggerRandomEvent() {
-    if (this.introShown || this.advancing) return;
+    if (this.introShown || this.advancing || this.interacting) return;
     const randEvt = getRandomEventForChapter(
       this.chapter.id,
       gameState.triggeredRandomEvents,
@@ -571,8 +575,8 @@ export class MapScene extends Phaser.Scene {
       const x = startX + col * (CANVAS_W / 2 - 10);
       const y = 24 + row * rowH;
 
-      // Remove old text if exists
-      if (this.statusTexts[i]) this.statusTexts[i].destroy();
+      // Destroy old text objects before recreating
+      if (this.statusTexts[i]?.active) this.statusTexts[i].destroy();
 
       const txt = this.add.text(x, y - 1, `${m.label}`, {
         fontSize: '12px',
@@ -593,7 +597,7 @@ export class MapScene extends Phaser.Scene {
       this.statusGfx.fillRoundedRect(bx, y, filled, barH, 3);
 
       // Score label next to bar
-      if (this.statusTexts[i + 4]) this.statusTexts[i + 4].destroy();
+      if (this.statusTexts[i + 4]?.active) this.statusTexts[i + 4].destroy();
       const scoreTxt = this.add.text(bx + barW + 6, y - 1, `${m.value}`, {
         fontSize: '12px',
         color: '#ccddee',
@@ -734,8 +738,10 @@ export class MapScene extends Phaser.Scene {
       this.introBg.destroy();
       this.introText.destroy();
       this.introShown = false;
-      this.moveCooldown = 400;  // grace period: ignore input right after intro
+      this.moveCooldown = 400;
       sfx.confirm();
+      // Trigger random event AFTER intro is dismissed (not on a fixed 800ms timer)
+      this.time.delayedCall(350, () => this.tryTriggerRandomEvent());
     };
 
     this.input.once('pointerdown', dismiss);
@@ -862,10 +868,15 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  private noticeTimer: Phaser.Time.TimerEvent | null = null;
+
   private showNotice(text: string, duration = 2000) {
+    // Cancel previous timer before creating a new one (prevents stale clears)
+    if (this.noticeTimer) { this.noticeTimer.destroy(); this.noticeTimer = null; }
     this.noticeText.setText(text);
-    this.time.delayedCall(duration, () => {
-      this.noticeText.setText('');
+    this.noticeTimer = this.time.addEvent({
+      delay: duration,
+      callback: () => { this.noticeText.setText(''); this.noticeTimer = null; },
     });
   }
 
@@ -937,5 +948,6 @@ export class MapScene extends Phaser.Scene {
     this.game.events.off('sier-event-complete', this.onEventComplete, this);
     this.game.events.off('sier-random-event-done', this.onRandomEventDone, this);
     this.game.events.off('sier-document-closed', this.onDocumentClosed, this);
+    if (this.noticeTimer) { this.noticeTimer.destroy(); this.noticeTimer = null; }
   }
 }

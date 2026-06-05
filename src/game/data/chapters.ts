@@ -80,7 +80,29 @@ export const chapters: ChapterDefinition[] = [
           '机の上に古いバインダーが置いてある。\n\n表紙には「〇〇銀行 次世代勘定系プロジェクト\nWBS v2.3 ── 過去案件参考資料」と書かれている。\n\n「...これが実際のWBSか。\n自分の業務範囲がここまで細かく分解されているんだな。参考にしよう。」',
         imageKey: 'wbs',
         required: true,
-        blockedHint: '机の上の資料もチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。',
+        blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。',
+      },
+      {
+        id: 'doc-subcontract1',
+        col: 5,
+        row: 2,
+        label: '資料📄',
+        dialog:
+          '引き出しから折りたたまれた紙が出てきた。\n\n「SIer業界の多重下請け構造 ① ── 基本のしくみ」と書かれている。\n\n「元請け・2次請け・3次請け…なるほど、\n業界全体がこういう構造になっているのか。」',
+        imageKey: 'subcontract1',
+        required: true,
+        blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。',
+      },
+      {
+        id: 'doc-subcontract2',
+        col: 8,
+        row: 2,
+        label: '資料📄',
+        dialog:
+          'ホワイトボードの脇に貼られた図があった。\n\n「SIer業界の多重下請け構造 ② ── お金と指揮命令の流れ」と書かれている。\n\n「発注金額がどんどん減っていくんだな…\n指揮命令のラインも厳密に決まっているんだ。」',
+        imageKey: 'subcontract2',
+        required: true,
+        blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。',
       },
     ],
   },
@@ -210,6 +232,19 @@ export const chapters: ChapterDefinition[] = [
     playerStart: { col: 12, row: 11 },
     exitTile: { col: 23, row: 12 },
     events: ['event-5-1'],
+    documents: [
+      {
+        id: 'doc-v-model',
+        col: 2,
+        row: 2,
+        label: '資料📄',
+        dialog:
+          'ホワイトボードにラミネートされた図が貼ってある。\n\n「V字モデル ── 開発工程とテスト工程の対応関係」\n\n「なるほど、単体テストは詳細設計と対応していて、\n結合テストは基本設計、システムテストは要件定義と対応しているんだ。\n前の工程でミスすると、対応するテストで必ずバグが出るわけか…」',
+        imageKey: 'v-model',
+        required: true,
+        blockedHint: '壁に貼られた図を確認してから進もう…\nテストの仕組みを理解することが品質管理の第一歩だ。',
+      },
+    ],
   },
   {
     id: 6,
@@ -242,6 +277,19 @@ export const chapters: ChapterDefinition[] = [
     playerStart: { col: 5, row: 9 },
     exitTile: { col: 23, row: 12 },
     events: ['event-6-1', 'event-6-2'],
+    documents: [
+      {
+        id: 'doc-qcd',
+        col: 20,
+        row: 5,
+        label: '資料📄',
+        dialog:
+          '対策室のホワイトボードに誰かが書いた図がある。\n\n「QCD 鉄の三角形 ── なぜ3つ同時に最高はありえないのか」\n\n「Quality・Cost・Delivery…\nどれか1つを動かすと他の2つが必ず影響を受ける。\nこれが炎上プロジェクトで必ず直面するジレンマだ。\nどれを優先するか、顧客と合意するのが正解なんだな。」',
+        imageKey: 'qcd',
+        required: true,
+        blockedHint: 'ホワイトボードの図を確認してから進もう…\nQCDのジレンマを理解することが判断力の基礎だ。',
+      },
+    ],
   },
   {
     id: 7,

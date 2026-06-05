@@ -61,6 +61,11 @@ export class EventScene extends Phaser.Scene {
 
   init(data: { eventId: string }) {
     this.event = scenarios[data.eventId];
+    if (!this.event) {
+      console.error(`[EventScene] Unknown eventId: ${data.eventId}`);
+      // Fallback to first available scenario to prevent crash
+      this.event = Object.values(scenarios)[0];
+    }
 
     // Build choice pool based on difficulty, then shuffle
     const base = [...this.event.choices];
@@ -143,9 +148,10 @@ export class EventScene extends Phaser.Scene {
     this.upKey      = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
     this.downKey    = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
 
-    // Global tap-to-advance (NOT used for choice clicks — those use their own handler)
+    // Global tap-to-advance — blocked during 'choices' phase (choices have their own handlers)
     this.input.on('pointerdown', () => {
       if (this.inputCooldown > 0) return;
+      if (this.phase === 'choices') return; // choice buttons handle their own clicks
       this.handleConfirm();
     });
 
@@ -239,6 +245,9 @@ export class EventScene extends Phaser.Scene {
 
   private showChoices() {
     this.phase = 'choices';
+    // Longer cooldown on entering choices — prevents the tap that dismissed the
+    // situation text from immediately landing on a choice button (mobile)
+    this.inputCooldown = 400;
     this.clearChoices();
     this.boxGfx.clear();
     this.nameText.setText('▼  どう対応しますか？');
@@ -309,23 +318,24 @@ export class EventScene extends Phaser.Scene {
     else sfx.neutral();
 
     // Scale effects by difficulty multiplier
+    // Use !== undefined (not truthy check) so that effect=0 is correctly handled
     const mult = DIFFICULTY_MULTIPLIER[gameState.difficulty];
+    const efxRaw = this.chosenChoice.effects;
     const scaledEffects = {
-      quality:  this.chosenChoice.effects.quality  ? Math.round(this.chosenChoice.effects.quality  * mult) : undefined,
-      cost:     this.chosenChoice.effects.cost     ? Math.round(this.chosenChoice.effects.cost     * mult) : undefined,
-      delivery: this.chosenChoice.effects.delivery ? Math.round(this.chosenChoice.effects.delivery * mult) : undefined,
-      trust:    this.chosenChoice.effects.trust    ? Math.round(this.chosenChoice.effects.trust    * mult) : undefined,
+      quality:  efxRaw.quality  !== undefined ? Math.round(efxRaw.quality  * mult) : undefined,
+      cost:     efxRaw.cost     !== undefined ? Math.round(efxRaw.cost     * mult) : undefined,
+      delivery: efxRaw.delivery !== undefined ? Math.round(efxRaw.delivery * mult) : undefined,
+      trust:    efxRaw.trust    !== undefined ? Math.round(efxRaw.trust    * mult) : undefined,
     };
     gameState.applyEffects(scaledEffects);
     if (this.event.flagKey) gameState.setFlag(this.event.flagKey, this.chosenChoice.id);
 
-    // Effect summary badge
-    const efx = this.chosenChoice.effects;
+    // Effect summary badge — show SCALED values (what was actually applied)
     const parts: string[] = [];
-    if (efx.quality)  parts.push(`品質 ${efx.quality  > 0 ? '+' : ''}${efx.quality}`);
-    if (efx.cost)     parts.push(`コスト ${efx.cost    > 0 ? '+' : ''}${efx.cost}`);
-    if (efx.delivery) parts.push(`納期 ${efx.delivery  > 0 ? '+' : ''}${efx.delivery}`);
-    if (efx.trust)    parts.push(`信頼度 ${efx.trust   > 0 ? '+' : ''}${efx.trust}`);
+    if (scaledEffects.quality  !== undefined) parts.push(`品質 ${scaledEffects.quality  > 0 ? '+' : ''}${scaledEffects.quality}`);
+    if (scaledEffects.cost     !== undefined) parts.push(`コスト ${scaledEffects.cost    > 0 ? '+' : ''}${scaledEffects.cost}`);
+    if (scaledEffects.delivery !== undefined) parts.push(`納期 ${scaledEffects.delivery  > 0 ? '+' : ''}${scaledEffects.delivery}`);
+    if (scaledEffects.trust    !== undefined) parts.push(`信頼度 ${scaledEffects.trust   > 0 ? '+' : ''}${scaledEffects.trust}`);
     const badge = grade === '◎' ? '◎ 正解' : grade === '△' ? '△ 許容' : '× 要注意';
     this.effectText.setText(`${badge}  ／  ${parts.join('  ') || '変化なし'}`);
     this.effectText.setColor(grade === '◎' ? '#44ff88' : grade === '×' ? '#ff7766' : '#ffdd44');
@@ -518,6 +528,17 @@ export class EventScene extends Phaser.Scene {
     ) {
       this.inputCooldown = 200;
       this.handleConfirm();
+    }
+  }
+
+  // Cleanup typewriter timer when scene is stopped to prevent ghost text
+  shutdown() {
+    if (this.typeTimer) { this.typeTimer.destroy(); this.typeTimer = null; }
+    this.typeOnComplete = null;
+    this.clearChoices();
+    if (this.pageCountText) {
+      try { this.pageCountText.destroy(); } catch { /* */ }
+      (this as unknown as { pageCountText: null }).pageCountText = null;
     }
   }
 }

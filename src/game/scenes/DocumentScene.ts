@@ -152,14 +152,14 @@ export class DocumentScene extends Phaser.Scene {
     const textureExists = this.textures.exists(this.doc.imageKey);
     if (textureExists) {
       const tex = this.textures.get(this.doc.imageKey);
-      const src = tex.source[0];
-      const imgW = src.width;
-      const imgH = src.height;
+      const src = tex.source?.[0];
+      const imgW = src?.width ?? 0;
+      const imgH = src?.height ?? 0;
 
-      // Scale to fit within canvas with margins
+      // Scale to fit within canvas with margins (guard against 0 dimensions)
       const maxW = CANVAS_W - 60;
       const maxH = CANVAS_H - 100;
-      const scale = Math.min(maxW / imgW, maxH / imgH, 1);
+      const scale = (imgW > 0 && imgH > 0) ? Math.min(maxW / imgW, maxH / imgH, 1) : 1;
       const dw = imgW * scale;
       const dh = imgH * scale;
       const cx = CANVAS_W / 2;
