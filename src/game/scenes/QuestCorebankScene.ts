@@ -418,10 +418,11 @@ export class QuestCorebankScene extends Phaser.Scene {
     this.bodyText.setVisible(false);
     this.nextHint.setVisible(false);
 
+    const isGood = ending.type === 'good';
     const isBest = ending.type === 'best';
-    const bgColor     = isBest ? 0x071a0d : 0x1a0707;
-    const borderColor = isBest ? 0x2e7a44 : 0x7a2222;
-    const titleColor  = isBest ? '#88ffaa' : '#ff8888';
+    const bgColor     = isBest ? 0x071a0d : isGood ? 0x0d1a07 : 0x1a0707;
+    const borderColor = isBest ? 0x2e7a44 : isGood ? 0x5a9a2a : 0x7a2222;
+    const titleColor  = isBest ? '#88ffaa' : isGood ? '#ccff88' : '#ff8888';
 
     // Full-screen ending background
     this.endingGfx.setVisible(true);

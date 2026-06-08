@@ -35,7 +35,7 @@ export interface EndingDef {
   title: string;
   text: string;
   learn: string;
-  type: 'best' | 'bad';
+  type: 'best' | 'good' | 'bad';
 }
 
 export const DIALOGUE: DialogueNode[] = [
@@ -174,34 +174,86 @@ export const DIALOGUE_MAP: Record<string, DialogueNode> = Object.fromEntries(
   DIALOGUE.map((n) => [n.id, n])
 );
 
-export const ENDINGS: Record<'best' | 'bad_norecord' | 'bad_meltdown', EndingDef> = {
-  best: {
-    id: 'ending_best',
-    title: '【ベストエンド】誠実なベンダー',
-    text: 'あなたは記録を残し、適切なタイミングでリスクを伝え、最後に中止と見直しを正式に進言した。プロジェクトは縮小・再設計され、損害は最小限に抑えられた。みなと地方銀行はテクノブリッジを「信頼できるパートナー」と評した。',
-    learn: 'ベンダーには、危機において中止をも提言する「プロジェクトマネジメント義務」がある。それを果たすことが、長期的な信頼につながる。',
+// ── 8-ending matrix  (warnedEarly × gijirokuKept × proposedStop) ──────────────
+//
+//  E1 : W=✓  G=✓  S=✓  →  パーフェクト          ★★★
+//  E2 : W=✗  G=✓  S=✓  →  誠実なベンダー        ★★☆
+//  E3 : W=✓  G=✗  S=✓  →  証明なき英断          ★★☆
+//  E4 : W=✗  G=✗  S=✓  →  土壇場の一手          ★☆☆
+//  E5 : W=✓  G=✓  S=✗  →  記録だけでは足りない  ✕✓✓
+//  E6 : W=✗  G=✓  S=✗  →  証拠の墓場            ✕✗✓
+//  E7 : W=✓  G=✗  S=✗  →  言った、言わない      ✕✓✗
+//  E8 : W=✗  G=✗  S=✗  →  完全な炎上            ✕✗✗
+
+export const ENDINGS: Record<string, EndingDef> = {
+  e1_perfect: {
+    id: 'e1_perfect',
+    title: '【完全クリア】模範的なプロジェクトマネージャー',
+    text: '早期に懸念を表明し、ギャップを議事録に刻み、最後は退路を断って中止を進言した。プロジェクトは縮小・再設計に転換され、被害は最小限に抑えられた。高梨部長はこう言った。「こういうベンダーと仕事がしたかった」。テクノブリッジとの次の案件契約は3か月後に締結された。',
+    learn: '早期警告・記録・中止提言——三拍子揃って初めて「PMとしての義務」を完全に果たしたことになる。どれが欠けても完全ではない。',
     type: 'best',
   },
-  bad_norecord: {
-    id: 'ending_lawsuit',
-    title: '【バッドエンド】言った、言わない',
-    text: 'プロジェクトは予算超過の末に頓挫した。あなたは「リスクは口頭で伝えていた」と主張したが、議事録は残っていない。顧客は「そんな説明は受けていない」と反論。責任の所在は曖昧なまま、テクノブリッジが過失を問われた。',
-    learn: '「中止を提言する義務」を果たしたかどうかは、最終的に"記録"で判断される。議事録は自分を守る盾になる。',
+  e2_honest: {
+    id: 'e2_honest',
+    title: '【ベストエンド】誠実なベンダー',
+    text: '記録を残し、最後に中止と見直しを正式に進言した。プロジェクトは縮小・再設計され、損害は最小限に抑えられた。「早い段階で言ってくれれば……」と黒田PMは呟いたが、後悔よりも安堵の方が大きかった。',
+    learn: '「中止を提言するプロジェクトマネジメント義務」を果たし、かつ記録で証明できた。これが最低ラインのベスト。早期警告があればさらに良かった。',
+    type: 'best',
+  },
+  e3_brave_no_record: {
+    id: 'e3_brave_no_record',
+    title: '【グッドエンド・但し書き付き】証明なき英断',
+    text: '早期から懸念を抱き、最後に中止を進言した。プロジェクトは再設計への道を歩み始めた。ただし、議事録が残っていなかったため「本当にそんな懸念を持っていたのか」と後から疑われる場面が生じた。あなたの行動は正しかったが、証明が難しかった。',
+    learn: '正しい行動をしても、記録がなければ「やった」ことにならない場合がある。善意はドキュメントで守れ。',
+    type: 'good',
+  },
+  e4_last_minute: {
+    id: 'e4_last_minute',
+    title: '【グッドエンド・薄氷】土壇場の一手',
+    text: '早期警告も議事録も残さなかったが、最後の最後に中止を進言した。プロジェクトは一時混乱したが、方向転換できた。「なぜもっと早く言わなかったのか」という問いに、あなたは答えられなかった。それでも、言わないよりはずっとよかった。',
+    learn: 'どれだけ遅くても「言う」は「言わない」より優れている。ただし、早ければ早いほど被害は少なかった。タイミングはコストだ。',
+    type: 'good',
+  },
+  e5_record_not_enough: {
+    id: 'e5_record_not_enough',
+    title: '【バッドエンド】記録だけでは足りなかった',
+    text: '早期に懸念を表明し、ギャップも議事録に残した。だが最後の一手——中止の進言——だけが踏み出せなかった。プロジェクトは議事録が示した通りの末路を辿った。裁判では「危険を知りながら提言しなかった」と認定された。議事録は、自分を守るどころか、自分の過失を証明する証拠になった。',
+    learn: '記録は「知っていた」ことを証明する。知っていながら提言しなかったなら、それはより重い責任になりうる。知識は行動を義務づける。',
     type: 'bad',
   },
-  bad_meltdown: {
-    id: 'ending_meltdown',
-    title: '【バッドエンド】炎上',
-    text: '「順調です」という報告を重ねたまま開発は進み、無理な約束は破綻。プロジェクトは中止に追い込まれ、巨額の費用が無駄になった。後の検証で「ベンダーは危険を認識しながら適切な提言をしなかった」と認定された。',
-    learn: '対症療法と「問題なし」報告は、炎上を先送りにするだけ。早期の警告と中止提言こそが被害を防ぐ。',
+  e6_evidence_graveyard: {
+    id: 'e6_evidence_graveyard',
+    title: '【バッドエンド】証拠の墓場',
+    text: '議事録にリスクを残した。しかし中止の提言をしなかった。プロジェクトは破綻し、残された議事録が法廷に持ち出された。「ベンダーはリスクを認識していた」——その一文が、テクノブリッジに対する賠償命令の根拠になった。',
+    learn: '記録は「知っていた証拠」でもある。リスクを把握したなら、それに対応する義務が生じる。議事録は保険にもなるし、凶器にもなる。',
+    type: 'bad',
+  },
+  e7_he_said_she_said: {
+    id: 'e7_he_said_she_said',
+    title: '【バッドエンド】言った、言わない',
+    text: '早期から懸念はあった。佐々木にも伝えていた。しかし議事録には残さず、最後も「順調です」で押し通した。プロジェクトが破綻したあと、あなたは「リスクは伝えていた」と主張した。顧客は「そんな話は聞いていない」と言い張った。記録がないので、確かめる術はない。',
+    learn: '口頭の警告は「言った」という記憶だけが残る。記憶は摩耗する。議事録は摩耗しない。「言った」を証明できるのは記録だけだ。',
+    type: 'bad',
+  },
+  e8_full_meltdown: {
+    id: 'e8_full_meltdown',
+    title: '【最悪エンド】完全な炎上',
+    text: '懸念を表明せず、記録も残さず、中止も提言しなかった。プロジェクトは「順調」という虚構の中で膨張し続け、最終的に全てが爆発した。検証委員会の結論は短かった。「ベンダーに、プロジェクトマネジメント上の重大な過失があった」。90億円の損害賠償訴訟が始まった。',
+    learn: 'これはフィクションだが、スルガ銀行 vs 日本IBM事件（2019年）は現実に起きた。74億円の賠償が認められた。沈黙には値段がつく。',
     type: 'bad',
   },
 };
 
 export function resolveEnding(flags: QuestFlags): EndingDef {
-  if (flags.proposedStop) return ENDINGS.best;
-  if (!flags.gijirokuKept) return ENDINGS.bad_norecord;
-  return ENDINGS.bad_meltdown;
+  const { warnedEarly: W, gijirokuKept: G, proposedStop: S } = flags;
+  if ( W &&  G &&  S) return ENDINGS.e1_perfect;
+  if (!W &&  G &&  S) return ENDINGS.e2_honest;
+  if ( W && !G &&  S) return ENDINGS.e3_brave_no_record;
+  if (!W && !G &&  S) return ENDINGS.e4_last_minute;
+  if ( W &&  G && !S) return ENDINGS.e5_record_not_enough;
+  if (!W &&  G && !S) return ENDINGS.e6_evidence_graveyard;
+  if ( W && !G && !S) return ENDINGS.e7_he_said_she_said;
+  return ENDINGS.e8_full_meltdown;
 }
 
 export const DEFAULT_FLAGS: QuestFlags = {
