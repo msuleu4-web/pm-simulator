@@ -16,7 +16,7 @@ const DIFF_CONFIG: Record<Difficulty, {
 
 // ── Title screen (React) ──────────────────────────────────────
 
-function TitleScreen({ onStart }: { onStart: (name: string, difficulty: Difficulty) => void }) {
+function TitleScreen({ onStart, onStartQuest }: { onStart: (name: string, difficulty: Difficulty) => void; onStartQuest: () => void }) {
   const [name, setName] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
 
@@ -119,7 +119,28 @@ function TitleScreen({ onStart }: { onStart: (name: string, difficulty: Difficul
         </button>
       </div>
 
-      <div style={{ marginTop: 28, color: '#334455', fontSize: 11, textAlign: 'center', lineHeight: 1.8 }}>
+      <div style={{ marginTop: 24, width: '100%', maxWidth: 360 }}>
+        <div style={{ textAlign: 'center', marginBottom: 10, color: '#334455', fontSize: 11, letterSpacing: '0.1em' }}>
+          ── 特別クエスト ──
+        </div>
+        <button
+          onClick={onStartQuest}
+          style={{
+            width: '100%', padding: '12px',
+            fontSize: 14, fontWeight: 700, borderRadius: 8, border: 'none',
+            background: 'linear-gradient(90deg, #1a0e00, #4a2a0033)',
+            borderTop: '2px solid #c49000',
+            color: '#c8a030', cursor: 'pointer', letterSpacing: '0.05em', fontFamily: 'monospace',
+          }}
+        >
+          📜 最終合意の夜 — CoreFlex事件 →
+        </button>
+        <div style={{ textAlign: 'center', marginTop: 6, color: '#334455', fontSize: 10 }}>
+          炎上しかけたプロジェクトで、あなたはどう動くか
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20, color: '#334455', fontSize: 11, textAlign: 'center', lineHeight: 1.8 }}>
         矢印キー / WASD：移動　Zキー / Enter：決定　スマホ：画面下パッド
       </div>
 
@@ -445,10 +466,54 @@ function GameCanvas({ playerName, difficulty }: { playerName: string; difficulty
   );
 }
 
+// ── Quest canvas (QuestCorebankScene) ─────────────────────────
+
+function QuestCanvas({ onDone }: { onDone: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<Game | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+
+    const init = async () => {
+      // @ts-ignore
+      const { createGame } = await import('../../src/game/PhaserGame');
+      if (!cancelled && containerRef.current && !gameRef.current) {
+        const g = createGame(containerRef.current, '');
+        // Start QuestCorebankScene immediately after Phaser boots
+        g.events.once('ready', () => {
+          g.scene.stop('BootScene');
+          g.scene.start('QuestCorebankScene');
+        });
+        gameRef.current = g;
+      }
+    };
+
+    init().catch(console.error);
+
+    const onQuestDone = () => onDone();
+    window.addEventListener('sier-quest-done', onQuestDone);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('sier-quest-done', onQuestDone);
+      if (gameRef.current) { gameRef.current.destroy(true); gameRef.current = null; }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <main style={{ position: 'fixed', inset: 0, background: '#050d18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+    </main>
+  );
+}
+
 // ── Page entry point ──────────────────────────────────────────
 
 export default function GamePage() {
-  const [phase, setPhase] = useState<'title' | 'playing'>('title');
+  const [phase, setPhase] = useState<'title' | 'playing' | 'quest'>('title');
   const [playerName, setPlayerName] = useState('新人SE');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
 
@@ -460,8 +525,13 @@ export default function GamePage() {
           setDifficulty(diff);
           setPhase('playing');
         }}
+        onStartQuest={() => setPhase('quest')}
       />
     );
+  }
+
+  if (phase === 'quest') {
+    return <QuestCanvas onDone={() => setPhase('title')} />;
   }
 
   return <GameCanvas playerName={playerName} difficulty={difficulty} />;
