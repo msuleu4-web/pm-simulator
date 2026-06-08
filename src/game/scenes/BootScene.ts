@@ -21,11 +21,13 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     // Document images for in-game item viewing
-    this.load.image('wbs',          '/game-assets/wbs.png');
-    this.load.image('subcontract1', '/game-assets/subcontract1.png');
-    this.load.image('subcontract2', '/game-assets/subcontract2.png');
-    this.load.image('v-model',      '/game-assets/v-model.png');
-    this.load.image('qcd',          '/game-assets/qcd.png');
+    this.load.image('wbs',              '/game-assets/wbs.png');
+    this.load.image('subcontract1',     '/game-assets/subcontract1.png');
+    this.load.image('subcontract2',     '/game-assets/subcontract2.png');
+    this.load.image('v-model',          '/game-assets/v-model.png');
+    this.load.image('qcd',              '/game-assets/qcd.png');
+    this.load.image('meeting-minutes',  '/game-assets/meeting-minutes.png');
+    this.load.image('caution',          '/game-assets/caution.png');
   }
 
   create() {

@@ -313,6 +313,14 @@ function GameCanvas({ playerName, difficulty }: { playerName: string; difficulty
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   const [reflectCtx, setReflectCtx] = useState<ReflectCtx | null>(null);
+  const [docImage, setDocImage] = useState<{ path: string; label: string } | null>(null);
+
+  const closeDocImage = () => {
+    setDocImage(null);
+    // Notify Phaser to resume the scene (Z-key path already fired this event,
+    // but a second dispatch is harmless since the { once: true } listener is gone)
+    window.dispatchEvent(new CustomEvent('sier-doc-image-closed'));
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -333,15 +341,23 @@ function GameCanvas({ playerName, difficulty }: { playerName: string; difficulty
 
     init().catch(console.error);
 
-    // Listen for reflection chat trigger from Phaser
     const onReflect = (e: Event) => {
       setReflectCtx((e as CustomEvent<ReflectCtx>).detail);
     };
+    const onShowDocImage = (e: Event) => {
+      setDocImage((e as CustomEvent<{ path: string; label: string }>).detail);
+    };
+    // Z-key close path: Phaser dispatches this event, React must also clear docImage
+    const onDocImageClosed = () => { setDocImage(null); };
     window.addEventListener('sier-open-reflection', onReflect);
+    window.addEventListener('sier-show-doc-image', onShowDocImage);
+    window.addEventListener('sier-doc-image-closed', onDocImageClosed);
 
     return () => {
       cancelled = true;
       window.removeEventListener('sier-open-reflection', onReflect);
+      window.removeEventListener('sier-show-doc-image', onShowDocImage);
+      window.removeEventListener('sier-doc-image-closed', onDocImageClosed);
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
@@ -354,25 +370,73 @@ function GameCanvas({ playerName, difficulty }: { playerName: string; difficulty
   return (
     <main
       style={{
+        position: 'fixed',
+        inset: 0,
+        background: '#050d18',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '100vh',
-        background: '#050d18',
+        overflow: 'hidden',
       }}
     >
-      <div ref={containerRef} style={{ width: '100%', maxWidth: 800, imageRendering: 'auto' }} />
+      <div
+        ref={containerRef}
+        style={{ width: '100%', height: '100%' }}
+      />
       {reflectCtx && (
         <ReflectionChat ctx={reflectCtx} onClose={() => setReflectCtx(null)} />
       )}
+
+      {docImage && (
+        <div
+          onClick={closeDocImage}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            background: 'rgba(0,0,0,0.93)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '16px 16px 8px',
+            cursor: 'zoom-out',
+          }}
+        >
+          <p style={{
+            color: '#C8A040', fontSize: 12, fontFamily: 'monospace',
+            marginBottom: 10, letterSpacing: '0.05em', textAlign: 'center',
+          }}>
+            📄 {docImage.label}
+          </p>
+          <img
+            src={docImage.path}
+            alt={docImage.label}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '100%',
+              maxHeight: 'calc(100vh - 80px)',
+              objectFit: 'contain',
+              borderRadius: 6,
+              border: '2px solid #C8A040',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.8)',
+            }}
+          />
+          <p style={{
+            color: '#556677', fontSize: 11, fontFamily: 'monospace',
+            marginTop: 10, textAlign: 'center',
+          }}>
+            タップ / クリックで閉じる　|　Zキーでも閉じる
+          </p>
+        </div>
+      )}
       <p
         style={{
+          position: 'absolute',
+          bottom: 6,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
           color: '#334455',
           fontSize: 11,
-          marginTop: 8,
           fontFamily: 'monospace',
-          textAlign: 'center',
+          pointerEvents: 'none',
         }}
       >
         矢印キー/WASD：移動　Zキー/Enter：決定　タッチ：画面下パッド

@@ -5,7 +5,7 @@ import { sfx } from '../utils/audio';
 const CANVAS_W = 800;
 const CANVAS_H = 600;
 const JP = '"Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", Arial, sans-serif';
-const BOX_X = 20, BOX_Y = 330, BOX_W = 760, BOX_H = 210;
+const BOX_X = 20, BOX_Y = 310, BOX_W = 760, BOX_H = 240;
 const PAD = 18;
 
 type Phase = 'dialog' | 'image' | 'done';
@@ -23,10 +23,6 @@ export class DocumentScene extends Phaser.Scene {
   private titleBadge!: Phaser.GameObjects.Text;
   private bodyText!: Phaser.GameObjects.Text;
   private nextIndicator!: Phaser.GameObjects.Text;
-  private docImage?: Phaser.GameObjects.Image;
-  private imageFrame?: Phaser.GameObjects.Graphics;
-  private closeHint?: Phaser.GameObjects.Text;
-
   private confirmKey!: Phaser.Input.Keyboard.Key;
   private enterKey!: Phaser.Input.Keyboard.Key;
   private inputCooldown = 0;
@@ -83,7 +79,7 @@ export class DocumentScene extends Phaser.Scene {
     });
 
     this.startTypewriter(this.doc.dialog, () => {
-      this.nextIndicator.setText('▼ Zキー / タップでWBSを確認する');
+      this.nextIndicator.setText(this.doc.nextHint ?? '▼ Zキー / タップで資料を確認する');
       this.tweens.add({
         targets: this.nextIndicator, alpha: { from: 1, to: 0.2 },
         yoyo: true, loop: -1, duration: 600,
@@ -136,70 +132,28 @@ export class DocumentScene extends Phaser.Scene {
 
   private showImage() {
     this.phase = 'image';
-    // Hide dialog elements
     this.boxGfx.setVisible(false);
     this.titleBadge.setVisible(false);
     this.bodyText.setVisible(false);
     this.nextIndicator.setVisible(false);
     this.tweens.killAll();
 
-    // Darker overlay for image viewing
     this.overlay.clear();
-    this.overlay.fillStyle(0x000000, 0.85);
+    this.overlay.fillStyle(0x000000, 0.92);
     this.overlay.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Display image if texture exists
-    const textureExists = this.textures.exists(this.doc.imageKey);
-    if (textureExists) {
-      const tex = this.textures.get(this.doc.imageKey);
-      const src = tex.source?.[0];
-      const imgW = src?.width ?? 0;
-      const imgH = src?.height ?? 0;
-
-      // Scale to fit within canvas with margins (guard against 0 dimensions)
-      const maxW = CANVAS_W - 60;
-      const maxH = CANVAS_H - 100;
-      const scale = (imgW > 0 && imgH > 0) ? Math.min(maxW / imgW, maxH / imgH, 1) : 1;
-      const dw = imgW * scale;
-      const dh = imgH * scale;
-      const cx = CANVAS_W / 2;
-      const cy = (CANVAS_H - 50) / 2 + 10;
-
-      // Frame
-      this.imageFrame = this.add.graphics();
-      this.imageFrame.fillStyle(0x1A1200, 0.95);
-      this.imageFrame.fillRoundedRect(cx - dw / 2 - 8, cy - dh / 2 - 8, dw + 16, dh + 16, 6);
-      this.imageFrame.lineStyle(2, 0xC8A040, 0.9);
-      this.imageFrame.strokeRoundedRect(cx - dw / 2 - 8, cy - dh / 2 - 8, dw + 16, dh + 16, 6);
-
-      // Image
-      this.docImage = this.add.image(cx, cy, this.doc.imageKey);
-      this.docImage.setDisplaySize(dw, dh);
-
-      // Label above
-      this.add.text(cx, cy - dh / 2 - 26, '過去案件 WBS（Work Breakdown Structure）参考資料', {
-        fontSize: '12px', color: '#C8A040', fontFamily: JP,
-      }).setOrigin(0.5);
-    } else {
-      // Fallback if image not loaded
-      this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 40,
-        'WBS資料\n（画像を読み込めませんでした）', {
-          fontSize: '18px', color: '#FFE0A0', fontFamily: JP, align: 'center',
-        }).setOrigin(0.5);
-    }
-
-    // Close hint at bottom
-    this.closeHint = this.add.text(CANVAS_W / 2, CANVAS_H - 22,
-      'Zキー / タップで閉じる', {
-        fontSize: '13px', color: '#88AABB', fontFamily: JP,
-      }).setOrigin(0.5);
-
-    this.tweens.add({
-      targets: this.closeHint, alpha: { from: 1, to: 0.3 },
-      yoyo: true, loop: -1, duration: 700,
-    });
-
     sfx.select();
+
+    // Delegate to React HTML overlay for native-quality rendering
+    const imagePath = `/game-assets/${this.doc.imageKey}.png`;
+    const label = this.doc.imageLabel ?? this.doc.label;
+    window.dispatchEvent(new CustomEvent('sier-show-doc-image', { detail: { path: imagePath, label } }));
+
+    const onClose = () => {
+      window.removeEventListener('sier-doc-image-closed', onClose);
+      this.closeScene();
+    };
+    window.addEventListener('sier-doc-image-closed', onClose, { once: true });
   }
 
   private closeScene() {
@@ -221,7 +175,8 @@ export class DocumentScene extends Phaser.Scene {
         else { this.tweens.killAll(); this.nextIndicator.setAlpha(1); this.showImage(); }
         break;
       case 'image':
-        this.closeScene();
+        // Close the HTML overlay (which will call closeScene via the event listener)
+        window.dispatchEvent(new CustomEvent('sier-doc-image-closed'));
         break;
     }
   }

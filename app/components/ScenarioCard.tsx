@@ -6,6 +6,21 @@ import { Tooltip } from './Tooltip';
 import { pmBokDefinitions } from '../../lib/pmBokDefinitions';
 import { ClientChatModal } from './ClientChatModal';
 
+/** `**太字**` を <strong> に変換する */
+function B(text: string) {
+  if (!text.includes('**')) return <>{text}</>;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith('**') && p.endsWith('**')
+          ? <strong key={i} className="font-bold text-emerald-900">{p.slice(2, -2)}</strong>
+          : p
+      )}
+    </>
+  );
+}
+
 type KpiState = Pick<GameState, 'quality' | 'cost' | 'schedule' | 'stakeholder' | 'morale'>;
 
 const effectItems: { key: keyof Effect; label: string }[] = [
@@ -50,6 +65,7 @@ export function ScenarioCard({
   phaseLabel?: string;
 }) {
   const [showClientChat, setShowClientChat] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-soft">
@@ -64,8 +80,51 @@ export function ScenarioCard({
       {scenario.pmTip && (
         <div className="mt-4 flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <span className="mt-0.5 text-base">💡</span>
-          <p className="text-sm leading-6 text-emerald-800">{scenario.pmTip}</p>
+          <p className="text-sm leading-6 text-emerald-800">{B(scenario.pmTip ?? '')}</p>
         </div>
+      )}
+
+      {scenario.learningImage && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowImageModal(true)}
+            className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left transition hover:border-sky-400 hover:bg-sky-100"
+          >
+            <span className="text-base">📊</span>
+            <div>
+              <p className="text-sm font-semibold text-sky-800">参考資料を見る</p>
+              <p className="text-xs text-sky-600">{scenario.learningImage.caption}</p>
+            </div>
+            <span className="ml-auto text-xs text-sky-500">タップで拡大 →</span>
+          </button>
+
+          {showImageModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+              onClick={() => setShowImageModal(false)}
+            >
+              <div
+                className="relative flex max-h-[90vh] max-w-4xl flex-col overflow-auto rounded-3xl bg-white p-3 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowImageModal(false)}
+                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-slate-800/70 text-sm text-white hover:bg-slate-900"
+                >
+                  ✕
+                </button>
+                <img
+                  src={scenario.learningImage.src}
+                  alt={scenario.learningImage.caption}
+                  className="rounded-2xl object-contain"
+                />
+                <p className="mt-2 text-center text-sm text-slate-600">{scenario.learningImage.caption}</p>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* クライアント相談ボタン */}

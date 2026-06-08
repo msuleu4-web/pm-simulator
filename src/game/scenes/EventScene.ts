@@ -250,17 +250,41 @@ export class EventScene extends Phaser.Scene {
     this.inputCooldown = 400;
     this.clearChoices();
     this.boxGfx.clear();
-    this.nameText.setText('▼  どう対応しますか？');
     this.dialogText.setText('');
     this.nextIndicator.setText('');
+    this.effectText.setText(''); // clear any stale result chip
 
-    const choiceH = 50;
-    const gap = 6;
+    const choiceH = 48;
+    const gap = 5;
     const totalH = this.shuffledChoices.length * (choiceH + gap);
-    const startY = BOX_Y - totalH - 10;
+    const LABEL_H = 26;
+    // Place label above choices, then choices above dialog box
+    const startY = BOX_Y - totalH - LABEL_H - 12;
+    const labelY = Math.max(4, startY);
+    const choicesStart = labelY + LABEL_H + 4;
+
+    // Background box covering label + choices area
+    const bgTop = Math.max(2, labelY - 8);
+    const bgH = BOX_Y - bgTop + 2;
+    this.boxGfx.fillStyle(0x0b1830, 0.97);
+    this.boxGfx.fillRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
+    this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
+    this.boxGfx.strokeRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
+
+    // Label: remove NPC-name badge background, plain text above choices
+    this.nameText.setPosition(BOX_X + PAD, labelY);
+    this.nameText.setStyle({
+      color: '#88bbee',
+      fontSize: '13px',
+      fontFamily: JP,
+      backgroundColor: '',   // remove dark badge
+      padding: { x: 0, y: 0 },
+      fixedWidth: BOX_W - PAD * 2,
+    });
+    this.nameText.setText('▼  どう対応しますか？');
 
     this.shuffledChoices.forEach((choice, i) => {
-      const y = startY + i * (choiceH + gap);
+      const y = choicesStart + i * (choiceH + gap);
       const txt = this.add.text(BOX_X + PAD, y, '', {
         fontSize: '14px',
         color: '#aabbcc',
@@ -300,7 +324,8 @@ export class EventScene extends Phaser.Scene {
       const sel = i === this.selectedChoice;
       t.setColor(sel ? '#ffff66' : '#8899aa');
       t.setBackgroundColor(sel ? '#163050' : '#0a1828');
-      t.setText((sel ? '▶  ' : '      ') + this.shuffledChoices[i].text);
+      const cleanText = this.shuffledChoices[i].text.replace(/^[A-Za-z][：:]/, '').trimStart();
+      t.setText((sel ? '▶  ' : '      ') + cleanText);
     });
   }
 
@@ -392,6 +417,7 @@ export class EventScene extends Phaser.Scene {
       this.dialogText.setStyle({
         fontSize: '14px',
         color: '#d0f0d8',
+        fontStyle: 'bold',
         wordWrap: { width: TEXT_W, useAdvancedWrap: true },
         lineSpacing: 6,
         fontFamily: JP,
@@ -432,7 +458,13 @@ export class EventScene extends Phaser.Scene {
   private resetTextPositions() {
     this.nameText.setPosition(BOX_X + PAD, BOX_Y - 30);
     this.nameText.setStyle({
-      color: '#e8f0ff', fontSize: '15px', fontStyle: 'bold', fontFamily: JP,
+      color: '#e8f0ff',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      fontFamily: JP,
+      backgroundColor: '#0d2060',  // restore NPC name badge
+      padding: { x: 10, y: 5 },
+      fixedWidth: 0,                // remove fixedWidth constraint
     });
     this.dialogText.setPosition(BOX_X + PAD, BOX_Y + PAD);
     this.dialogText.setStyle({

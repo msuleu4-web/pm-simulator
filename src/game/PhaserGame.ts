@@ -23,6 +23,9 @@ export function createGame(parent: HTMLElement, playerName?: string): Phaser.Gam
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: 800,
+      height: 598,
+      parent,
     },
     input: {
       keyboard: true,

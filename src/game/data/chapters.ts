@@ -14,6 +14,8 @@ export interface DocumentItem {
   label: string;      // short label shown above the item
   dialog: string;     // flavor text shown before the image
   imageKey: string;   // Phaser texture key
+  imageLabel?: string; // caption shown above the image (defaults to label)
+  nextHint?: string;   // "Zキー / タップで〇〇を確認する" text
   required?: boolean; // if true, must be viewed before advancing to next chapter
   blockedHint?: string; // message shown when player tries to advance without reading
 }
@@ -137,6 +139,21 @@ export const chapters: ChapterDefinition[] = [
     playerStart: { col: 12, row: 11 },
     exitTile: { col: 23, row: 12 },
     events: ['event-2-1', 'event-2-2'],
+    documents: [
+      {
+        id: 'doc-meeting-minutes',
+        col: 10,
+        row: 4,
+        label: '議事録📄',
+        dialog:
+          '会議テーブルの上に紙の束が置いてある。\n\n「要件ヒアリング議事録 ── 第1回 要件定義会議」\n参加者：顧客担当・IT推進部・PM・新人SE\n\n「なるほど。会議で決まったことは\n全部こうやって文字に残すのか。\n後で言った・言わないにならないよう、\n議事録を確認して合意のサインをもらうまでが仕事だ。」',
+        imageKey: 'meeting-minutes',
+        imageLabel: '要件ヒアリング議事録（サンプル）',
+        nextHint: '▼ Zキー / タップで議事録を確認する',
+        required: true,
+        blockedHint: '会議テーブルの上の議事録を確認してから進もう…\n記録が残っているかどうかが、後で大きな違いになる。',
+      },
+    ],
   },
   {
     id: 3,
@@ -197,10 +214,11 @@ export const chapters: ChapterDefinition[] = [
     npcs: [
       { id: 'suzuki', name: '鈴木さん', col: 16, row: 6, eventId: 'event-4-1', color: 0xe67e22 },
       { id: 'tanaka-pm', name: '田中PM', col: 20, row: 3, eventId: 'event-4-2', color: 0x9b59b6 },
+      { id: 'infra-engineer', name: '高橋（インフラ）', col: 11, row: 8, eventId: 'event-infra-dev', color: 0x00cec9 },
     ],
     playerStart: { col: 12, row: 11 },
     exitTile: { col: 23, row: 12 },
-    events: ['event-4-1', 'event-4-2'],
+    events: ['event-4-1', 'event-4-2', 'event-infra-dev'],
   },
   {
     id: 5,
@@ -318,10 +336,24 @@ export const chapters: ChapterDefinition[] = [
     npcs: [
       { id: 'ops-staff', name: '運用担当', col: 16, row: 6, eventId: 'event-7-1', color: 0x3498db },
       { id: 'tanaka-pm', name: '田中PM', col: 20, row: 6, eventId: 'event-7-2', color: 0x9b59b6 },
+      { id: 'infra-engineer', name: '高橋（インフラ）', col: 6, row: 9, eventId: 'event-infra-server', color: 0x00cec9 },
     ],
     playerStart: { col: 12, row: 11 },
     exitTile: { col: 23, row: 12 },
-    events: ['event-7-1', 'event-7-2'],
+    events: ['event-7-1', 'event-7-2', 'event-infra-server'],
+    documents: [
+      {
+        id: 'doc-server-security',
+        col: 11,
+        row: 2,
+        label: '注意書き📋',
+        dialog:
+          'サーバーラックに「入室規程」の注意書きが貼ってある。\n\n── 本番リリース作業室　入室規程 ──\n・携帯等の電子機器はすべてロッカーへ\n・静電気防止リストバンドを着用すること\n・入室者全員を作業ログに署名すること\n・カメラ撮影・録音は原則禁止\n\n「24時間止められない基幹システムのサーバー室。\n　リリース作業は手順書の一行一行が命綱なんだよ。」',
+        imageKey: 'caution',
+        imageLabel: '本番サーバー室での注意点',
+        nextHint: '▼ Zキー / タップで注意点を確認する',
+      },
+    ],
   },
 ];
 

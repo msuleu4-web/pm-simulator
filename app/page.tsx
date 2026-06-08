@@ -30,6 +30,7 @@ import { CompactTeamSummary } from './components/CompactTeamSummary';
 import { DifficultySelect } from './components/DifficultySelect';
 import { EndingScreen } from './components/EndingScreen';
 import TermModal from './components/TermModal';
+import { SenpaiChatModal } from './components/SenpaiChatModal';
 import { RandomEventCard } from './components/RandomEventCard';
 import { pmBokDefinitions } from '../lib/pmBokDefinitions';
 import ProgressPanel from './components/ProgressPanel';
@@ -55,7 +56,7 @@ const difficultyBadgeColor: Record<Difficulty, string> = {
 function HomeContent() {
   const { state, dispatch } = useGameState();
   const config = difficultyConfigs[state.difficulty];
-  const activePhases = getPhasesForDifficulty(state.difficulty);
+  const activePhases = getPhasesForDifficulty(state.difficulty, state.projectThemeId);
   const currentPhase = activePhases[state.phaseIndex] ?? activePhases[0];
   const scenarioLimit = config.scenariosPerPhase;
   const activeScenarios = currentPhase.scenarios.slice(0, scenarioLimit);
@@ -72,6 +73,7 @@ function HomeContent() {
     typeof window !== 'undefined' ? localStorage.getItem('pm-sim-ultra-unlocked') === 'true' : false
   );
   const [clientChatOpen, setClientChatOpen] = useState<'player' | 'client' | null>(null);
+  const [senpaiChatOpen, setSenpaiChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'team' | 'progress' | 'records'>('team');
   const [showEnding, setShowEnding] = useState(false);
   const learning = useLearningProgress();
@@ -341,6 +343,7 @@ function HomeContent() {
                   </div>
                 )}
                 <ScenarioCard
+                  key={scenario.id}
                   scenario={scenario}
                   onSelectChoice={(choice) => {
                     setLastFeedback({ label: choice.label, explanation: choice.explanation, pmBokTags: choice.pmBokTags });
@@ -360,6 +363,18 @@ function HomeContent() {
             <CompactTeamSummary members={state.members} />
             <NextActionPanel actions={nextActions} />
             <RoadmapPanel items={roadmapItems} />
+            <button
+              type="button"
+              onClick={() => setSenpaiChatOpen(true)}
+              className="w-full rounded-3xl px-4 py-3 text-sm font-bold transition text-left flex items-center gap-3"
+              style={{ background: '#0f1923', border: '1.5px solid #1e3a52', color: '#7ab8d8' }}
+            >
+              <span className="text-base">👨‍💻</span>
+              <div>
+                <p style={{ color: '#a8cce0' }}>先輩に相談する</p>
+                <p className="text-xs font-normal mt-0.5" style={{ color: '#3a6a8a' }}>SIer道場 · 業界知識・判断の壁打ち</p>
+              </div>
+            </button>
           </aside>
         </div>
 
@@ -450,6 +465,15 @@ function HomeContent() {
           state={state}
           onPlayAgain={() => { setShowEnding(false); dispatch({ type: 'reset' }); setLastFeedback(null); }}
           onBackToEvaluation={() => setShowEnding(false)}
+        />
+      )}
+
+      {senpaiChatOpen && (
+        <SenpaiChatModal
+          state={state}
+          phaseLabel={currentPhase.label}
+          difficulty={state.difficulty}
+          onClose={() => setSenpaiChatOpen(false)}
         />
       )}
 

@@ -46,10 +46,17 @@
       "Bash(node -e \"const p = require\\('./node_modules/phaser/package.json'\\); console.log\\('phaser', p.version\\);\")",
       "Bash(node -e \"const sb = require\\('./lib/supabase'\\); console.log\\('supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET'\\)\")",
       "Bash(Get-ChildItem \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\" -Filter \".env*\" -Force)",
-      "Bash(node -e \"const row8 = '1000000000000000000000001'; console.log\\('col20 tile:', row8[20]\\);\")"
+      "Bash(node -e \"const row8 = '1000000000000000000000001'; console.log\\('col20 tile:', row8[20]\\);\")",
+      "Bash(grep -n \"^  {$\\\\|id: '\" c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\lib\\\\gameData.ts)",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\game image\\\\�X�e�[�N�z���_�[�}�b�v.png\" \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\public\\\\game-assets\\\\stakeholder-map.png\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\lib\" -Filter \"*.ts\")",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\game image\\\\���ӓ_.png\" \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\public\\\\game-assets\\\\caution.png\")",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory"
+      "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory",
+      "c:\\Users\\KIMYONGJIN\\Desktop\\pj\\game image"
     ]
   }
 }

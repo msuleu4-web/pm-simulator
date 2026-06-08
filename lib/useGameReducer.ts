@@ -1,5 +1,5 @@
 import { useEffect, useReducer } from 'react';
-import type { GameAction, GameState, TeamMember, Task, Effect, Difficulty } from './types';
+import type { GameAction, GameState, TeamMember, Task, Effect, Difficulty, Phase, PhaseOverride } from './types';
 import { phases } from './gameData';
 import { ultraPhases } from './ultraPhases';
 import { randomEvents } from './randomEvents';
@@ -13,12 +13,42 @@ import { calculateFit, hiringCostKpi } from './hireUtils';
 
 export const allPhases = [...phases, ...ultraPhases];
 
-export const getPhasesForDifficulty = (difficulty: string) => {
-  const config = difficultyConfigs[difficulty as import('./types').Difficulty];
-  if (config?.usePmoPhases) return pmoPhases.slice(0, config.phaseCount);
-  if (config?.useMemberPhases) return memberPhases.slice(0, config.phaseCount);
-  if (config?.useMaintPhases) return ultraPhases.slice(0, config.phaseCount);
-  return allPhases.slice(0, (config?.phaseCount ?? 5));
+function applyPhaseOverrides(basePhases: Phase[], overrides: PhaseOverride[]): Phase[] {
+  return basePhases.map((phase) => {
+    const phaseOverride = overrides.find((o) => o.phaseId === phase.id);
+    if (!phaseOverride) return phase;
+    return {
+      ...phase,
+      ...(phaseOverride.label && { label: phaseOverride.label }),
+      ...(phaseOverride.description && { description: phaseOverride.description }),
+      scenarios: phase.scenarios.map((scenario) => {
+        const so = phaseOverride.scenarios?.[scenario.id];
+        if (!so) return scenario;
+        return {
+          ...scenario,
+          ...(so.title && { title: so.title }),
+          ...(so.description && { description: so.description }),
+          ...(so.pmTip && { pmTip: so.pmTip }),
+          ...(so.docs && { docs: so.docs }),
+          ...(so.learningImage && { learningImage: so.learningImage }),
+        };
+      }),
+    };
+  });
+}
+
+export const getPhasesForDifficulty = (difficulty: string, projectThemeId?: string) => {
+  const config = difficultyConfigs[difficulty as Difficulty];
+  let base: Phase[];
+  if (config?.usePmoPhases) base = pmoPhases.slice(0, config.phaseCount);
+  else if (config?.useMemberPhases) base = memberPhases.slice(0, config.phaseCount);
+  else if (config?.useMaintPhases) base = ultraPhases.slice(0, config.phaseCount);
+  else base = allPhases.slice(0, (config?.phaseCount ?? 5));
+
+  if (!projectThemeId) return base;
+  const theme = projectThemes[difficulty as Difficulty]?.find((t) => t.id === projectThemeId);
+  if (!theme?.overrides) return base;
+  return applyPhaseOverrides(base, theme.overrides);
 };
 
 const clamp = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
@@ -232,7 +262,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'selectChoice': {
       const config = difficultyConfigs[state.difficulty];
-      const activePhaseList = getPhasesForDifficulty(state.difficulty);
+      const activePhaseList = getPhasesForDifficulty(state.difficulty, state.projectThemeId);
       const rawEffect = action.choice.effects;
       const effect = scaleEffect(rawEffect, state.difficulty);
       const nextScenarioIndex = state.scenarioIndex + 1;
@@ -302,7 +332,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       const choice = event.choices.find((c) => c.id === action.choiceId);
       if (!choice) return state;
       const effect = scaleEffect(choice.effects, state.difficulty);
-      const resolvePhases = getPhasesForDifficulty(state.difficulty);
+      const resolvePhases = getPhasesForDifficulty(state.difficulty, state.projectThemeId);
       const afterEvent = normalizeState({
         ...state,
         pendingEvent: null,

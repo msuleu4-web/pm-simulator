@@ -31,6 +31,7 @@ export type Scenario = {
   clientChat?: boolean;
   docs: DocReference[];
   choices: Choice[];
+  learningImage?: { src: string; caption: string };
 };
 
 export type Phase = {
@@ -108,6 +109,21 @@ export type Difficulty = 'easy' | 'normal' | 'hard' | 'ultra' | 'maint-easy' | '
 
 export type ProjectCategory = '新規開発' | '保守運用' | '移行・刷新' | 'PMO';
 
+export type ScenarioOverride = {
+  title?: string;
+  description?: string;
+  pmTip?: string;
+  docs?: DocReference[];
+  learningImage?: { src: string; caption: string };
+};
+
+export type PhaseOverride = {
+  phaseId: string;
+  label?: string;
+  description?: string;
+  scenarios: Record<string, ScenarioOverride>;
+};
+
 export type ProjectTheme = {
   id: string;
   title: string;
@@ -115,6 +131,7 @@ export type ProjectTheme = {
   description: string;
   category?: ProjectCategory;
   statModifiers: Partial<Pick<GameState, 'quality' | 'cost' | 'schedule' | 'stakeholder' | 'morale'>>;
+  overrides?: PhaseOverride[];
 };
 
 export type QuitEvent = {

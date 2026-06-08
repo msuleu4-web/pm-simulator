@@ -1,4 +1,5 @@
 import type { Difficulty, ProjectTheme } from './types';
+import { jukuOverrides, hospitalOverrides, bankOverrides } from './themedScenarios';
 
 export type DifficultyConfig = {
   id: Difficulty;
@@ -221,6 +222,7 @@ export const projectThemes: Record<Difficulty, ProjectTheme[]> = {
       client: 'あすなろ学習院（生徒500名の個別指導塾）',
       description: '講師と保護者が使いやすい成績管理ツール。予算は少ないが要件はシンプル。',
       statModifiers: { cost: -8, stakeholder: 5 },
+      overrides: jukuOverrides,
     },
     {
       id: 'realestate-db',
@@ -265,6 +267,7 @@ export const projectThemes: Record<Difficulty, ProjectTheme[]> = {
       client: '医療法人みなと病院（200床・外来1日400名）',
       description: '医療システムはコンプライアンスが厳しく、稼働後の変更が難しい。',
       statModifiers: { stakeholder: 8, schedule: -5 },
+      overrides: hospitalOverrides,
     },
     {
       id: 'logistics-delivery',
@@ -291,10 +294,11 @@ export const projectThemes: Record<Difficulty, ProjectTheme[]> = {
     },
     {
       id: 'bank-online',
-      title: 'メガバンクのオンラインバンキング基盤移行',
-      client: '東洋銀行（全国展開のメガバンク、口座数2,000万）',
-      description: '24時間止められないシステムの世代交代。セキュリティと可用性が最優先。',
+      title: '地方銀行の勘定系サブシステム刷新',
+      client: '第一東海地方銀行（口座数80万・支店数38）',
+      description: '25年稼働する勘定系サブシステムの世代交代。金融庁規制対応と多重ベンダー管理が最難関。',
       statModifiers: { quality: 5, morale: -8, schedule: -8 },
+      overrides: bankOverrides,
     },
     {
       id: 'ec-nationwide',
