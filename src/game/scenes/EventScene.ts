@@ -254,46 +254,21 @@ export class EventScene extends Phaser.Scene {
     this.nextIndicator.setText('');
     this.effectText.setText(''); // clear any stale result chip
 
-    const choiceH = 48;
-    const gap = 5;
-    const totalH = this.shuffledChoices.length * (choiceH + gap);
+    const gap = 6;
     const LABEL_H = 26;
-    // Place label above choices, then choices above dialog box
-    const startY = BOX_Y - totalH - LABEL_H - 12;
-    const labelY = Math.max(4, startY);
-    const choicesStart = labelY + LABEL_H + 4;
 
-    // Background box covering label + choices area
-    const bgTop = Math.max(2, labelY - 8);
-    const bgH = BOX_Y - bgTop + 2;
-    this.boxGfx.fillStyle(0x0b1830, 0.97);
-    this.boxGfx.fillRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
-    this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
-    this.boxGfx.strokeRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
-
-    // Label: remove NPC-name badge background, plain text above choices
-    this.nameText.setPosition(BOX_X + PAD, labelY);
-    this.nameText.setStyle({
-      color: '#88bbee',
-      fontSize: '13px',
-      fontFamily: JP,
-      backgroundColor: '',   // remove dark badge
-      padding: { x: 0, y: 0 },
-      fixedWidth: BOX_W - PAD * 2,
-    });
-    this.nameText.setText('▼  どう対応しますか？');
-
+    // Step 1: create text objects with actual content so Phaser can measure real height
     this.shuffledChoices.forEach((choice, i) => {
-      const y = choicesStart + i * (choiceH + gap);
-      const txt = this.add.text(BOX_X + PAD, y, '', {
+      const sel = i === this.selectedChoice;
+      const cleanText = choice.text.replace(/^[A-Za-z][：:]/, '').trimStart();
+      const txt = this.add.text(BOX_X + PAD, 0, (sel ? '►  ' : '    ') + cleanText, {
         fontSize: '14px',
-        color: '#aabbcc',
-        wordWrap: { width: TEXT_W - 20, useAdvancedWrap: true },
+        color: sel ? '#ffff66' : '#8899aa',
+        wordWrap: { width: TEXT_W - 24, useAdvancedWrap: true },
         fontFamily: JP,
-        backgroundColor: '#0a1828',
+        backgroundColor: sel ? '#163050' : '#0a1828',
         padding: { x: 10, y: 8 },
         lineSpacing: 4,
-        fixedWidth: TEXT_W,
       });
 
       txt.setInteractive({ useHandCursor: true });
@@ -316,7 +291,38 @@ export class EventScene extends Phaser.Scene {
       this.choiceTexts.push(txt);
     });
 
-    this.updateChoiceHighlight();
+    // Step 2: measure actual heights and compute layout from bottom up
+    const totalH = this.choiceTexts.reduce((sum, t) => sum + t.height + gap, 0);
+    const startY = BOX_Y - totalH - LABEL_H - 12;
+    const labelY = Math.max(4, startY);
+    const choicesStart = labelY + LABEL_H + 4;
+
+    // Step 3: position each text based on its real height
+    let y = choicesStart;
+    this.choiceTexts.forEach((txt) => {
+      txt.setY(y);
+      y += txt.height + gap;
+    });
+
+    // Step 4: draw background box sized to actual content
+    const bgTop = Math.max(2, labelY - 8);
+    const bgH = BOX_Y - bgTop + 2;
+    this.boxGfx.fillStyle(0x0b1830, 0.97);
+    this.boxGfx.fillRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
+    this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
+    this.boxGfx.strokeRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
+
+    // Label: remove NPC-name badge background, plain text above choices
+    this.nameText.setPosition(BOX_X + PAD, labelY);
+    this.nameText.setStyle({
+      color: '#88bbee',
+      fontSize: '13px',
+      fontFamily: JP,
+      backgroundColor: '',   // remove dark badge
+      padding: { x: 0, y: 0 },
+      fixedWidth: BOX_W - PAD * 2,
+    });
+    this.nameText.setText('▼  どう対応しますか？');
   }
 
   private updateChoiceHighlight() {
@@ -325,7 +331,7 @@ export class EventScene extends Phaser.Scene {
       t.setColor(sel ? '#ffff66' : '#8899aa');
       t.setBackgroundColor(sel ? '#163050' : '#0a1828');
       const cleanText = this.shuffledChoices[i].text.replace(/^[A-Za-z][：:]/, '').trimStart();
-      t.setText((sel ? '▶  ' : '      ') + cleanText);
+      t.setText((sel ? '►  ' : '    ') + cleanText);
     });
   }
 
