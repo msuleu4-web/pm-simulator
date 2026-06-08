@@ -480,13 +480,8 @@ function QuestCanvas({ onDone }: { onDone: () => void }) {
       // @ts-ignore
       const { createGame } = await import('../../src/game/PhaserGame');
       if (!cancelled && containerRef.current && !gameRef.current) {
-        const g = createGame(containerRef.current, '');
-        // Start QuestCorebankScene immediately after Phaser boots
-        g.events.once('ready', () => {
-          g.scene.stop('BootScene');
-          g.scene.start('QuestCorebankScene');
-        });
-        gameRef.current = g;
+        // Pass 'QuestCorebankScene' so it's placed first in the scene list and boots directly
+        gameRef.current = createGame(containerRef.current, '', 'QuestCorebankScene');
       }
     };
 

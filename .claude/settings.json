@@ -52,7 +52,13 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\lib\" -Filter \"*.ts\")",
       "PowerShell(Copy-Item \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\game image\\\\���ӓ_.png\" \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\public\\\\game-assets\\\\caution.png\")",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"cd ~/pm-simulator && git pull && npm run build && pm2 restart pm-simulator\")",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"which npm || ls ~/.nvm/versions/node/ 2>/dev/null || ls /usr/local/bin/npm 2>/dev/null || echo 'node not found'\")",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"export NVM_DIR=~/.nvm && source ~/.nvm/nvm.sh && cd ~/pm-simulator && npm run build && pm2 restart pm-simulator\")",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"export NVM_DIR=~/.nvm && source ~/.nvm/nvm.sh && cd ~/pm-simulator && git pull && npm run build && pm2 restart pm-simulator\")",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"export NVM_DIR=~/.nvm && source ~/.nvm/nvm.sh && cd ~/pm-simulator && git log --oneline -3 && pm2 list\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory",

@@ -247,10 +247,10 @@ export class RandomEventScene extends Phaser.Scene {
 
     // Effect summary
     const parts: string[] = [];
-    if (scaled.quality)  parts.push(`品質 ${scaled.quality  > 0 ? '+' : ''}${scaled.quality}`);
-    if (scaled.cost)     parts.push(`コスト ${scaled.cost   > 0 ? '+' : ''}${scaled.cost}`);
-    if (scaled.delivery) parts.push(`納期 ${scaled.delivery > 0 ? '+' : ''}${scaled.delivery}`);
-    if (scaled.trust)    parts.push(`信頼度 ${scaled.trust  > 0 ? '+' : ''}${scaled.trust}`);
+    if (scaled.quality  !== undefined) parts.push(`品質 ${scaled.quality  > 0 ? '+' : ''}${scaled.quality}`);
+    if (scaled.cost     !== undefined) parts.push(`コスト ${scaled.cost   > 0 ? '+' : ''}${scaled.cost}`);
+    if (scaled.delivery !== undefined) parts.push(`納期 ${scaled.delivery > 0 ? '+' : ''}${scaled.delivery}`);
+    if (scaled.trust    !== undefined) parts.push(`信頼度 ${scaled.trust  > 0 ? '+' : ''}${scaled.trust}`);
     if (parts.length) {
       this.effectLabel.setText(parts.join('  '));
       this.effectLabel.setBackgroundColor('#1A1800DD');
@@ -284,7 +284,7 @@ export class RandomEventScene extends Phaser.Scene {
       case 'situation':
         if (this.typeTimer) { this.skipTypewriter(); }
         else {
-          this.tweens.killAll();
+          this.tweens.killTweensOf(this.nextIndicator);
           this.nextIndicator.setAlpha(1);
           this.showChoices();
         }

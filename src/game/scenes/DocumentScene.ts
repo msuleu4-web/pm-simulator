@@ -172,7 +172,7 @@ export class DocumentScene extends Phaser.Scene {
     switch (this.phase) {
       case 'dialog':
         if (this.typeTimer) { this.skipTypewriter(); }
-        else { this.tweens.killAll(); this.nextIndicator.setAlpha(1); this.showImage(); }
+        else { this.tweens.killTweensOf(this.nextIndicator); this.nextIndicator.setAlpha(1); this.showImage(); }
         break;
       case 'image':
         // Close the HTML overlay (which will call closeScene via the event listener)

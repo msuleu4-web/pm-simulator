@@ -10,7 +10,6 @@ import * as Phaser from 'phaser';
 import {
   DIALOGUE_MAP,
   resolveEnding,
-  DEFAULT_FLAGS,
   type QuestFlags,
   type DialogueNode,
   type EndingDef,
@@ -65,6 +64,7 @@ export class QuestCorebankScene extends Phaser.Scene {
   private nextHint!: Phaser.GameObjects.Text;
   private choiceObjs: Phaser.GameObjects.Text[] = [];
   private selectedChoice = 0;
+  private currentEnding: EndingDef | null = null;
 
   // For ending screen
   private endingGfx!: Phaser.GameObjects.Graphics;
@@ -86,6 +86,7 @@ export class QuestCorebankScene extends Phaser.Scene {
 
   init() {
     this.flags = { warnedEarly: false, gijirokuKept: false, escalatedUp: false, proposedStop: false, trust: 0 };
+    this.currentEnding = null;
     this.phase = 'typing';
     this.charIndex = 0;
     this.fullText = '';
@@ -255,6 +256,14 @@ export class QuestCorebankScene extends Phaser.Scene {
     cb?.();
   }
 
+  // Dedicated skip for ending body text (writes to endingBody, not bodyText)
+  private skipEndingTypewriter(ending: EndingDef) {
+    if (this.typeTimer) { this.typeTimer.destroy(); this.typeTimer = null; }
+    this.endingBody.setText(this.fullText);
+    this.charIndex = this.fullText.length;
+    this.showLearnSection(ending);
+  }
+
   // ── Node navigation ───────────────────────────────────────────────
 
   private gotoNode(id: string) {
@@ -400,7 +409,7 @@ export class QuestCorebankScene extends Phaser.Scene {
       return;
     }
     if (this.phase === 'ending_text') {
-      this.skipTypewriter();
+      if (this.currentEnding) this.skipEndingTypewriter(this.currentEnding);
       return;
     }
     if (this.phase === 'ending_learn') {
@@ -412,6 +421,7 @@ export class QuestCorebankScene extends Phaser.Scene {
   // ── Ending screen ─────────────────────────────────────────────────
 
   private showEnding(ending: EndingDef) {
+    this.currentEnding = ending;
     this.clearChoices();
     // Hide dialog layer
     this.boxGfx.clear();
@@ -466,24 +476,32 @@ export class QuestCorebankScene extends Phaser.Scene {
 
   private showLearnSection(ending: EndingDef) {
     this.phase = 'ending_learn';
-    // Position learn box below body text
-    const bodyBottom = this.endingBody.y + this.endingBody.height + 20;
-    const learnBoxY  = Math.min(bodyBottom, H - 190);
-    const learnH     = 120;
+    // Position learn box below body text, with enough height for the learn text
+    const bodyBottom = this.endingBody.y + this.endingBody.height + 16;
+    const learnBoxY  = Math.min(bodyBottom, H - 210);
 
-    this.learnBox.setVisible(true);
-    this.learnBox.fillStyle(0x0d2810, 0.95);
-    this.learnBox.fillRoundedRect(40, learnBoxY, W - 80, learnH, 8);
-    this.learnBox.lineStyle(2, 0x2e7a44, 0.9);
-    this.learnBox.strokeRoundedRect(40, learnBoxY, W - 80, learnH, 8);
-
-    this.learnLabel.setPosition(60, learnBoxY + 12).setVisible(true);
+    // Set text first so Phaser can measure its height
     this.learnText
       .setPosition(60, learnBoxY + 34)
       .setText(ending.learn)
       .setVisible(true);
 
-    this.backBtn.setPosition(W / 2, learnBoxY + learnH + 16).setVisible(true);
+    // Compute box height dynamically from rendered text height
+    const learnH = Math.max(100, this.learnText.height + 50);
+    const clampedBoxY = Math.min(learnBoxY, H - learnH - 60);
+
+    // Reposition text to clamped box origin
+    this.learnText.setPosition(60, clampedBoxY + 34);
+
+    this.learnBox.setVisible(true);
+    this.learnBox.fillStyle(0x0d2810, 0.95);
+    this.learnBox.fillRoundedRect(40, clampedBoxY, W - 80, learnH, 8);
+    this.learnBox.lineStyle(2, 0x2e7a44, 0.9);
+    this.learnBox.strokeRoundedRect(40, clampedBoxY, W - 80, learnH, 8);
+
+    this.learnLabel.setPosition(60, clampedBoxY + 10).setVisible(true);
+
+    this.backBtn.setPosition(W / 2, clampedBoxY + learnH + 14).setVisible(true);
 
     this.nextHint
       .setVisible(true)
