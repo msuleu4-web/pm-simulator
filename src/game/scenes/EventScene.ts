@@ -246,46 +246,40 @@ export class EventScene extends Phaser.Scene {
     this.inputCooldown = 400;
     this.clearChoices();
     this.boxGfx.clear();
+    this.nameText.setText('');   // hide nameText — label is now a fresh object
     this.dialogText.setText('');
     this.nextIndicator.setText('');
     this.effectText.setText(''); this.effectText.setBackgroundColor('');
 
-    // Row height: 14px font × 2 lines + lineSpacing(4) + padding(8×2) = 52px, add margin
-    const ROW_H = 58;
-    const GAP   = 5;
-    const LABEL_H = 28;
-    const LABEL_PAD = 8; // space between label and first choice
+    const ROW_H  = 56;   // tall enough for 2-line wrap (14px × 2 + padding 8×2 + spacing)
+    const GAP    = 5;
+    const n      = this.shuffledChoices.length;
 
-    const n = this.shuffledChoices.length;
-    const totalH = n * ROW_H + (n - 1) * GAP;
-    const blockH = LABEL_H + LABEL_PAD + totalH;
-
-    // Anchor the block so it sits just above the dialog box
-    const blockTop  = Math.max(2, BOX_Y - blockH - 10);
-    const labelY    = blockTop + 4;
-    const choicesStart = labelY + LABEL_H + LABEL_PAD;
+    // Layout anchored to BOX_Y, growing upward
+    // choices occupy from choiceTop to BOX_Y - 6
+    const choiceAreaH  = n * ROW_H + (n - 1) * GAP;
+    const choiceTop    = BOX_Y - 6 - choiceAreaH;
+    const labelTop     = Math.max(2, choiceTop - 30);
+    const bgTop        = Math.max(0, labelTop - 6);
+    const bgH          = BOX_Y - bgTop;
 
     // Background box
     this.boxGfx.fillStyle(0x0b1830, 0.97);
-    this.boxGfx.fillRoundedRect(BOX_X, blockTop, BOX_W, blockH + 10, 10);
+    this.boxGfx.fillRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
     this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
-    this.boxGfx.strokeRoundedRect(BOX_X, blockTop, BOX_W, blockH + 10, 10);
+    this.boxGfx.strokeRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
 
-    // Label inside box
-    this.nameText.setPosition(BOX_X + PAD, labelY);
-    this.nameText.setStyle({
-      color: '#88bbee',
+    // Label — new text object so depth order is correct (renders on top of boxGfx)
+    const labelTxt = this.add.text(BOX_X + PAD, labelTop, '▼  どう対応しますか？', {
       fontSize: '13px',
+      color: '#88bbee',
       fontFamily: JP,
-      backgroundColor: '',
-      padding: { x: 0, y: 0 },
-      fixedWidth: 0,
     });
-    this.nameText.setText('▼  どう対応しますか？');
+    this.choiceTexts.push(labelTxt); // destroyed by clearChoices()
 
     // Choice rows
     this.shuffledChoices.forEach((choice, i) => {
-      const y = choicesStart + i * (ROW_H + GAP);
+      const y = choiceTop + i * (ROW_H + GAP);
       const sel = i === this.selectedChoice;
       const cleanText = choice.text.replace(/^[A-Za-z][：:]/, '').trimStart();
       const txt = this.add.text(BOX_X + PAD, y, (sel ? '►  ' : '    ') + cleanText, {
@@ -320,14 +314,14 @@ export class EventScene extends Phaser.Scene {
   }
 
   private updateChoiceHighlight() {
-    this.choiceTexts.forEach((t, i) => {
+    // choiceTexts[0] is the label — skip it; choices start at index 1
+    this.choiceTexts.slice(1).forEach((t, i) => {
       const sel = i === this.selectedChoice;
       t.setColor(sel ? '#ffff66' : '#8899aa');
       t.setBackgroundColor(sel ? '#163050' : '#0a1828');
       const cleanText = this.shuffledChoices[i].text.replace(/^[A-Za-z][：:]/, '').trimStart();
       t.setText((sel ? '►  ' : '    ') + cleanText);
-      // keep fixed dimensions stable across highlight changes
-      t.setFixedSize(TEXT_W, 58);
+      t.setFixedSize(TEXT_W, 56);
     });
   }
 
