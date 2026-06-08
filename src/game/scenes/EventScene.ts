@@ -102,12 +102,11 @@ export class EventScene extends Phaser.Scene {
 
     this.boxGfx = this.add.graphics();
 
-    // NPC name badge
+    // NPC name badge — no backgroundColor here; set dynamically to avoid empty-text black square
     this.nameText = this.add.text(BOX_X + PAD, BOX_Y - 30, '', {
       fontSize: '15px',
       fontStyle: 'bold',
       color: '#e8f0ff',
-      backgroundColor: '#0d2060',
       padding: { x: 10, y: 5 },
       fontFamily: JP,
     });
@@ -131,13 +130,12 @@ export class EventScene extends Phaser.Scene {
       })
       .setOrigin(1, 1);
 
-    // Effect result chip — placed above all boxes (y=118) so it never overlaps
+    // Effect result chip — backgroundColor set dynamically to avoid empty-text black square
     this.effectText = this.add.text(CANVAS_W / 2, 118, '', {
       fontSize: '14px',
       color: '#ffdd44',
       fontFamily: JP,
       align: 'center',
-      backgroundColor: '#1a1800dd',
       padding: { x: 14, y: 6 },
     }).setOrigin(0.5).setDepth(10);
 
@@ -226,7 +224,7 @@ export class EventScene extends Phaser.Scene {
   private startSituation() {
     this.phase = 'situation';
     this.clearChoices();
-    this.effectText.setText('');
+    this.effectText.setText(''); this.effectText.setBackgroundColor('');
     this.drawDialogBox();
     this.resetTextPositions();
     this.nameText.setText(`【${this.event.npcName}】  ${this.event.title}`);
@@ -250,7 +248,7 @@ export class EventScene extends Phaser.Scene {
     this.boxGfx.clear();
     this.dialogText.setText('');
     this.nextIndicator.setText('');
-    this.effectText.setText('');
+    this.effectText.setText(''); this.effectText.setBackgroundColor('');
 
     // Row height: 14px font × 2 lines + lineSpacing(4) + padding(8×2) = 52px, add margin
     const ROW_H = 58;
@@ -368,6 +366,7 @@ export class EventScene extends Phaser.Scene {
     const badge = grade === '◎' ? '◎ 正解' : grade === '△' ? '△ 許容' : '× 要注意';
     this.effectText.setText(`${badge}  ／  ${parts.join('  ') || '変化なし'}`);
     this.effectText.setColor(grade === '◎' ? '#44ff88' : grade === '×' ? '#ff7766' : '#ffdd44');
+    this.effectText.setBackgroundColor('#1a1800dd');
 
     // Show result text
     this.phase = 'result';
@@ -386,7 +385,7 @@ export class EventScene extends Phaser.Scene {
   private showEducation() {
     this.phase = 'education';
     this.clearChoices();
-    this.effectText.setText('');
+    this.effectText.setText(''); this.effectText.setBackgroundColor('');
     this.eduPageIndex = 0;
 
     // Split education point into pages by blank line (\n\n)

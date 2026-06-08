@@ -101,11 +101,11 @@ export class RandomEventScene extends Phaser.Scene {
         fontSize: '13px', color: '#88BBFF', fontFamily: JP,
       }).setOrigin(1, 1);
 
-    // Effect label — appears below sitBox in result phase (choices are gone by then)
+    // Effect label — backgroundColor set dynamically to avoid empty-text black square
     this.effectLabel = this.add.text(
       CANVAS_W / 2, SIT_Y + SIT_H + 12, '', {
         fontSize: '14px', fontStyle: 'bold', color: '#FFDD44', fontFamily: JP,
-        backgroundColor: '#1A1800DD', padding: { x: 14, y: 6 },
+        padding: { x: 14, y: 6 },
         align: 'center',
       }).setOrigin(0.5, 0).setDepth(10);
 
@@ -195,12 +195,14 @@ export class RandomEventScene extends Phaser.Scene {
 
     this.event.choices.forEach((choice, i) => {
       const y = CHOICE_Y0 + i * (CHOICE_H + CHOICE_G);
-      const txt = this.add.text(PAD + 4, y, '', {
-        fontSize: '13px', color: '#AABBCC', fontFamily: JP,
+      const sel = i === this.selectedChoice;
+      const txt = this.add.text(PAD + 4, y, (sel ? '▶  ' : '      ') + choice.text, {
+        fontSize: '13px', color: sel ? '#FFFF66' : '#8899AA', fontFamily: JP,
         wordWrap: { width: CANVAS_W - (PAD + 4) * 2 - 20, useAdvancedWrap: true },
-        backgroundColor: '#091420',
+        backgroundColor: sel ? '#162840' : '#091420',
         padding: { x: 10, y: 9 },
         fixedWidth: CANVAS_W - (PAD + 4) * 2,
+        fixedHeight: CHOICE_H,
         lineSpacing: 3,
       });
       txt.setInteractive({ useHandCursor: true });
@@ -208,7 +210,6 @@ export class RandomEventScene extends Phaser.Scene {
       txt.on('pointerover', () => { if (this.selectedChoice !== i) { this.selectedChoice = i; this.updateHighlight(); } });
       this.choiceTexts.push(txt);
     });
-    this.updateHighlight();
   }
 
   private updateHighlight() {
@@ -250,7 +251,10 @@ export class RandomEventScene extends Phaser.Scene {
     if (scaled.cost)     parts.push(`コスト ${scaled.cost   > 0 ? '+' : ''}${scaled.cost}`);
     if (scaled.delivery) parts.push(`納期 ${scaled.delivery > 0 ? '+' : ''}${scaled.delivery}`);
     if (scaled.trust)    parts.push(`信頼度 ${scaled.trust  > 0 ? '+' : ''}${scaled.trust}`);
-    if (parts.length) this.effectLabel.setText(parts.join('  '));
+    if (parts.length) {
+      this.effectLabel.setText(parts.join('  '));
+      this.effectLabel.setBackgroundColor('#1A1800DD');
+    }
 
     // Show result in situation box
     this.phase = 'result';
