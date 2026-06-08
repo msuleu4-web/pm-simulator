@@ -626,7 +626,6 @@ export class MapScene extends Phaser.Scene {
       color: '#ffdd88',
       fontFamily: JP,
       align: 'center',
-      backgroundColor: '#00000088',
       padding: { x: 10, y: 4 },
     }).setOrigin(0.5, 0);
   }
@@ -873,10 +872,15 @@ export class MapScene extends Phaser.Scene {
   private showNotice(text: string, duration = 2000) {
     // Cancel previous timer before creating a new one (prevents stale clears)
     if (this.noticeTimer) { this.noticeTimer.destroy(); this.noticeTimer = null; }
+    this.noticeText.setBackgroundColor('#00000088');
     this.noticeText.setText(text);
     this.noticeTimer = this.time.addEvent({
       delay: duration,
-      callback: () => { this.noticeText.setText(''); this.noticeTimer = null; },
+      callback: () => {
+        this.noticeText.setText('');
+        this.noticeText.setBackgroundColor(''); // empty string clears the background
+        this.noticeTimer = null;
+      },
     });
   }
 
