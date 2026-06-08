@@ -35,7 +35,7 @@ function TitleScreen({ onStart, onStartQuest }: { onStart: (name: string, diffic
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <p style={{ color: '#4a90d9', fontSize: 12, letterSpacing: '0.3em', marginBottom: 10 }}>SIer現場教育RPG</p>
         <h1 style={{ color: '#e0eeff', fontSize: 30, fontWeight: 900, lineHeight: 1.3, marginBottom: 10 }}>
-          配属先は、現場。
+          配属先は、現場
         </h1>
         <p style={{ color: '#7a9abc', fontSize: 13, maxWidth: 420, lineHeight: 1.8 }}>
           あなたは新人SE1年目。地方銀行の勘定系サブシステム刷新プロジェクトへ配属された。<br />

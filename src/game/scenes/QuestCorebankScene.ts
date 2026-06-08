@@ -49,7 +49,7 @@ type Phase =
   | 'done';
 
 export class QuestCorebankScene extends Phaser.Scene {
-  private flags: QuestFlags = { ...DEFAULT_FLAGS };
+  private flags: QuestFlags = { warnedEarly: false, gijirokuKept: false, escalatedUp: false, proposedStop: false, trust: 0 };
   private node!: DialogueNode;
   private phase: Phase = 'typing';
 
@@ -85,7 +85,7 @@ export class QuestCorebankScene extends Phaser.Scene {
   constructor() { super({ key: 'QuestCorebankScene' }); }
 
   init() {
-    this.flags = { ...DEFAULT_FLAGS };
+    this.flags = { warnedEarly: false, gijirokuKept: false, escalatedUp: false, proposedStop: false, trust: 0 };
     this.phase = 'typing';
     this.charIndex = 0;
     this.fullText = '';
@@ -362,10 +362,11 @@ export class QuestCorebankScene extends Phaser.Scene {
     const choice = this.node.choices![this.selectedChoice];
     // Apply flags
     const fx = choice.setFlags;
-    if (fx.warnedEarly !== undefined) this.flags.warnedEarly = fx.warnedEarly;
+    if (fx.warnedEarly  !== undefined) this.flags.warnedEarly  = fx.warnedEarly;
     if (fx.gijirokuKept !== undefined) this.flags.gijirokuKept = fx.gijirokuKept;
+    if (fx.escalatedUp  !== undefined) this.flags.escalatedUp  = fx.escalatedUp;
     if (fx.proposedStop !== undefined) this.flags.proposedStop = fx.proposedStop;
-    if (fx.trust !== undefined) this.flags.trust += fx.trust;
+    if (fx.trust        !== undefined) this.flags.trust        += fx.trust;
     sfx.select();
     this.phase = 'typing';
     this.clearChoices();

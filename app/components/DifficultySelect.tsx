@@ -81,7 +81,7 @@ export function DifficultySelect({
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-brand-500 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">NEW · RPG</span>
               </div>
-              <p className="mt-3 text-2xl font-black text-white sm:text-3xl">配属先は、現場。</p>
+              <p className="mt-3 text-2xl font-black text-white sm:text-3xl">配属先は、現場</p>
               <p className="mt-1 text-sm font-semibold text-brand-300">SIer現場体験ストーリーRPG</p>
             </div>
             <span className="shrink-0 text-5xl opacity-80">🎮</span>
@@ -90,8 +90,8 @@ export function DifficultySelect({
           <div className="grid gap-0 sm:grid-cols-[1fr_auto]">
             <div className="px-7 pb-7">
               <p className="text-sm leading-7 text-slate-300">
-                新人SEとして2Dマップを歩き、NPCに話しかけながら現場の判断を体験する<strong className="text-white">物語型RPG</strong>。
-                要件定義・基本設計・テスト・炎上対応・リリースまで全7章。
+                新人SEとして2Dマップを歩き、NPCに話しかけながら現場の判断を体験する<strong className="text-white">物語型RPG</strong>
+                要件定義・基本設計・テスト・炎上対応・リリースまで全7章
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {['🗺️ マップ探索', '💬 選択肢分岐', '📚 教育ポイント解説', '⏱️ 約15分'].map((tag) => (
