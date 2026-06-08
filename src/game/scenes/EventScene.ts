@@ -246,40 +246,45 @@ export class EventScene extends Phaser.Scene {
     this.inputCooldown = 400;
     this.clearChoices();
     this.boxGfx.clear();
-    this.nameText.setText('');   // hide nameText — label is now a fresh object
+    this.nameText.setText('');
+    this.nameText.setBackgroundColor(''); // ensure no leftover badge background
     this.dialogText.setText('');
     this.nextIndicator.setText('');
     this.effectText.setText(''); this.effectText.setBackgroundColor('');
 
-    const ROW_H  = 56;   // tall enough for 2-line wrap (14px × 2 + padding 8×2 + spacing)
-    const GAP    = 5;
-    const n      = this.shuffledChoices.length;
+    const GAP       = 4;
+    const LABEL_H   = 28;
+    const TOP_SAFE  = 92;   // stay below MapScene status bar
+    const BOT_PAD   = 6;
+    const n         = this.shuffledChoices.length;
 
-    // Layout anchored to BOX_Y, growing upward
-    // choices occupy from choiceTop to BOX_Y - 6
-    const choiceAreaH  = n * ROW_H + (n - 1) * GAP;
-    const choiceTop    = BOX_Y - 6 - choiceAreaH;
-    const labelTop     = Math.max(2, choiceTop - 30);
-    const bgTop        = Math.max(0, labelTop - 6);
-    const bgH          = BOX_Y - bgTop;
+    // Max space available for choices between TOP_SAFE+LABEL_H and BOX_Y
+    const maxH  = BOX_Y - BOT_PAD - TOP_SAFE - LABEL_H;
+    // Row height fits everything; clamp between 34 and 54
+    const ROW_H = Math.max(34, Math.min(54, Math.floor((maxH - (n - 1) * GAP) / n)));
 
-    // Background box
+    const choiceAreaH = n * ROW_H + (n - 1) * GAP;
+    const choiceTop   = BOX_Y - BOT_PAD - choiceAreaH;
+    const labelY      = choiceTop - LABEL_H;
+    const bgY         = labelY - 6;
+
+    // Background box (drawn into boxGfx which sits below all text in the display list)
     this.boxGfx.fillStyle(0x0b1830, 0.97);
-    this.boxGfx.fillRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
-    this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
-    this.boxGfx.strokeRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
+    this.boxGfx.fillRoundedRect(BOX_X, bgY, BOX_W, BOX_Y - bgY, 10);
+    this.boxGfx.lineStyle(1.5, 0x3a7acc, 1);
+    this.boxGfx.strokeRoundedRect(BOX_X, bgY, BOX_W, BOX_Y - bgY, 10);
 
-    // Label — new text object so depth order is correct (renders on top of boxGfx)
-    const labelTxt = this.add.text(BOX_X + PAD, labelTop, '▼  どう対応しますか？', {
+    // Label — created fresh each time so it sits on top of boxGfx
+    const labelTxt = this.add.text(BOX_X + PAD, labelY, '▼  どう対応しますか？', {
       fontSize: '13px',
       color: '#88bbee',
       fontFamily: JP,
-    });
-    this.choiceTexts.push(labelTxt); // destroyed by clearChoices()
+    }).setDepth(5);
+    this.choiceTexts.push(labelTxt);
 
     // Choice rows
     this.shuffledChoices.forEach((choice, i) => {
-      const y = choiceTop + i * (ROW_H + GAP);
+      const y   = choiceTop + i * (ROW_H + GAP);
       const sel = i === this.selectedChoice;
       const cleanText = choice.text.replace(/^[A-Za-z][：:]/, '').trimStart();
       const txt = this.add.text(BOX_X + PAD, y, (sel ? '►  ' : '    ') + cleanText, {
@@ -288,21 +293,16 @@ export class EventScene extends Phaser.Scene {
         wordWrap: { width: TEXT_W - 24, useAdvancedWrap: true },
         fontFamily: JP,
         backgroundColor: sel ? '#163050' : '#0a1828',
-        padding: { x: 10, y: 8 },
-        lineSpacing: 4,
+        padding: { x: 10, y: 6 },
+        lineSpacing: 3,
         fixedWidth: TEXT_W,
         fixedHeight: ROW_H,
-      });
+      }).setDepth(5);
 
       txt.setInteractive({ useHandCursor: true });
-
       txt.on('pointerover', () => {
-        if (this.selectedChoice !== i) {
-          this.selectedChoice = i;
-          this.updateChoiceHighlight();
-        }
+        if (this.selectedChoice !== i) { this.selectedChoice = i; this.updateChoiceHighlight(); }
       });
-
       txt.on('pointerdown', () => {
         this.inputCooldown = 350;
         this.selectedChoice = i;
@@ -321,7 +321,6 @@ export class EventScene extends Phaser.Scene {
       t.setBackgroundColor(sel ? '#163050' : '#0a1828');
       const cleanText = this.shuffledChoices[i].text.replace(/^[A-Za-z][：:]/, '').trimStart();
       t.setText((sel ? '►  ' : '    ') + cleanText);
-      t.setFixedSize(TEXT_W, 56);
     });
   }
 
