@@ -245,23 +245,52 @@ export class EventScene extends Phaser.Scene {
 
   private showChoices() {
     this.phase = 'choices';
-    // Longer cooldown on entering choices — prevents the tap that dismissed the
-    // situation text from immediately landing on a choice button (mobile)
     this.inputCooldown = 400;
     this.clearChoices();
     this.boxGfx.clear();
     this.dialogText.setText('');
     this.nextIndicator.setText('');
-    this.effectText.setText(''); // clear any stale result chip
+    this.effectText.setText('');
 
-    const gap = 6;
-    const LABEL_H = 26;
+    // Row height: 14px font × 2 lines + lineSpacing(4) + padding(8×2) = 52px, add margin
+    const ROW_H = 58;
+    const GAP   = 5;
+    const LABEL_H = 28;
+    const LABEL_PAD = 8; // space between label and first choice
 
-    // Step 1: create text objects with actual content so Phaser can measure real height
+    const n = this.shuffledChoices.length;
+    const totalH = n * ROW_H + (n - 1) * GAP;
+    const blockH = LABEL_H + LABEL_PAD + totalH;
+
+    // Anchor the block so it sits just above the dialog box
+    const blockTop  = Math.max(2, BOX_Y - blockH - 10);
+    const labelY    = blockTop + 4;
+    const choicesStart = labelY + LABEL_H + LABEL_PAD;
+
+    // Background box
+    this.boxGfx.fillStyle(0x0b1830, 0.97);
+    this.boxGfx.fillRoundedRect(BOX_X, blockTop, BOX_W, blockH + 10, 10);
+    this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
+    this.boxGfx.strokeRoundedRect(BOX_X, blockTop, BOX_W, blockH + 10, 10);
+
+    // Label inside box
+    this.nameText.setPosition(BOX_X + PAD, labelY);
+    this.nameText.setStyle({
+      color: '#88bbee',
+      fontSize: '13px',
+      fontFamily: JP,
+      backgroundColor: '',
+      padding: { x: 0, y: 0 },
+      fixedWidth: 0,
+    });
+    this.nameText.setText('▼  どう対応しますか？');
+
+    // Choice rows
     this.shuffledChoices.forEach((choice, i) => {
+      const y = choicesStart + i * (ROW_H + GAP);
       const sel = i === this.selectedChoice;
       const cleanText = choice.text.replace(/^[A-Za-z][：:]/, '').trimStart();
-      const txt = this.add.text(BOX_X + PAD, 0, (sel ? '►  ' : '    ') + cleanText, {
+      const txt = this.add.text(BOX_X + PAD, y, (sel ? '►  ' : '    ') + cleanText, {
         fontSize: '14px',
         color: sel ? '#ffff66' : '#8899aa',
         wordWrap: { width: TEXT_W - 24, useAdvancedWrap: true },
@@ -269,6 +298,8 @@ export class EventScene extends Phaser.Scene {
         backgroundColor: sel ? '#163050' : '#0a1828',
         padding: { x: 10, y: 8 },
         lineSpacing: 4,
+        fixedWidth: TEXT_W,
+        fixedHeight: ROW_H,
       });
 
       txt.setInteractive({ useHandCursor: true });
@@ -281,8 +312,6 @@ export class EventScene extends Phaser.Scene {
       });
 
       txt.on('pointerdown', () => {
-        // Set cooldown BEFORE confirmChoice so the global pointerdown
-        // handler (which fires for the same click) is blocked.
         this.inputCooldown = 350;
         this.selectedChoice = i;
         this.confirmChoice();
@@ -290,39 +319,6 @@ export class EventScene extends Phaser.Scene {
 
       this.choiceTexts.push(txt);
     });
-
-    // Step 2: measure actual heights and compute layout from bottom up
-    const totalH = this.choiceTexts.reduce((sum, t) => sum + t.height + gap, 0);
-    const startY = BOX_Y - totalH - LABEL_H - 12;
-    const labelY = Math.max(4, startY);
-    const choicesStart = labelY + LABEL_H + 4;
-
-    // Step 3: position each text based on its real height
-    let y = choicesStart;
-    this.choiceTexts.forEach((txt) => {
-      txt.setY(y);
-      y += txt.height + gap;
-    });
-
-    // Step 4: draw background box sized to actual content
-    const bgTop = Math.max(2, labelY - 8);
-    const bgH = BOX_Y - bgTop + 2;
-    this.boxGfx.fillStyle(0x0b1830, 0.97);
-    this.boxGfx.fillRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
-    this.boxGfx.lineStyle(1.5, 0x3a5a7a, 0.8);
-    this.boxGfx.strokeRoundedRect(BOX_X, bgTop, BOX_W, bgH, 10);
-
-    // Label: remove NPC-name badge background, plain text above choices
-    this.nameText.setPosition(BOX_X + PAD, labelY);
-    this.nameText.setStyle({
-      color: '#88bbee',
-      fontSize: '13px',
-      fontFamily: JP,
-      backgroundColor: '',   // remove dark badge
-      padding: { x: 0, y: 0 },
-      fixedWidth: BOX_W - PAD * 2,
-    });
-    this.nameText.setText('▼  どう対応しますか？');
   }
 
   private updateChoiceHighlight() {
@@ -332,6 +328,8 @@ export class EventScene extends Phaser.Scene {
       t.setBackgroundColor(sel ? '#163050' : '#0a1828');
       const cleanText = this.shuffledChoices[i].text.replace(/^[A-Za-z][：:]/, '').trimStart();
       t.setText((sel ? '►  ' : '    ') + cleanText);
+      // keep fixed dimensions stable across highlight changes
+      t.setFixedSize(TEXT_W, 58);
     });
   }
 
