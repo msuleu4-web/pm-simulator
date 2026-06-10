@@ -12,6 +12,7 @@ import { Chapter2Scene } from './scenes/Chapter2Scene';
 import { Chapter3Scene } from './scenes/Chapter3Scene';
 import { Chapter4Scene } from './scenes/Chapter4Scene';
 import { Chapter5Scene } from './scenes/Chapter5Scene';
+import { TitleScene } from './scenes/TitleScene';
 import { gameState } from './state/gameState';
 
 export function createGame(parent: HTMLElement, playerName?: string, startScene?: string): Phaser.Game {
@@ -20,7 +21,9 @@ export function createGame(parent: HTMLElement, playerName?: string, startScene?
   }
 
   // Build scene list — first entry boots automatically
-  const sceneList = startScene === 'QuestCorebankScene'
+  const sceneList = startScene === 'TitleScene'
+    ? [TitleScene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene]
+    : startScene === 'QuestCorebankScene'
     ? [QuestCorebankScene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene]
     : startScene === 'Chapter1Scene'
     ? [Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene]

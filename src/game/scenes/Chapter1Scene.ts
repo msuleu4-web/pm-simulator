@@ -44,21 +44,21 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['今日中に議事録出してね', '議事録のフォーマットはSharePointにあるから'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['進捗どうですか？', '困ったことあったら遠慮なく聞いてね'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['この仕様、誰が決めたんですか...', 'うちの会社じゃないんで、あくまで参考意見ですが'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
+  { name: '佐藤先輩', col: 10, row: 3, lines: ['お疲れ様！第1章、専門用語ばかりで大変でしょ', '進捗どうですか？困ったことあったら聞いてね', 'ここだけの話、田中さんの『なんとかなる』は', '大体なんとかならないから気をつけて（笑）'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、二次請けなので参考意見なんですけど', '元請けさんの言う通りに作るだけなんで', 'あまり深く考えないようにしてます…'] },
 ];
 
 const CHOICES: Record<'minutes' | 'progress', Choice[]> = {
   minutes: [
-    { text: 'テンプレを使って丁寧に書く', score: 10, result: '完璧！田中PMに褒められた。[+10点]' },
-    { text: '適当にメモだけ書く',           score: -5, result: '「これじゃ使えない」と言われた。[-5点]' },
-    { text: '先輩に聞いてから書く',         score:  5, result: '先輩のアドバイスで及第点。[+5点]' },
+    { text: 'テンプレを使って丁寧に書く', score: 10, result: '田中PMから「これは使えるね」と言われ、翌日のMTGで資料として使われた。[+10点]' },
+    { text: '適当にメモだけ書く',           score: -5, result: '提出した瞬間、田中PMの顔が曇った。「これじゃ伝わらないよ…」と突き返され、夜に書き直すことに。[-5点]' },
+    { text: '先輩に聞いてから書く',         score:  5, result: '佐藤先輩のアドバイス通りに書いたら「いいじゃん、及第点！」と言われた。[+5点]' },
   ],
   progress: [
-    { text: '数字で詳細に報告する',     score: 10, result: '明確な報告が高評価！[+10点]' },
-    { text: '「順調です」とだけ言う',   score: -5, result: '「もっと具体的に」と返された。[-5点]' },
-    { text: '問題点も含めて正直に話す', score:  5, result: '誠実さが伝わった。[+5点]' },
+    { text: '数字で詳細に報告する',     score: 10, result: '「進捗60%、残タスク3件」と数字で伝えると、田中PMは満足げに頷いた。資料としてそのまま使われた。[+10点]' },
+    { text: '「順調です」とだけ言う',   score: -5, result: '「順調です」とだけ伝えたら、翌日「で、結局どこまで進んでるの？」と詰められた。[-5点]' },
+    { text: '問題点も含めて正直に話す', score:  5, result: '課題も正直に話したら、佐藤先輩が「早めに言ってくれて助かる」とフォローしてくれた。[+5点]' },
   ],
 };
 
@@ -176,6 +176,8 @@ export class Chapter1Scene extends Phaser.Scene {
     this.key1 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+
+    this.showNotice('「品質・コスト・納期、全部守れ」\nでも予算は半分です。', 4500);
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -341,13 +343,13 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['今日中に議事録出してね', '議事録のフォーマットはSharePointにあるから'];
-      if (this.gameStep === 1) return ['まだ終わってないの？机で書いてね'];
-      return ['議事録、お疲れ様！'];
+      if (this.gameStep === 0) return ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '細かいことは気にしなくて大丈夫、なんとかなる！'];
+      if (this.gameStep === 1) return ['あれ、まだ議事録終わってないの？', '急かすわけじゃないけど、今日中ね', '机に戻って、サクッと仕上げちゃって'];
+      return ['おお、議事録ありがとう！', '中身は佐藤くんが見てくれるから大丈夫', '提出できればOK、OK！'];
     }
     if (npc.name === '佐藤先輩') {
-      if (this.gameStep >= 2 && this.gameStep < 3) return ['そういえば、進捗報告はもうしましたか？', '机に戻って、チームへの共有をしましょう'];
-      if (this.gameStep >= 3) return ['進捗報告、ありがとう！'];
+      if (this.gameStep >= 2 && this.gameStep < 3) return ['そういえば、進捗報告はもうしましたか？', '形式は気にしなくていいから、正直に書けばOK', '机に戻って、チームへの共有をしましょう'];
+      if (this.gameStep >= 3) return ['進捗報告、ありがとう！', '正直に書いてくれて助かったよ', 'そういう積み重ねが、信頼につながるからね'];
     }
     return npc.lines;
   }

@@ -489,6 +489,44 @@ function GameCanvas({ playerName, difficulty }: { playerName: string; difficulty
   );
 }
 
+// ── SIer道場 title screen (Phaser) ─────────────────────────────
+
+function SierTitleCanvas({ onStart }: { onStart: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<Game | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+
+    const init = async () => {
+      // @ts-ignore
+      const { createGame } = await import('../../src/game/PhaserGame');
+      if (!cancelled && containerRef.current && !gameRef.current) {
+        gameRef.current = createGame(containerRef.current, '', 'TitleScene');
+      }
+    };
+
+    init().catch(console.error);
+
+    const onTitleStart = () => onStart();
+    window.addEventListener('sier-title-start', onTitleStart);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('sier-title-start', onTitleStart);
+      if (gameRef.current) { gameRef.current.destroy(true); gameRef.current = null; }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <main style={{ position: 'fixed', inset: 0, background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+    </main>
+  );
+}
+
 // ── Quest canvas (QuestCorebankScene) ─────────────────────────
 
 function QuestCanvas({ onDone }: { onDone: () => void }) {
@@ -662,10 +700,14 @@ function ChapterCanvas({ sceneName, onDone, onChapterCleared }: { sceneName: str
 // ── Page entry point ──────────────────────────────────────────
 
 export default function GamePage() {
-  const [phase, setPhase] = useState<'title' | 'playing' | 'quest' | 'chapters' | 'office'>('title');
+  const [phase, setPhase] = useState<'sier-title' | 'title' | 'playing' | 'quest' | 'chapters' | 'office'>('sier-title');
   const [playerName, setPlayerName] = useState('新人SE');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [activeScene, setActiveScene] = useState('Chapter1Scene');
+
+  if (phase === 'sier-title') {
+    return <SierTitleCanvas onStart={() => setPhase('chapters')} />;
+  }
 
   if (phase === 'title') {
     return (

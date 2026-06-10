@@ -62,7 +62,7 @@ export class VirtualPad {
   }
 
   private buildDpad() {
-    const cx = 80, cy = 535, r = 22, gap = 46;
+    const cx = 80, cy = 430, r = 22, gap = 46;
     const dirs: { dir: Dir; x: number; y: number; label: string }[] = [
       { dir: 'up',    x: cx,       y: cy - gap, label: '▲' },
       { dir: 'down',  x: cx,       y: cy + gap, label: '▼' },
