@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { Game } from 'phaser';
+import { CHAPTERS, getClearedChapters, isChapterUnlocked } from '../../src/game/chapters';
+
+const JP_FONT = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",Arial,sans-serif';
+
+const IMPLEMENTED_SCENES = new Set(['Chapter1Scene', 'Chapter2Scene', 'Chapter3Scene', 'Chapter4Scene', 'Chapter5Scene']);
 
 type Difficulty = 'easy' | 'normal' | 'hard';
 
@@ -16,7 +21,7 @@ const DIFF_CONFIG: Record<Difficulty, {
 
 // ── Title screen (React) ──────────────────────────────────────
 
-function TitleScreen({ onStart, onStartQuest }: { onStart: (name: string, difficulty: Difficulty) => void; onStartQuest: () => void }) {
+function TitleScreen({ onStart, onStartQuest, onOpenChapters }: { onStart: (name: string, difficulty: Difficulty) => void; onStartQuest: () => void; onOpenChapters: () => void }) {
   const [name, setName] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
 
@@ -138,6 +143,24 @@ function TitleScreen({ onStart, onStartQuest }: { onStart: (name: string, diffic
         <div style={{ textAlign: 'center', marginTop: 6, color: '#334455', fontSize: 10 }}>
           炎上しかけたプロジェクトで、あなたはどう動くか
         </div>
+      </div>
+
+      <div style={{ marginTop: 16, width: '100%', maxWidth: 360 }}>
+        <div style={{ textAlign: 'center', marginBottom: 10, color: '#334455', fontSize: 11, letterSpacing: '0.1em' }}>
+          ── オフィス編 ──
+        </div>
+        <button
+          onClick={onOpenChapters}
+          style={{
+            width: '100%', padding: '12px',
+            fontSize: 14, fontWeight: 700, borderRadius: 8, border: 'none',
+            background: 'linear-gradient(90deg, #001a0e, #00442233)',
+            borderTop: '2px solid #2a8a50',
+            color: '#4caf80', cursor: 'pointer', letterSpacing: '0.05em', fontFamily: 'monospace',
+          }}
+        >
+          📚 チャプターを選ぶ →
+        </button>
       </div>
 
       <div style={{ marginTop: 20, color: '#334455', fontSize: 11, textAlign: 'center', lineHeight: 1.8 }}>
@@ -505,12 +528,144 @@ function QuestCanvas({ onDone }: { onDone: () => void }) {
   );
 }
 
+// ── Chapter select (オフィス編) ────────────────────────────────
+
+function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void; onBack: () => void }) {
+  const [cleared, setCleared] = useState<string[]>([]);
+
+  useEffect(() => {
+    setCleared(getClearedChapters());
+  }, []);
+
+  return (
+    <main
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '100vh',
+        background: 'linear-gradient(160deg, #0d1a2e 0%, #1a2e4a 60%, #0a2a1a 100%)',
+        fontFamily: 'monospace', padding: '24px',
+      }}
+    >
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <p style={{ color: '#4a90d9', fontSize: 12, letterSpacing: '0.3em', marginBottom: 10 }}>OFFICE EDITION</p>
+        <h1 style={{ color: '#e0eeff', fontSize: 24, fontWeight: 900 }}>チャプターを選択</h1>
+      </div>
+
+      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {CHAPTERS.map((ch, i) => {
+          const isCleared = cleared.includes(ch.id);
+          const unlocked = isChapterUnlocked(i, cleared);
+          const playable = unlocked && IMPLEMENTED_SCENES.has(ch.sceneName);
+          return (
+            <div
+              key={ch.id}
+              style={{
+                padding: '14px 16px', borderRadius: 10,
+                border: `2px solid ${isCleared ? '#2a8a50' : unlocked ? '#2a5a7c' : '#2a3a4a'}`,
+                background: unlocked ? '#0d1f33' : '#0a131f',
+                opacity: unlocked ? 1 : 0.5,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ color: unlocked ? '#e0eeff' : '#556677', fontSize: 14, fontWeight: 700, fontFamily: JP_FONT }}>
+                  {ch.title}
+                </span>
+                {isCleared && <span style={{ color: '#4caf80', fontSize: 11 }}>✅ クリア済み</span>}
+                {!unlocked && <span style={{ color: '#556677', fontSize: 11 }}>🔒 ロック中</span>}
+              </div>
+              <p style={{ color: '#7a9abc', fontSize: 12, lineHeight: 1.6, marginBottom: 10, fontFamily: JP_FONT }}>
+                {ch.description}
+              </p>
+              <button
+                disabled={!playable}
+                onClick={() => playable && onPlay(ch.sceneName)}
+                style={{
+                  width: '100%', padding: '8px', borderRadius: 6, border: 'none',
+                  background: playable ? '#1a4a2a' : '#1a2230',
+                  color: playable ? '#88ff99' : '#445566',
+                  fontSize: 12, fontWeight: 700,
+                  cursor: playable ? 'pointer' : 'default',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {playable ? 'プレイ →' : unlocked ? '近日公開' : 'ロック中'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={onBack}
+        style={{
+          marginTop: 24, background: 'none', border: 'none',
+          color: '#3a6a8a', fontSize: 12, cursor: 'pointer',
+          borderBottom: '1px solid #3a6a8a', fontFamily: 'monospace',
+        }}
+      >
+        ← タイトルへ戻る
+      </button>
+    </main>
+  );
+}
+
+// ── Chapter canvas (Chapter1Scene 等) ─────────────────────────
+
+function ChapterCanvas({ sceneName, onDone, onChapterCleared }: { sceneName: string; onDone: () => void; onChapterCleared: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<Game | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+
+    const init = async () => {
+      // @ts-ignore
+      const { createGame } = await import('../../src/game/PhaserGame');
+      if (!cancelled && containerRef.current && !gameRef.current) {
+        gameRef.current = createGame(containerRef.current, '', sceneName);
+      }
+    };
+
+    init().catch(console.error);
+
+    const onCleared = () => onChapterCleared();
+    window.addEventListener('sier-chapter-cleared', onCleared);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('sier-chapter-cleared', onCleared);
+      if (gameRef.current) { gameRef.current.destroy(true); gameRef.current = null; }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <main style={{ position: 'fixed', inset: 0, background: '#050d18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <button
+        onClick={onDone}
+        style={{
+          position: 'absolute', top: 12, right: 12,
+          background: '#1a2e4a', border: '1px solid #2a5a7c',
+          color: '#aabbcc', fontSize: 12, borderRadius: 6,
+          padding: '6px 12px', cursor: 'pointer', fontFamily: 'monospace',
+          zIndex: 100,
+        }}
+      >
+        ← 戻る
+      </button>
+    </main>
+  );
+}
+
 // ── Page entry point ──────────────────────────────────────────
 
 export default function GamePage() {
-  const [phase, setPhase] = useState<'title' | 'playing' | 'quest'>('title');
+  const [phase, setPhase] = useState<'title' | 'playing' | 'quest' | 'chapters' | 'office'>('title');
   const [playerName, setPlayerName] = useState('新人SE');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
+  const [activeScene, setActiveScene] = useState('Chapter1Scene');
 
   if (phase === 'title') {
     return (
@@ -521,12 +676,32 @@ export default function GamePage() {
           setPhase('playing');
         }}
         onStartQuest={() => setPhase('quest')}
+        onOpenChapters={() => setPhase('chapters')}
+      />
+    );
+  }
+
+  if (phase === 'chapters') {
+    return (
+      <ChapterSelect
+        onPlay={(sceneName) => { setActiveScene(sceneName); setPhase('office'); }}
+        onBack={() => setPhase('title')}
       />
     );
   }
 
   if (phase === 'quest') {
     return <QuestCanvas onDone={() => setPhase('title')} />;
+  }
+
+  if (phase === 'office') {
+    return (
+      <ChapterCanvas
+        sceneName={activeScene}
+        onDone={() => setPhase('chapters')}
+        onChapterCleared={() => setPhase('chapters')}
+      />
+    );
   }
 
   return <GameCanvas playerName={playerName} difficulty={difficulty} />;
