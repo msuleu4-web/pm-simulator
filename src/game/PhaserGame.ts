@@ -6,7 +6,6 @@ import { RandomEventScene } from './scenes/RandomEventScene';
 import { DocumentScene } from './scenes/DocumentScene';
 import { EndingScene } from './scenes/EndingScene';
 import { RankingScene } from './scenes/RankingScene';
-import { QuestCorebankScene } from './scenes/QuestCorebankScene';
 import { Chapter1Scene } from './scenes/Chapter1Scene';
 import { Chapter2Scene } from './scenes/Chapter2Scene';
 import { Chapter3Scene } from './scenes/Chapter3Scene';
@@ -22,20 +21,18 @@ export function createGame(parent: HTMLElement, playerName?: string, startScene?
 
   // Build scene list — first entry boots automatically
   const sceneList = startScene === 'TitleScene'
-    ? [TitleScene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene]
-    : startScene === 'QuestCorebankScene'
-    ? [QuestCorebankScene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene]
+    ? [TitleScene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene]
     : startScene === 'Chapter1Scene'
-    ? [Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene]
+    ? [Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene]
     : startScene === 'Chapter2Scene'
-    ? [Chapter2Scene, Chapter1Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene]
+    ? [Chapter2Scene, Chapter1Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene]
     : startScene === 'Chapter3Scene'
-    ? [Chapter3Scene, Chapter1Scene, Chapter2Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene]
+    ? [Chapter3Scene, Chapter1Scene, Chapter2Scene, Chapter4Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene]
     : startScene === 'Chapter4Scene'
-    ? [Chapter4Scene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene]
+    ? [Chapter4Scene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter5Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene]
     : startScene === 'Chapter5Scene'
-    ? [Chapter5Scene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene]
-    : [BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, QuestCorebankScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene];
+    ? [Chapter5Scene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene]
+    : [BootScene, MapScene, EventScene, RandomEventScene, DocumentScene, EndingScene, RankingScene, Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene];
 
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,

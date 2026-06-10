@@ -21,7 +21,7 @@ const DIFF_CONFIG: Record<Difficulty, {
 
 // ── Title screen (React) ──────────────────────────────────────
 
-function TitleScreen({ onStart, onStartQuest, onOpenChapters }: { onStart: (name: string, difficulty: Difficulty) => void; onStartQuest: () => void; onOpenChapters: () => void }) {
+function TitleScreen({ onStart, onOpenChapters }: { onStart: (name: string, difficulty: Difficulty) => void; onOpenChapters: () => void }) {
   const [name, setName] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
 
@@ -125,27 +125,6 @@ function TitleScreen({ onStart, onStartQuest, onOpenChapters }: { onStart: (name
       </div>
 
       <div style={{ marginTop: 24, width: '100%', maxWidth: 360 }}>
-        <div style={{ textAlign: 'center', marginBottom: 10, color: '#334455', fontSize: 11, letterSpacing: '0.1em' }}>
-          ── 特別クエスト ──
-        </div>
-        <button
-          onClick={onStartQuest}
-          style={{
-            width: '100%', padding: '12px',
-            fontSize: 14, fontWeight: 700, borderRadius: 8, border: 'none',
-            background: 'linear-gradient(90deg, #1a0e00, #4a2a0033)',
-            borderTop: '2px solid #c49000',
-            color: '#c8a030', cursor: 'pointer', letterSpacing: '0.05em', fontFamily: 'monospace',
-          }}
-        >
-          📜 最終合意の夜 — CoreFlex事件 →
-        </button>
-        <div style={{ textAlign: 'center', marginTop: 6, color: '#334455', fontSize: 10 }}>
-          炎上しかけたプロジェクトで、あなたはどう動くか
-        </div>
-      </div>
-
-      <div style={{ marginTop: 16, width: '100%', maxWidth: 360 }}>
         <div style={{ textAlign: 'center', marginBottom: 10, color: '#334455', fontSize: 11, letterSpacing: '0.1em' }}>
           ── オフィス編 ──
         </div>
@@ -527,45 +506,6 @@ function SierTitleCanvas({ onStart }: { onStart: () => void }) {
   );
 }
 
-// ── Quest canvas (QuestCorebankScene) ─────────────────────────
-
-function QuestCanvas({ onDone }: { onDone: () => void }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const gameRef = useRef<Game | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    let cancelled = false;
-
-    const init = async () => {
-      // @ts-ignore
-      const { createGame } = await import('../../src/game/PhaserGame');
-      if (!cancelled && containerRef.current && !gameRef.current) {
-        // Pass 'QuestCorebankScene' so it's placed first in the scene list and boots directly
-        gameRef.current = createGame(containerRef.current, '', 'QuestCorebankScene');
-      }
-    };
-
-    init().catch(console.error);
-
-    const onQuestDone = () => onDone();
-    window.addEventListener('sier-quest-done', onQuestDone);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('sier-quest-done', onQuestDone);
-      if (gameRef.current) { gameRef.current.destroy(true); gameRef.current = null; }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <main style={{ position: 'fixed', inset: 0, background: '#050d18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-    </main>
-  );
-}
-
 // ── Chapter select (オフィス編) ────────────────────────────────
 
 function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void; onBack: () => void }) {
@@ -700,7 +640,7 @@ function ChapterCanvas({ sceneName, onDone, onChapterCleared }: { sceneName: str
 // ── Page entry point ──────────────────────────────────────────
 
 export default function GamePage() {
-  const [phase, setPhase] = useState<'sier-title' | 'title' | 'playing' | 'quest' | 'chapters' | 'office'>('sier-title');
+  const [phase, setPhase] = useState<'sier-title' | 'title' | 'playing' | 'chapters' | 'office'>('sier-title');
   const [playerName, setPlayerName] = useState('新人SE');
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
   const [activeScene, setActiveScene] = useState('Chapter1Scene');
@@ -717,7 +657,6 @@ export default function GamePage() {
           setDifficulty(diff);
           setPhase('playing');
         }}
-        onStartQuest={() => setPhase('quest')}
         onOpenChapters={() => setPhase('chapters')}
       />
     );
@@ -730,10 +669,6 @@ export default function GamePage() {
         onBack={() => setPhase('title')}
       />
     );
-  }
-
-  if (phase === 'quest') {
-    return <QuestCanvas onDone={() => setPhase('title')} />;
   }
 
   if (phase === 'office') {
