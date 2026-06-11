@@ -44,7 +44,7 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['第2章は基本設計フェーズだ', '要件定義書をベースに基本設計書を作ってくれ', 'テンプレ？前のプロジェクトのを流用していいよ', '細かい部分は現場のノリで察してくれ！'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['第2章は基本設計フェーズだ', '要件定義書をベースに基本設計書を作ってくれ', 'テンプレ？前のプロジェクトのを流用していいよ', '品質と納期、両方守れるよね？(圧)', '細かい部分は現場のノリで察してくれ！'] },
   { name: '佐藤先輩', col: 10, row: 3, lines: ['設計、順調？要件との整合性に気をつけてね', '表向きは『テンプレ通りでOK』なんだけど', '実際はお客さんのこだわりが後から出てくるから', '行間を読む力が必要になるんだよね'] },
   { name: '鈴木さん', col: 18, row: 9, lines: ['元請けの設計書って、結構雑なんですよね…', '『行間を読め』ってよく言われるんですけど', '行間に何も書いてないんですよ', 'うちは下請けなんで、ちゃんと書いとかないと痛い目見るんです'] },
 ];
@@ -60,6 +60,17 @@ const CHOICES: Record<'design' | 'review', Choice[]> = {
     { text: '1件だけ直して提出',               score: -5, result: '目立つ1件だけ直して提出したら「他の2件も直ってないよ？」とやんわり指摘され、気まずい空気に。[-5点]' },
     { text: '理由を聞いてから対応する',         score:  5, result: 'なぜその指摘なのか理由を聞いてから直したことで、設計意図への理解が深まった。[+5点]' },
   ],
+};
+
+// 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
+const INCIDENT = {
+  notice: '🔥炎上アラート🔥\n田中PM「仕様、まだ固まってないんだけど」\n「設計は並行で進めといてー」',
+  title: '🔥 仕様未確定のまま、設計をどう進める？',
+  choices: [
+    { text: '未確定部分を前提条件として明記し並行で進める', score: 10, result: '「ここはA案を前提に進めます」と一文添えておいたおかげで、後日仕様が変わっても直す範囲は最小限。佐藤先輩「その一文、神だね」[+10点]' },
+    { text: '何も考えず、今の仕様のまま全部作り切る',         score: -5, result: '案の定、翌週に仕様変更の連絡。作った分がまるごと手戻りに。田中PMは「そんなこともあるよねー」と他人事。[-5点]' },
+    { text: '仕様が固まるまで、その部分は保留にする',       score:  5, result: '保留にした分、スケジュールはギリギリに。ただし手戻りはゼロで、佐藤先輩から「判断としては正しいよ」とフォローが入った。[+5点]' },
+  ] as Choice[],
 };
 
 const MISSION_LABEL = [
@@ -94,7 +105,10 @@ export class Chapter2Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'design' | 'review' | null = null;
+  private missionKey: 'design' | 'review' | 'incident' | null = null;
+
+  // 炎上イベント
+  private incidentDone = false;
 
   // chapter clear
   private chapterClearShown = false;
@@ -343,7 +357,7 @@ export class Chapter2Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['第2章は基本設計フェーズだ', '要件定義書をベースに基本設計書を作ってくれ', 'テンプレ？前のプロジェクトのを流用していいよ', '細かい部分は現場のノリで察してくれ！'];
+      if (this.gameStep === 0) return ['第2章は基本設計フェーズだ', '要件定義書をベースに基本設計書を作ってくれ', 'テンプレ？前のプロジェクトのを流用していいよ', '品質と納期、両方守れるよね？(圧)', '細かい部分は現場のノリで察してくれ！'];
       if (this.gameStep === 1) return ['設計書、進んでる？', '明日の朝イチで佐藤くんに見せられそう？', '机で作業してね、頑張って'];
       return ['設計書ありがとう。レビューに回しておくね', '指摘？まあ、いつも通り少しはあるだろうけど', '気にせずサクッと直しちゃおう！'];
     }
@@ -354,7 +368,7 @@ export class Chapter2Scene extends Phaser.Scene {
     }
     if (npc.name === '鈴木さん') {
       if (this.gameStep < 3) return ['元請けの設計書って、結構雑なんですよね…', '『行間を読め』ってよく言われるんですけど', '行間に何も書いてないんですよ', 'うちは下請けなんで、ちゃんと書いとかないと痛い目見るんです'];
-      return ['指摘対応、大変そうですね…', 'うちでも真っ赤な設計書見て震えてますよ', '頑張ってください、応援してます'];
+      return ['指摘対応、大変そうですね…', 'うちでも真っ赤な設計書見て震えてますよ', '客先常駐だと、自社に帰れるの月1回ですね…', '頑張ってください、応援してます'];
     }
     return npc.lines;
   }
@@ -450,13 +464,15 @@ export class Chapter2Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'design' | 'review') {
+  private openChoices(key: 'design' | 'review' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'design' ? '📐 基本設計書をどう書きますか？' : '🔍 レビュー指摘にどう対応しますか？';
+    const title = key === 'design' ? '📐 基本設計書をどう書きますか？'
+      : key === 'review' ? '🔍 レビュー指摘にどう対応しますか？'
+      : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = CHOICES[key];
+    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     for (let i = 0; i < 3; i++)
       this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}`).setVisible(true);
     this.resultText.setVisible(false);
@@ -466,16 +482,43 @@ export class Chapter2Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const c = CHOICES[this.missionKey][idx];
+    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const c = choices[idx];
     this.score += c.score;
     this.choiceState = 'result';
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
+
+    if (this.missionKey === 'incident') {
+      this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
+      return;
+    }
+
     const next = this.missionKey === 'design' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 4) this.showChapterClear();
+      if (next === 2) this.scheduleIncident();
+    });
+  }
+
+  // ── 炎上イベント ──────────────────────────────────────────────
+
+  private scheduleIncident() {
+    this.time.delayedCall(1200, () => this.tryShowIncident());
+  }
+
+  private tryShowIncident() {
+    if (this.incidentDone || this.gameStep > 2) return;
+    if (this.gameStep !== 2 || this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+      this.time.delayedCall(600, () => this.tryShowIncident());
+      return;
+    }
+    this.incidentDone = true;
+    this.showNotice(INCIDENT.notice, 2200);
+    this.time.delayedCall(2200, () => {
+      if (this.dialogState === 'closed' && this.choiceState === 'hidden') this.openChoices('incident');
     });
   }
 

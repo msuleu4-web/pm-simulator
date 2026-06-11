@@ -44,9 +44,9 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
   { name: '佐藤先輩', col: 10, row: 3, lines: ['お疲れ様！第1章、専門用語ばかりで大変でしょ', '進捗どうですか？困ったことあったら聞いてね', 'ここだけの話、田中さんの『なんとかなる』は', '大体なんとかならないから気をつけて（笑）'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、二次請けなので参考意見なんですけど', '元請けさんの言う通りに作るだけなんで', 'あまり深く考えないようにしてます…'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、三次請けなので参考意見なんですけど', '要件が伝言ゲームで歪んでて、誰の意図かもう分からないんです', '元請けの言うことところころ変わるんですよ', 'あまり深く考えないようにしてます…'] },
 ];
 
 const CHOICES: Record<'minutes' | 'progress', Choice[]> = {
@@ -60,6 +60,17 @@ const CHOICES: Record<'minutes' | 'progress', Choice[]> = {
     { text: '「順調です」とだけ言う',   score: -5, result: '「順調です」とだけ伝えたら、翌日「で、結局どこまで進んでるの？」と詰められた。[-5点]' },
     { text: '問題点も含めて正直に話す', score:  5, result: '課題も正直に話したら、佐藤先輩が「早めに言ってくれて助かる」とフォローしてくれた。[+5点]' },
   ],
+};
+
+// 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
+const INCIDENT = {
+  notice: '🔥炎上アラート🔥\n客先から確認の電話が鳴り響く！\n「あの件、議事録に書いてありますよね？」',
+  title: '🔥 客先「言った言わない」論争、どう対応する？',
+  choices: [
+    { text: '議事録を見返し、該当箇所を提示する',       score: 10, result: '「第3回定例の3項目目に記載があります」と即答。客先担当者は「あ…本当だ、すみません」と静かに引き下がった。佐藤先輩「議事録様々だね」[+10点]' },
+    { text: '「言った記憶はあります」と気持ちで主張する', score: -5, result: '「記憶、ですか…」と客先担当者は苦笑い。電話の後、田中PMに「証拠は議事録だけだからね」と釘を刺された。[-5点]' },
+    { text: 'まず謝って、確認してから折り返すと伝える',   score:  5, result: 'その場は丸く収まったが、確認したら本当に書いていなかった…。改めて「認識合わせさせてください」と連絡することに。二度手間だけど、誠実ではあった。[+5点]' },
+  ] as Choice[],
 };
 
 const MISSION_LABEL = [
@@ -94,7 +105,10 @@ export class Chapter1Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'minutes' | 'progress' | null = null;
+  private missionKey: 'minutes' | 'progress' | 'incident' | null = null;
+
+  // 炎上イベント
+  private incidentDone = false;
 
   // chapter clear
   private chapterClearShown = false;
@@ -343,7 +357,7 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '細かいことは気にしなくて大丈夫、なんとかなる！'];
+      if (this.gameStep === 0) return ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'];
       if (this.gameStep === 1) return ['あれ、まだ議事録終わってないの？', '急かすわけじゃないけど、今日中ね', '机に戻って、サクッと仕上げちゃって'];
       return ['おお、議事録ありがとう！', '中身は佐藤くんが見てくれるから大丈夫', '提出できればOK、OK！'];
     }
@@ -445,13 +459,15 @@ export class Chapter1Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'minutes' | 'progress') {
+  private openChoices(key: 'minutes' | 'progress' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'minutes' ? '📋 議事録をどう書きますか？' : '📊 進捗報告をどうしますか？';
+    const title = key === 'minutes' ? '📋 議事録をどう書きますか？'
+      : key === 'progress' ? '📊 進捗報告をどうしますか？'
+      : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = CHOICES[key];
+    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     for (let i = 0; i < 3; i++)
       this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}`).setVisible(true);
     this.resultText.setVisible(false);
@@ -461,16 +477,43 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const c = CHOICES[this.missionKey][idx];
+    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const c = choices[idx];
     this.score += c.score;
     this.choiceState = 'result';
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
+
+    if (this.missionKey === 'incident') {
+      this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
+      return;
+    }
+
     const next = this.missionKey === 'minutes' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 4) this.showChapterClear();
+      if (next === 2) this.scheduleIncident();
+    });
+  }
+
+  // ── 炎上イベント ──────────────────────────────────────────────
+
+  private scheduleIncident() {
+    this.time.delayedCall(1200, () => this.tryShowIncident());
+  }
+
+  private tryShowIncident() {
+    if (this.incidentDone || this.gameStep > 2) return;
+    if (this.gameStep !== 2 || this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+      this.time.delayedCall(600, () => this.tryShowIncident());
+      return;
+    }
+    this.incidentDone = true;
+    this.showNotice(INCIDENT.notice, 2200);
+    this.time.delayedCall(2200, () => {
+      if (this.dialogState === 'closed' && this.choiceState === 'hidden') this.openChoices('incident');
     });
   }
 
