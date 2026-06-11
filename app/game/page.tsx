@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Game } from 'phaser';
 import { CHAPTERS, getClearedChapters, isChapterUnlocked } from '../../src/game/chapters';
+import { DIFFICULTY_CONFIG, getDifficulty, saveDifficulty, type Difficulty as SierDifficulty } from '../../src/game/difficulty';
 
 const JP_FONT = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",Arial,sans-serif';
 
@@ -506,14 +507,68 @@ function SierTitleCanvas({ onStart }: { onStart: () => void }) {
   );
 }
 
+// ── Difficulty picker (SIer道場) ───────────────────────────────
+
+const SIER_DIFF_STYLE: Record<SierDifficulty, { color: string; border: string; bg: string }> = {
+  easy:   { color: '#44cc88', border: '#1a7a44', bg: '#0a2018' },
+  normal: { color: '#4a90d9', border: '#1a4a7a', bg: '#0d1a2e' },
+  hard:   { color: '#e05050', border: '#7a1a1a', bg: '#2a0808' },
+};
+
+function DifficultyPicker({ value, onChange }: { value: SierDifficulty; onChange: (d: SierDifficulty) => void }) {
+  return (
+    <div style={{ width: '100%', maxWidth: 480, marginBottom: 20 }}>
+      <p style={{ color: '#778899', fontSize: 12, textAlign: 'center', marginBottom: 10, letterSpacing: '0.2em', fontFamily: JP_FONT }}>
+        難易度設定
+      </p>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {(Object.keys(DIFFICULTY_CONFIG) as SierDifficulty[]).map((d) => {
+          const cfg = DIFFICULTY_CONFIG[d];
+          const style = SIER_DIFF_STYLE[d];
+          const sel = d === value;
+          return (
+            <button
+              key={d}
+              onClick={() => onChange(d)}
+              style={{
+                flex: 1, padding: '10px 8px', borderRadius: 10, cursor: 'pointer',
+                border: `2px solid ${sel ? style.color : '#2a3a4a'}`,
+                background: sel ? style.bg : '#0a131f',
+                color: sel ? style.color : '#556677',
+                fontWeight: sel ? 900 : 400,
+                fontFamily: 'monospace',
+                transition: 'all 0.15s',
+                outline: 'none',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: 13, marginBottom: 4, fontFamily: JP_FONT }}>{cfg.label}</div>
+              <div style={{ fontSize: 9, color: sel ? '#aabbcc' : '#334455', lineHeight: 1.5, fontFamily: JP_FONT }}>
+                {cfg.description}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Chapter select (オフィス編) ────────────────────────────────
 
 function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void; onBack: () => void }) {
   const [cleared, setCleared] = useState<string[]>([]);
+  const [difficulty, setDifficulty] = useState<SierDifficulty>('normal');
 
   useEffect(() => {
     setCleared(getClearedChapters());
+    setDifficulty(getDifficulty());
   }, []);
+
+  const handleDifficultyChange = (d: SierDifficulty) => {
+    setDifficulty(d);
+    saveDifficulty(d);
+  };
 
   return (
     <main
@@ -528,6 +583,8 @@ function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void
         <p style={{ color: '#4a90d9', fontSize: 12, letterSpacing: '0.3em', marginBottom: 10 }}>OFFICE EDITION</p>
         <h1 style={{ color: '#e0eeff', fontSize: 24, fontWeight: 900 }}>チャプターを選択</h1>
       </div>
+
+      <DifficultyPicker value={difficulty} onChange={handleDifficultyChange} />
 
       <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {CHAPTERS.map((ch, i) => {

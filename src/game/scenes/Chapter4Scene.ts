@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { markChapterCleared, saveChapterScore } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
+import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
 
 const TILE = 32;
 const COLS = 25;
@@ -108,6 +109,10 @@ export class Chapter4Scene extends Phaser.Scene {
   private missionKey: 'testcase' | 'bugfix' | 'incident' | null = null;
   private incidentDone = false;
 
+  // 難易度
+  private diffLevel: Difficulty = 'normal';
+  private diffCfg: DiffConfig = DIFFICULTY_CONFIG.normal;
+
   // chapter clear
   private chapterClearShown = false;
 
@@ -156,6 +161,9 @@ export class Chapter4Scene extends Phaser.Scene {
   }
 
   create() {
+    this.diffLevel = getDifficulty();
+    this.diffCfg = DIFFICULTY_CONFIG[this.diffLevel];
+
     this.mapGfx = this.add.graphics();
 
     this.buildMap();
@@ -291,12 +299,12 @@ export class Chapter4Scene extends Phaser.Scene {
     g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
     this.add.text(10, 5, 'Day 14  テストフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
     this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '12px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
-    this.hudScore   = this.add.text(CANVAS_W - 10, 5, 'Score: 0', { fontSize: '12px', color: '#88cc88', fontFamily: 'monospace' }).setOrigin(1, 0);
+    this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '12px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
   }
 
   private updateHud() {
     this.hudMission.setText(MISSION_LABEL[this.gameStep] ?? '');
-    this.hudScore.setText(`Score: ${this.score}`);
+    this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
   }
 
   // ── NPC labels ────────────────────────────────────────────────
@@ -471,8 +479,11 @@ export class Chapter4Scene extends Phaser.Scene {
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
     const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
-    for (let i = 0; i < 3; i++)
-      this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}`).setVisible(true);
+    const maxScore = Math.max(...choices.map(c => c.score));
+    for (let i = 0; i < 3; i++) {
+      const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
+      this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+    }
     this.resultText.setVisible(false);
     this.proximityHint.setText('');
     this.virtualPad.setChoiceButtonsVisible(true);
@@ -482,7 +493,8 @@ export class Chapter4Scene extends Phaser.Scene {
     if (this.choiceState !== 'open' || !this.missionKey) return;
     const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
     const c = choices[idx];
-    this.score += c.score;
+    const mult = c.score >= 0 ? this.diffCfg.bonusMult : this.diffCfg.penaltyMult;
+    this.score += Math.round(c.score * mult);
     this.choiceState = 'result';
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
