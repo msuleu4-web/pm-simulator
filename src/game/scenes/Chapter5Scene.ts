@@ -44,9 +44,9 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'よし、頼んだぞ！なんとかなるなる！'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'] },
   { name: '佐藤先輩', col: 10, row: 3, lines: ['デプロイ手順、確認した？', '不安なところがあれば一緒に見るよ', '表向きは『手順書通りに』なんだけど', '実際は『何かあったら呼んで』が本音かな'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['運用保守って、終わりがないんですよ…', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['運用保守って、終わりがないんですよ…', '運用フェーズになると、急に人減らされるんですよ', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'] },
 ];
 
 const CHOICES: Record<'deploy' | 'incident', Choice[]> = {
@@ -60,6 +60,16 @@ const CHOICES: Record<'deploy' | 'incident', Choice[]> = {
     { text: 'とりあえずサーバー再起動',           score: -5, result: 'とりあえず再起動したら一時的に直ったように見えた。だが30分後に同じ障害が再発し、結局原因調査をする羽目に。[-5点]' },
     { text: '影響範囲を確認してから対応',         score:  5, result: 'まず影響範囲を確認し、関係者に連絡してから対応。落ち着いて行動できたことで、混乱を最小限に抑えられた。[+5点]' },
   ],
+};
+
+const FLAREUP = {
+  notice: '🔥炎上アラート🔥\nリリース当日、客先担当者と連絡が取れない！\n「あれ…今日有休でした」',
+  title: '🔥 客先承認なしのリリース、どうする？',
+  choices: [
+    { text: 'エスカレーション手順に従う',     score: 10, result: '事前に決めていたエスカレーション先に連絡し、代理承認をもらった。手順通りに進めたことで、リリースは予定通り完了した。[+10点]' },
+    { text: '承認を待たず勝手に進める',       score: -5, result: '「待ってられないから」と承認を待たずにリリース。後日、客先から「聞いてない」とクレームになり、田中PMが平謝りすることに。[-5点]' },
+    { text: 'リリース延期を判断する',         score:  5, result: '「今日は見送りましょう」と延期を判断。安全だったが、再調整したスケジュールはさらにタイトになり、佐藤先輩は「うーん、悩ましいね」と苦笑い。[+5点]' },
+  ] as Choice[],
 };
 
 const MISSION_LABEL = [
@@ -94,7 +104,8 @@ export class Chapter5Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'deploy' | 'incident' | null = null;
+  private missionKey: 'deploy' | 'incident' | 'flareup' | null = null;
+  private incidentDone = false;
 
   // chapter clear
   private chapterClearShown = false;
@@ -343,7 +354,7 @@ export class Chapter5Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'よし、頼んだぞ！なんとかなるなる！'];
+      if (this.gameStep === 0) return ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'];
       if (this.gameStep === 1) return ['リリース判定会議は通った。準備は万全かな', '何か不安なことがあれば、今のうちに言ってね', '机に戻って、最終チェックをお願い'];
       return ['本番切替、緊張するね。落ち着いていこう', '何かあっても、みんなでなんとかするから', 'いよいよだね、頑張ろう'];
     }
@@ -353,7 +364,7 @@ export class Chapter5Scene extends Phaser.Scene {
       return ['対応お疲れ様。よく頑張ったね', 'この一年で、すごく成長したと思うよ', '胸を張っていいからね'];
     }
     if (npc.name === '鈴木さん') {
-      if (this.gameStep < 3) return ['運用保守って、終わりがないんですよ…', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'];
+      if (this.gameStep < 3) return ['運用保守って、終わりがないんですよ…', '運用フェーズになると、急に人減らされるんですよ', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'];
       return ['お疲れ様でした！', 'これで一区切りですね。本当によく頑張りました', '正直、最初はどうなることかと思いましたよ', 'また一緒に仕事できたら嬉しいです'];
     }
     return npc.lines;
@@ -450,13 +461,15 @@ export class Chapter5Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'deploy' | 'incident') {
+  private openChoices(key: 'deploy' | 'incident' | 'flareup') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'deploy' ? '🚀 どうやってリリースしますか？' : '🔥 障害にどう対応しますか？';
+    const title = key === 'deploy' ? '🚀 どうやってリリースしますか？'
+      : key === 'incident' ? '🔥 障害にどう対応しますか？'
+      : FLAREUP.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = CHOICES[key];
+    const choices = key === 'flareup' ? FLAREUP.choices : CHOICES[key];
     for (let i = 0; i < 3; i++)
       this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}`).setVisible(true);
     this.resultText.setVisible(false);
@@ -466,16 +479,43 @@ export class Chapter5Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const c = CHOICES[this.missionKey][idx];
+    const choices = this.missionKey === 'flareup' ? FLAREUP.choices : CHOICES[this.missionKey];
+    const c = choices[idx];
     this.score += c.score;
     this.choiceState = 'result';
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
+
+    if (this.missionKey === 'flareup') {
+      this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
+      return;
+    }
+
     const next = this.missionKey === 'deploy' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 4) this.showChapterClear();
+      if (next === 2) this.scheduleIncident();
+    });
+  }
+
+  // ── 炎上イベント ──────────────────────────────────────────────
+
+  private scheduleIncident() {
+    this.time.delayedCall(1200, () => this.tryShowIncident());
+  }
+
+  private tryShowIncident() {
+    if (this.incidentDone || this.gameStep > 2) return;
+    if (this.gameStep !== 2 || this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+      this.time.delayedCall(600, () => this.tryShowIncident());
+      return;
+    }
+    this.incidentDone = true;
+    this.showNotice(FLAREUP.notice, 2200);
+    this.time.delayedCall(2200, () => {
+      if (this.dialogState === 'closed' && this.choiceState === 'hidden') this.openChoices('flareup');
     });
   }
 

@@ -44,9 +44,9 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['第4章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', '矛盾してる？現場ではよくあることだから！'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['第4章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', 'テストは品質の砦。でも納期は動かせない（笑）', '矛盾してる？現場ではよくあることだから！'] },
   { name: '佐藤先輩', col: 10, row: 3, lines: ['テスト観点、ちゃんと洗い出せてる？', 'バグ票の書き方も大事だからね', '表向きは『全項目テストします』なんだけど', '実際はリスクの高い所から優先的に、になりがち'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', 'バグ票、うちのせいにされがちなんですよね…', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'] },
 ];
 
 const CHOICES: Record<'testcase' | 'bugfix', Choice[]> = {
@@ -60,6 +60,17 @@ const CHOICES: Record<'testcase' | 'bugfix', Choice[]> = {
     { text: 'とりあえず動くように直す',       score: -5, result: '応急処置で動くようにはなったが、別画面で新たな不具合が発生。原因調査からやり直しに。[-5点]' },
     { text: '再現手順を確認してから対応',     score:  5, result: '再現手順を一つずつ確認してから対応。ピンポイントで正確に修正でき、バグ票もきれいにcloseできた。[+5点]' },
   ],
+};
+
+// 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
+const INCIDENT = {
+  notice: '🔥炎上アラート🔥\n本番でバグ報告！でもテスト環境では再現せず…\n「ローカルでは動くんですけど…」',
+  title: '🔥 本番でしか起きないバグ、どう調査する？',
+  choices: [
+    { text: '環境差分を一つずつ洗い出す',         score: 10, result: 'テスト環境と本番環境の設定値を一つずつ突き合わせ。タイムゾーン設定の差分を発見し、バグの真因にたどり着けた。[+10点]' },
+    { text: '再現しないので一旦放置する',         score: -5, result: '「再現しないので一旦保留」とバグ票をクローズ。1週間後、本番で同じ不具合が再発し、優先対応で呼び出されることに。[-5点]' },
+    { text: '先輩に相談して一緒に調べる',         score:  5, result: '佐藤先輩に相談したところ「環境差分、よくあるんだよね」と一緒に確認してくれた。原因特定までは時間がかかったが、一人で抱えずに済んだ。[+5点]' },
+  ] as Choice[],
 };
 
 const MISSION_LABEL = [
@@ -94,7 +105,8 @@ export class Chapter4Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'testcase' | 'bugfix' | null = null;
+  private missionKey: 'testcase' | 'bugfix' | 'incident' | null = null;
+  private incidentDone = false;
 
   // chapter clear
   private chapterClearShown = false;
@@ -343,7 +355,7 @@ export class Chapter4Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['第4章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', '矛盾してる？現場ではよくあることだから！'];
+      if (this.gameStep === 0) return ['第4章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', 'テストは品質の砦。でも納期は動かせない（笑）', '矛盾してる？現場ではよくあることだから！'];
       if (this.gameStep === 1) return ['テスト計画は順調？品質管理が肝心だよ', '…で、いつ終わりそう？', '机に戻って、サクッと仕上げちゃって'];
       return ['テストケース、ありがとう！', 'レビューに回しておくね', 'バグが出ても凹まなくていいからね'];
     }
@@ -353,7 +365,7 @@ export class Chapter4Scene extends Phaser.Scene {
       return ['バグ修正お疲れ様。再テストもよろしくね', '一個ずつ潰していけば、ちゃんと終わるから', 'あと少し、一緒に頑張ろう'];
     }
     if (npc.name === '鈴木さん') {
-      if (this.gameStep < 3) return ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'];
+      if (this.gameStep < 3) return ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', 'バグ票、うちのせいにされがちなんですよね…', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'];
       return ['バグ対応、お疲れ様です。うちもよくありますよ', '直したつもりが、また別のバグが出るやつ…', '『もぐら叩き』って呼んでます、笑えますよね'];
     }
     return npc.lines;
@@ -450,13 +462,15 @@ export class Chapter4Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'testcase' | 'bugfix') {
+  private openChoices(key: 'testcase' | 'bugfix' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'testcase' ? '🧪 どんなテストケースを書きますか？' : '🐛 バグをどう修正しますか？';
+    const title = key === 'testcase' ? '🧪 どんなテストケースを書きますか？'
+      : key === 'bugfix' ? '🐛 バグをどう修正しますか？'
+      : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = CHOICES[key];
+    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     for (let i = 0; i < 3; i++)
       this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}`).setVisible(true);
     this.resultText.setVisible(false);
@@ -466,16 +480,43 @@ export class Chapter4Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const c = CHOICES[this.missionKey][idx];
+    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const c = choices[idx];
     this.score += c.score;
     this.choiceState = 'result';
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
+
+    if (this.missionKey === 'incident') {
+      this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
+      return;
+    }
+
     const next = this.missionKey === 'testcase' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 4) this.showChapterClear();
+      if (next === 2) this.scheduleIncident();
+    });
+  }
+
+  // ── 炎上イベント ──────────────────────────────────────────────
+
+  private scheduleIncident() {
+    this.time.delayedCall(1200, () => this.tryShowIncident());
+  }
+
+  private tryShowIncident() {
+    if (this.incidentDone || this.gameStep > 2) return;
+    if (this.gameStep !== 2 || this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+      this.time.delayedCall(600, () => this.tryShowIncident());
+      return;
+    }
+    this.incidentDone = true;
+    this.showNotice(INCIDENT.notice, 2200);
+    this.time.delayedCall(2200, () => {
+      if (this.dialogState === 'closed' && this.choiceState === 'hidden') this.openChoices('incident');
     });
   }
 

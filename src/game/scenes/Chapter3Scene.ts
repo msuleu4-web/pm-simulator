@@ -46,7 +46,7 @@ interface Choice  { text: string; score: number; result: string; }
 const NPCS: NpcDef[] = [
   { name: '田中PM',   col: 2,  row: 3, lines: ['第3章は製造フェーズだ', '担当モジュールのコーディングをよろしく', 'スケジュールは…まあ予定通り進めば大丈夫', '設計の解釈は任せるよ、なんとかなるなる！'] },
   { name: '佐藤先輩', col: 10, row: 3, lines: ['コード、書けてきた？', 'レビューでしっかり見るから安心してね', '表向きは『規約を守りましょう』なんだけど', '実際は『早く動くものを』が優先になりがち'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['うちの現場、テスト書かない文化なんですよ…', '『動けばOK』って空気、ちょっと怖いですよね', 'あと、このシステム、Aさんしか仕様分からないんです', '属人化ってやつ、目の前にあると笑えないですね'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['うちの現場、テスト書かない文化なんですよ…', 'テストコード？工数に入ってないんで書きません（キリッ）', '『動けばOK』って空気、ちょっと怖いですよね', 'あと、このシステム、Aさんしか仕様分からないんです', '属人化ってやつ、目の前にあると笑えないですね'] },
 ];
 
 const CHOICES: Record<'coding' | 'progress90', Choice[]> = {
@@ -60,6 +60,17 @@ const CHOICES: Record<'coding' | 'progress90', Choice[]> = {
     { text: '「90%です」と言い続ける',      score: -5, result: '今週も「90%です」と報告。佐藤先輩の表情が一瞬曇った。いわゆる『90%シンドローム』が発動した。[-5点]' },
     { text: '残作業を洗い出して報告',       score:  5, result: '残タスクを洗い出してリスト化。「これなら一緒に対策立てられるね」と前向きな話し合いになった。[+5点]' },
   ],
+};
+
+// 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
+const INCIDENT = {
+  notice: '🔥炎上アラート🔥\n金曜18時、元請けから着信…\n「この機能、月曜までに追加でお願いします」',
+  title: '🔥 金曜夜の追加要望、どう対応する？',
+  choices: [
+    { text: '影響と工数を説明して交渉する',     score: 10, result: '現状のタスクと工数への影響を整理して佐藤先輩に共有。「それなら優先度を見直そう」と元請けとの交渉に持ち込んでもらえた。[+10点]' },
+    { text: '黙って引き受けて徹夜で対応する',   score: -5, result: '「やります…」と一人で抱え込み、土日返上で対応。月曜には動くものができたが、佐藤先輩に「先に相談してよ…」と心配された。[-5点]' },
+    { text: '一旦持ち帰り、週明けに回答する',   score:  5, result: '「持ち帰って確認します」とその場での即答は避けた。週明けチームで分担して対応できたが、金曜のうちに動けなかった分スケジュールはタイトに。[+5点]' },
+  ] as Choice[],
 };
 
 const MISSION_LABEL = [
@@ -94,7 +105,10 @@ export class Chapter3Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'coding' | 'progress90' | null = null;
+  private missionKey: 'coding' | 'progress90' | 'incident' | null = null;
+
+  // 炎上イベント
+  private incidentDone = false;
 
   // chapter clear
   private chapterClearShown = false;
@@ -345,7 +359,7 @@ export class Chapter3Scene extends Phaser.Scene {
     if (npc.name === '田中PM') {
       if (this.gameStep === 0) return ['第3章は製造フェーズだ', '担当モジュールのコーディングをよろしく', 'スケジュールは…まあ予定通り進めば大丈夫', '設計の解釈は任せるよ、なんとかなるなる！'];
       if (this.gameStep === 1) return ['コーディング、進んでる？', '進捗会議で『順調です』って言えるくらいにね', '机で作業してね、応援してるよ'];
-      return ['コーディングお疲れ様', 'マイルストーンは守れそう？', '最後はみんな何とかするから、頼りにしてるよ'];
+      return ['コーディングお疲れ様', '進捗90%でしょ？じゃあ残り10%もすぐだね', 'マイルストーンは守れそう？', '最後はみんな何とかするから、頼りにしてるよ'];
     }
     if (npc.name === '佐藤先輩') {
       if (this.gameStep < 2) return ['コード、書けてきた？', 'レビューでしっかり見るから安心してね', '表向きは『規約を守りましょう』なんだけど', '実際は『早く動くものを』が優先になりがち'];
@@ -353,7 +367,7 @@ export class Chapter3Scene extends Phaser.Scene {
       return ['進捗報告ありがとう', '正直に言ってくれて、田中さんにもフォローしておいたよ', '一緒に挽回しよう、一人で抱え込まないで'];
     }
     if (npc.name === '鈴木さん') {
-      if (this.gameStep < 3) return ['うちの現場、テスト書かない文化なんですよ…', '『動けばOK』って空気、ちょっと怖いですよね', 'あと、このシステム、Aさんしか仕様分からないんです', '属人化ってやつ、目の前にあると笑えないですね'];
+      if (this.gameStep < 3) return ['うちの現場、テスト書かない文化なんですよ…', 'テストコード？工数に入ってないんで書きません（キリッ）', '『動けばOK』って空気、ちょっと怖いですよね', 'あと、このシステム、Aさんしか仕様分からないんです', '属人化ってやつ、目の前にあると笑えないですね'];
       return ['進捗の話、他人事じゃないですね…', 'うちも『90%です』が3週間続いたことありますよ', '正直に言うの勇気いりますよね、応援してます'];
     }
     return npc.lines;
@@ -450,13 +464,15 @@ export class Chapter3Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'coding' | 'progress90') {
+  private openChoices(key: 'coding' | 'progress90' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'coding' ? '💻 どうやって実装しますか？' : '📊 進捗をどう報告しますか？';
+    const title = key === 'coding' ? '💻 どうやって実装しますか？'
+      : key === 'progress90' ? '📊 進捗をどう報告しますか？'
+      : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = CHOICES[key];
+    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     for (let i = 0; i < 3; i++)
       this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}`).setVisible(true);
     this.resultText.setVisible(false);
@@ -466,16 +482,43 @@ export class Chapter3Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const c = CHOICES[this.missionKey][idx];
+    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const c = choices[idx];
     this.score += c.score;
     this.choiceState = 'result';
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
+
+    if (this.missionKey === 'incident') {
+      this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
+      return;
+    }
+
     const next = this.missionKey === 'coding' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 4) this.showChapterClear();
+      if (next === 2) this.scheduleIncident();
+    });
+  }
+
+  // ── 炎上イベント ──────────────────────────────────────────────
+
+  private scheduleIncident() {
+    this.time.delayedCall(1200, () => this.tryShowIncident());
+  }
+
+  private tryShowIncident() {
+    if (this.incidentDone || this.gameStep > 2) return;
+    if (this.gameStep !== 2 || this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+      this.time.delayedCall(600, () => this.tryShowIncident());
+      return;
+    }
+    this.incidentDone = true;
+    this.showNotice(INCIDENT.notice, 2200);
+    this.time.delayedCall(2200, () => {
+      if (this.dialogState === 'closed' && this.choiceState === 'hidden') this.openChoices('incident');
     });
   }
 
