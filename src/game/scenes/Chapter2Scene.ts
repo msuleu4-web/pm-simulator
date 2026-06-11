@@ -50,6 +50,9 @@ const NPCS: NpcDef[] = [
   { name: '鈴木さん', col: 18, row: 9, lines: ['元請けの設計書って、結構雑なんですよね…', '『行間を読め』ってよく言われるんですけど', '行間に何も書いてないんですよ', 'うちは下請けなんで、ちゃんと書いとかないと痛い目見るんです'] },
 ];
 
+// スコアバランス: ミッション1(design)+ミッション2(review)+炎上イベント(INCIDENT)の
+// 計3セット、各セット{+10,-5,+5}。本章の最大30点 / 最小-15点(NORMAL)。
+// 全5章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
 const CHOICES: Record<'design' | 'review', Choice[]> = {
   design: [
     { text: '要件をもう一度確認してから書く', score: 10, result: '要件定義書を読み返してから書いたら抜け漏れのない設計書に。佐藤先輩に「直すところほぼないよ」と言われた。[+10点]' },
@@ -522,16 +525,23 @@ export class Chapter2Scene extends Phaser.Scene {
   }
 
   private tryShowIncident() {
-    if (this.incidentDone || this.gameStep > 2) return;
-    if (this.gameStep !== 2 || this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+    if (this.incidentDone || this.chapterClearShown) return;
+    if (this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
       this.time.delayedCall(600, () => this.tryShowIncident());
       return;
     }
     this.incidentDone = true;
     this.showNotice(INCIDENT.notice, 2200);
-    this.time.delayedCall(2200, () => {
-      if (this.dialogState === 'closed' && this.choiceState === 'hidden') this.openChoices('incident');
-    });
+    this.time.delayedCall(2200, () => this.tryOpenIncidentChoices());
+  }
+
+  private tryOpenIncidentChoices() {
+    if (this.chapterClearShown) return;
+    if (this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
+      this.time.delayedCall(600, () => this.tryOpenIncidentChoices());
+      return;
+    }
+    this.openChoices('incident');
   }
 
   private closeChoices() {
@@ -624,6 +634,10 @@ export class Chapter2Scene extends Phaser.Scene {
   // ── Update ────────────────────────────────────────────────────
 
   update(_t: number, delta: number) {
+    // 選択肢ボタン(1/2/3)は選択パネル表示中のみ有効。パネルが閉じている間の
+    // 誤タップを毎フレーム破棄し、次に開くパネルへ持ち越されないようにする。
+    if (this.choiceState !== 'open') this.virtualPad.getChoicePressed();
+
     if (this.chapterClearShown) {
       if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed()) {
         window.dispatchEvent(new CustomEvent('sier-chapter-cleared', { detail: { chapterId: 'chapter2' } }));
@@ -632,13 +646,17 @@ export class Chapter2Scene extends Phaser.Scene {
     }
 
     if (this.choiceState === 'open') {
+      this.virtualPad.isActionPressed(); // Aボタンの誤操作が次の状態へ漏れないよう破棄
       const padChoice = this.virtualPad.getChoicePressed();
       if (Phaser.Input.Keyboard.JustDown(this.key1) || padChoice === 1) this.handleChoice(0);
       if (Phaser.Input.Keyboard.JustDown(this.key2) || padChoice === 2) this.handleChoice(1);
       if (Phaser.Input.Keyboard.JustDown(this.key3) || padChoice === 3) this.handleChoice(2);
       return;
     }
-    if (this.choiceState === 'result') return;
+    if (this.choiceState === 'result') {
+      this.virtualPad.isActionPressed(); // 結果表示中の連打が次の操作に誤適用されないよう破棄
+      return;
+    }
 
     if (this.dialogState !== 'closed') {
       if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed()) this.advanceDialog();
