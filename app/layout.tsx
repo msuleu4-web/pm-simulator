@@ -5,7 +5,6 @@ import { ServiceWorkerRegister } from './components/ServiceWorkerRegister';
 export const metadata: Metadata = {
   title: 'PMシミュレーター',
   description: '日本のIT現場のPM業務を体感する教育用ブラウザゲーム',
-  manifest: '/manifest.json',
   icons: {
     icon: [{ url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' }],
     apple: '/icons/apple-touch-icon.png',
@@ -24,6 +23,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body>
         {children}
         <ServiceWorkerRegister />
