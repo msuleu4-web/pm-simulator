@@ -84,3 +84,63 @@ export function saveChapterScore(id: string, score: number): void {
 export function getTotalScore(): number {
   return Object.values(getChapterScores()).reduce((sum, s) => sum + s, 0);
 }
+
+// ── エンディング（称号） ─────────────────────────────────────
+
+export type EndingTier = 'ace' | 'regular' | 'survivor';
+
+export interface EndingInfo {
+  title: string;
+  color: string;
+  comment: string;
+}
+
+export const ENDINGS: Record<EndingTier, EndingInfo> = {
+  ace: {
+    title: 'エースSE',
+    color: '#ffd700',
+    comment:
+      'あなたは現場で頼られる存在になった。\n元請けからも『この人なら任せられる』と評判。\n…ただし、評価されるほど仕事が増えるのがSIerの掟。',
+  },
+  regular: {
+    title: '一人前SE',
+    color: '#c0c0c0',
+    comment:
+      'なんとか炎上を乗り越え、一人前になった。\n完璧じゃないけど、現場はそういうもの。\n先輩の『最初はみんなそう』が身に染みる。',
+  },
+  survivor: {
+    title: '炎上サバイバー',
+    color: '#cd7f32',
+    comment:
+      'プロジェクトは…なんとかリリースされた。\n傷だらけだが、それも経験。\n鈴木さん『生きてるだけで偉いですよ』',
+  },
+};
+
+export function getEndingTier(totalScore: number): EndingTier {
+  if (totalScore >= 80) return 'ace';
+  if (totalScore >= 40) return 'regular';
+  return 'survivor';
+}
+
+const TITLES_KEY = 'sier-office-earned-titles';
+
+export function getEarnedTitles(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(TITLES_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveEarnedTitle(title: string): void {
+  if (typeof window === 'undefined') return;
+  const titles = new Set(getEarnedTitles());
+  titles.add(title);
+  try {
+    window.localStorage.setItem(TITLES_KEY, JSON.stringify([...titles]));
+  } catch {
+    /* localStorage unavailable */
+  }
+}

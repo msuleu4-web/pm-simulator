@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { Game } from 'phaser';
-import { CHAPTERS, getClearedChapters, isChapterUnlocked } from '../../src/game/chapters';
+import { CHAPTERS, getClearedChapters, isChapterUnlocked, getEarnedTitles, ENDINGS } from '../../src/game/chapters';
 import { DIFFICULTY_CONFIG, getDifficulty, saveDifficulty, type Difficulty as SierDifficulty } from '../../src/game/difficulty';
 
 const JP_FONT = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",Arial,sans-serif';
@@ -559,10 +559,12 @@ function DifficultyPicker({ value, onChange }: { value: SierDifficulty; onChange
 function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void; onBack: () => void }) {
   const [cleared, setCleared] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<SierDifficulty>('normal');
+  const [earnedTitles, setEarnedTitles] = useState<string[]>([]);
 
   useEffect(() => {
     setCleared(getClearedChapters());
     setDifficulty(getDifficulty());
+    setEarnedTitles(getEarnedTitles());
   }, []);
 
   const handleDifficultyChange = (d: SierDifficulty) => {
@@ -583,6 +585,34 @@ function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void
         <p style={{ color: '#4a90d9', fontSize: 12, letterSpacing: '0.3em', marginBottom: 10 }}>OFFICE EDITION</p>
         <h1 style={{ color: '#e0eeff', fontSize: 24, fontWeight: 900 }}>チャプターを選択</h1>
       </div>
+
+      {earnedTitles.length > 0 && (
+        <div style={{
+          width: '100%', maxWidth: 480, marginBottom: 18, padding: '12px 16px',
+          borderRadius: 10, border: '1px solid #3a4a5a', background: '#0d1622',
+        }}>
+          <p style={{ color: '#88aacc', fontSize: 11, letterSpacing: '0.1em', marginBottom: 8, fontFamily: JP_FONT }}>
+            獲得した称号
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {earnedTitles.map((title) => {
+              const ending = Object.values(ENDINGS).find((e) => e.title === title);
+              const color = ending?.color ?? '#cccccc';
+              return (
+                <span
+                  key={title}
+                  style={{
+                    color, fontSize: 12, fontWeight: 700, fontFamily: JP_FONT,
+                    border: `1px solid ${color}`, borderRadius: 6, padding: '4px 10px',
+                  }}
+                >
+                  🏆 {title}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <DifficultyPicker value={difficulty} onChange={handleDifficultyChange} />
 

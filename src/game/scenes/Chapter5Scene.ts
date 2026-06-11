@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { markChapterCleared, saveChapterScore, getTotalScore } from '../chapters';
+import { markChapterCleared, saveChapterScore, getTotalScore, getEndingTier, ENDINGS, saveEarnedTitle } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
 
@@ -546,16 +546,17 @@ export class Chapter5Scene extends Phaser.Scene {
     this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     this.clearGfx.setDepth(50).setVisible(false);
 
-    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 80, '🎉 プロジェクト完遂！', {
+    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 130, '', {
       fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
-    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 10, '', {
-      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center',
+    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2, '', {
+      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center', lineSpacing: 6,
+      wordWrap: { width: 640 },
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
-    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 90, 'Space：チャプター選択に戻る', {
-      fontSize: '13px', color: '#88aacc', fontFamily: JP,
+    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 180, '', {
+      fontSize: '13px', color: '#88aacc', fontFamily: JP, align: 'center',
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(51).setVisible(false);
   }
@@ -564,13 +565,20 @@ export class Chapter5Scene extends Phaser.Scene {
     saveChapterScore('chapter5', this.score);
     markChapterCleared('chapter5');
     this.chapterClearShown = true;
+
     const total = getTotalScore();
+    const tier = getEndingTier(total);
+    const ending = ENDINGS[tier];
+    saveEarnedTitle(ending.title);
+
     this.clearGfx.setVisible(true);
-    this.clearTitle.setVisible(true);
+    this.clearTitle.setText(`🏆 ${ending.title}`).setColor(ending.color).setVisible(true);
     this.clearScore.setText(
-      `第5章「リリース・運用保守」クリア！\nスコア：${this.score}点\n\n総合スコア：${total}点\n\nあなたはSIerの現場を体験しました`,
+      `第5章「リリース・運用保守」クリア！　スコア：${this.score}点\n総合スコア：${total}点\n\n${ending.comment}`,
     ).setVisible(true);
-    this.clearNext.setVisible(true);
+    this.clearNext.setText(
+      'Space：チャプター選択に戻る\nもう一度挑戦して、難易度を変えれば結果も変わるかも？',
+    ).setVisible(true);
   }
 
   // ── Characters ────────────────────────────────────────────────
