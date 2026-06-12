@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Difficulty } from '../../lib/types';
 import { PMSimulatorWizard } from './PMSimulatorWizard';
 
@@ -13,6 +13,7 @@ export function DifficultySelect({
   ultraUnlocked: boolean;
 }) {
   const [mode, setMode] = useState<'landing' | 'wizard'>('landing');
+  const [showSimDetails, setShowSimDetails] = useState(false);
 
   // ウィザード表示中にブラウザの「戻る」を押すとページ自体から離脱してしまうため、
   // ウィザードを開く際に履歴を1つ積み、popstateでランディングに戻すようにする。
@@ -162,12 +163,38 @@ export function DifficultySelect({
                 </button>
                 <button
                   type="button"
-                  onClick={openWizard}
+                  onClick={() => setShowSimDetails((prev) => !prev)}
+                  aria-expanded={showSimDetails}
                   className="inline-flex items-center justify-center rounded-2xl border border-emerald-300 px-6 py-3 text-sm font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50"
                 >
-                  詳細をみる
+                  {showSimDetails ? '詳細を閉じる ▲' : '詳細をみる ▼'}
                 </button>
               </div>
+
+              <AnimatePresence initial={false}>
+                {showSimDetails && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 text-sm leading-6 text-slate-600">
+                      <p>
+                        「プロジェクトタイプ」→「難易度」→「プロジェクト」の3ステップで設定を選んでスタート。
+                        納期・予算・品質・チームの状態を見ながら、各ターンで起こる出来事への対応を選択していくマネジメントシミュレーションです。
+                      </p>
+                      <ul className="mt-3 space-y-1.5">
+                        <li>🆕 新規開発・🔧 保守運用・👥 開発メンバー・📊 PMO の4タイプから立場を選択</li>
+                        <li>🎯 難易度ごとにプロジェクト期間・チーム規模・トラブルの強度が変化</li>
+                        <li>📈 予算・進捗・品質・チームの状態を管理しながら判断</li>
+                        <li>🏁 選択の積み重ねでエンディングが分岐</li>
+                      </ul>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* ダッシュボード風イラスト */}
