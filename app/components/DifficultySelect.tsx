@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { Difficulty } from '../../lib/types';
 import { PMSimulatorWizard } from './PMSimulatorWizard';
@@ -14,8 +14,31 @@ export function DifficultySelect({
 }) {
   const [mode, setMode] = useState<'landing' | 'wizard'>('landing');
 
+  // ウィザード表示中にブラウザの「戻る」を押すとページ自体から離脱してしまうため、
+  // ウィザードを開く際に履歴を1つ積み、popstateでランディングに戻すようにする。
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      setMode(e.state?.pmWizard ? 'wizard' : 'landing');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const openWizard = () => {
+    window.history.pushState({ pmWizard: true }, '');
+    setMode('wizard');
+  };
+
+  const closeWizard = () => {
+    if (window.history.state?.pmWizard) {
+      window.history.back();
+    } else {
+      setMode('landing');
+    }
+  };
+
   if (mode === 'wizard') {
-    return <PMSimulatorWizard onStart={onStart} onClose={() => setMode('landing')} ultraUnlocked={ultraUnlocked} />;
+    return <PMSimulatorWizard onStart={onStart} onClose={closeWizard} ultraUnlocked={ultraUnlocked} />;
   }
 
   return (
@@ -132,14 +155,14 @@ export function DifficultySelect({
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => setMode('wizard')}
+                  onClick={openWizard}
                   className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-lg transition hover:bg-emerald-700"
                 >
                   ▶ シミュレーターをプレイする <span className="text-base">→</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMode('wizard')}
+                  onClick={openWizard}
                   className="inline-flex items-center justify-center rounded-2xl border border-emerald-300 px-6 py-3 text-sm font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50"
                 >
                   詳細をみる

@@ -506,8 +506,13 @@ function clearAuthCookie() {
   document.cookie = 'sb-access-token=; path=/; max-age=0; SameSite=Strict';
 }
 
+const IDLE_LIMIT_MS = 30 * 60 * 1000; // 30分操作がない場合は自動ログアウト
+const LAST_ACTIVITY_KEY = 'pm-sim-last-activity';
+const IDLE_LOGOUT_FLAG = 'pm-sim-idle-logout';
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [idleLogout, setIdleLogout] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -530,11 +535,17 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         setAuthCookie(session.access_token);
         localStorage.setItem('pm-sim-auth', 'true');
         localStorage.setItem('pm-sim-username', username);
+        setIdleLogout(false);
         setAuthed(true);
       } else if (event === 'SIGNED_OUT') {
         clearAuthCookie();
         localStorage.removeItem('pm-sim-auth');
         localStorage.removeItem('pm-sim-username');
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        if (localStorage.getItem(IDLE_LOGOUT_FLAG) === 'true') {
+          localStorage.removeItem(IDLE_LOGOUT_FLAG);
+          setIdleLogout(true);
+        }
         setAuthed(false);
       }
     });
@@ -542,8 +553,35 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // 30分操作がない場合に自動ログアウトする
+  useEffect(() => {
+    if (!authed) return;
+
+    const recordActivity = () => {
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    };
+
+    const checkIdle = () => {
+      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) ?? Date.now());
+      if (Date.now() - last >= IDLE_LIMIT_MS) {
+        localStorage.setItem(IDLE_LOGOUT_FLAG, 'true');
+        supabase.auth.signOut();
+      }
+    };
+
+    recordActivity();
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach((ev) => window.addEventListener(ev, recordActivity, { passive: true }));
+    const interval = window.setInterval(checkIdle, 60 * 1000);
+
+    return () => {
+      activityEvents.forEach((ev) => window.removeEventListener(ev, recordActivity));
+      window.clearInterval(interval);
+    };
+  }, [authed]);
+
   if (authed === null) return null;
-  if (!authed) return <LoginPage onLogin={() => setAuthed(true)} />;
+  if (!authed) return <LoginPage onLogin={() => setAuthed(true)} idleLogout={idleLogout} />;
   return <>{children}</>;
 }
 

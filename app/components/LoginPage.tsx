@@ -5,11 +5,12 @@ import { supabase } from '../../lib/supabase';
 
 interface LoginPageProps {
   onLogin: (username: string) => void;
+  idleLogout?: boolean;
 }
 
 type Mode = 'login' | 'register';
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, idleLogout }: LoginPageProps) {
   const [mode, setMode] = useState<Mode>('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -121,6 +122,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             {mode === 'login' ? 'アカウントにログインしてください' : 'アカウントを作成してください'}
           </p>
         </div>
+
+        {idleLogout && (
+          <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">
+            30分以上操作がなかったため、自動的にログアウトしました。再度ログインしてください。
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
