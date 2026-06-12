@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Game } from 'phaser';
 import { CHAPTERS, getClearedChapters, isChapterUnlocked, getEarnedTitles, ENDINGS } from '../../src/game/chapters';
 import { DIFFICULTY_CONFIG, getDifficulty, saveDifficulty, type Difficulty as SierDifficulty } from '../../src/game/difficulty';
@@ -96,7 +97,8 @@ function DifficultyPicker({ value, onChange }: { value: SierDifficulty; onChange
 
 // ── Chapter select (オフィス編) ────────────────────────────────
 
-function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void; onBack: () => void }) {
+function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
+  const router = useRouter();
   const [cleared, setCleared] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<SierDifficulty>('normal');
   const [earnedTitles, setEarnedTitles] = useState<string[]>([]);
@@ -201,14 +203,14 @@ function ChapterSelect({ onPlay, onBack }: { onPlay: (sceneName: string) => void
       </div>
 
       <button
-        onClick={onBack}
+        onClick={() => router.push('/')}
         style={{
           marginTop: 24, background: 'none', border: 'none',
           color: '#3a6a8a', fontSize: 12, cursor: 'pointer',
           borderBottom: '1px solid #3a6a8a', fontFamily: 'monospace',
         }}
       >
-        ← タイトルへ戻る
+        ← ホームに戻る
       </button>
     </main>
   );
@@ -335,7 +337,6 @@ export default function GamePage() {
     return (
       <ChapterSelect
         onPlay={(sceneName) => { setActiveScene(sceneName); setPhase('office'); }}
-        onBack={() => setPhase('sier-title')}
       />
     );
   }
