@@ -44,6 +44,10 @@ const TILE_COLORS: Record<number, number> = {
 interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
+type Facing = 'down' | 'left' | 'right' | 'up';
+const PLAYER_FRAME: Record<Facing, number> = { down: 0, left: 1, right: 2, up: 3 };
+const NPC_SPRITE_KEY: Record<string, string> = { '田中PM': 'npc-tanaka', '佐藤先輩': 'npc-sato', '鈴木さん': 'npc-suzuki' };
+
 const NPCS: NpcDef[] = [
   { name: '田中PM',   col: 2,  row: 3, lines: ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'] },
   { name: '佐藤先輩', col: 10, row: 3, lines: ['デプロイ手順、確認した？', '不安なところがあれば一緒に見るよ', '表向きは『手順書通りに』なんだけど', '実際は『何かあったら呼んで』が本音かな'] },
@@ -99,6 +103,8 @@ export class Chapter7Scene extends Phaser.Scene {
   private mapGfx!: Phaser.GameObjects.Graphics;
   private charGfx!: Phaser.GameObjects.Graphics;
   private player!: { x: number; y: number };
+  private playerSprite!: Phaser.GameObjects.Sprite;
+  private facing: Facing = 'down';
 
   // game state
   private score = 0;
@@ -175,6 +181,10 @@ export class Chapter7Scene extends Phaser.Scene {
     this.load.spritesheet('office', '/game-assets/Modern_Office_32x32.png', {
       frameWidth: 32, frameHeight: 32,
     });
+    this.load.spritesheet('player-walk', '/game-assets/Adam_16x16.png', { frameWidth: 16, frameHeight: 32 });
+    this.load.spritesheet('npc-tanaka', '/game-assets/Bob_idle_16x16.png', { frameWidth: 16, frameHeight: 32 });
+    this.load.spritesheet('npc-sato', '/game-assets/Alex_idle_16x16.png', { frameWidth: 16, frameHeight: 32 });
+    this.load.spritesheet('npc-suzuki', '/game-assets/Amelia_idle_16x16.png', { frameWidth: 16, frameHeight: 32 });
   }
 
   create() {
@@ -188,6 +198,9 @@ export class Chapter7Scene extends Phaser.Scene {
 
     this.charGfx = this.add.graphics();
 
+    this.player = { x: 12 * TILE + TILE / 2, y: 15 * TILE + TILE / 2 };
+    this.buildCharacterSprites();
+
     this.buildNpcLabels();
     this.buildHud();
     this.buildProximityHint();
@@ -199,7 +212,6 @@ export class Chapter7Scene extends Phaser.Scene {
 
     this.virtualPad = new VirtualPad(this);
 
-    this.player = { x: 12 * TILE + TILE / 2, y: 15 * TILE + TILE / 2 };
     this.drawChars();
 
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -684,22 +696,17 @@ export class Chapter7Scene extends Phaser.Scene {
 
   // ── Characters ────────────────────────────────────────────────
 
+  private buildCharacterSprites() {
+    for (const npc of NPCS) {
+      this.add.image(npc.col * TILE + 16, npc.row * TILE + 16, NPC_SPRITE_KEY[npc.name], 0).setScale(2);
+    }
+    this.playerSprite = this.add.sprite(this.player.x, this.player.y, 'player-walk', 0).setScale(2);
+  }
+
   private drawChars() {
     this.charGfx.clear();
-    for (const npc of NPCS) {
-      const cx = npc.col * TILE + 16, cy = npc.row * TILE + 16, r = 11;
-      this.charGfx.fillStyle(0x000000, 0.15); this.charGfx.fillEllipse(cx, cy + r + 1, r * 2 + 2, 7);
-      this.charGfx.fillStyle(0xF5C518, 1); this.charGfx.fillCircle(cx, cy, r);
-      this.charGfx.lineStyle(2, 0xB89010, 1); this.charGfx.strokeCircle(cx, cy, r);
-      this.charGfx.fillStyle(0x333300, 1);
-      this.charGfx.fillCircle(cx - 3, cy - 1, 2); this.charGfx.fillCircle(cx + 3, cy - 1, 2);
-      this.charGfx.fillStyle(0x553300, 0.8); this.charGfx.fillEllipse(cx, cy + 3, 8, 3);
-    }
-    const { x, y } = this.player;
-    const h = PLAYER_SIZE / 2;
-    this.charGfx.fillStyle(0x000000, 0.18); this.charGfx.fillEllipse(x, y + h - 1, PLAYER_SIZE + 4, 8);
-    this.charGfx.fillStyle(0x2a6abf, 1); this.charGfx.fillRect(x - h, y - h, PLAYER_SIZE, PLAYER_SIZE);
-    this.charGfx.fillStyle(0xffffff, 0.28); this.charGfx.fillRect(x - h + 3, y - h + 3, 9, 9);
+    this.playerSprite.setPosition(this.player.x, this.player.y);
+    this.playerSprite.setFrame(PLAYER_FRAME[this.facing]);
     this.drawDocuments();
   }
 
@@ -794,6 +801,11 @@ export class Chapter7Scene extends Phaser.Scene {
     if (pad.dx !== 0) dx = pad.dx;
     if (pad.dy !== 0) dy = pad.dy;
     if (dx === 0 && dy === 0) return;
+
+    if (dx < 0) this.facing = 'left';
+    else if (dx > 0) this.facing = 'right';
+    else if (dy < 0) this.facing = 'up';
+    else if (dy > 0) this.facing = 'down';
 
     const nx = this.player.x + dx * SPEED * dt;
     const ny = this.player.y + dy * SPEED * dt;

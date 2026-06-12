@@ -188,7 +188,7 @@ export function PMSimulatorWizard({
           <button
             type="button"
             onClick={goBack}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-300 transition hover:text-white"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-200 transition hover:text-white"
           >
             ← {step === 1 ? 'トップへ戻る' : '戻る'}
           </button>
@@ -252,10 +252,10 @@ export function PMSimulatorWizard({
                       type="button"
                       whileHover={{ y: -6 }}
                       onClick={() => selectTab(t)}
-                      className={`relative flex flex-col items-center rounded-3xl border-2 p-8 text-center transition ${
+                      className={`relative flex flex-col items-center rounded-3xl border-2 p-8 text-center backdrop-blur-md transition ${
                         isSelected
                           ? 'border-emerald-400 bg-emerald-400/10 shadow-[0_0_30px_rgba(52,211,153,0.35)]'
-                          : 'border-slate-700 bg-slate-800/60 hover:border-slate-500'
+                          : 'border-slate-700 bg-slate-800/80 hover:border-slate-500'
                       }`}
                     >
                       {isSelected && (
@@ -313,12 +313,12 @@ export function PMSimulatorWizard({
                       whileHover={!isLocked ? { y: -6 } : undefined}
                       onClick={() => selectDifficulty(id)}
                       disabled={isLocked}
-                      className={`relative flex flex-col rounded-3xl border-2 p-7 text-left transition ${
+                      className={`relative flex flex-col rounded-3xl border-2 p-7 text-left backdrop-blur-md transition ${
                         isLocked
-                          ? 'cursor-not-allowed border-slate-800 bg-slate-900/40 opacity-50'
+                          ? 'cursor-not-allowed border-slate-800 bg-slate-900/60 opacity-50'
                           : isSelected
                           ? 'scale-[1.02] border-emerald-400 bg-emerald-400/10 shadow-[0_0_30px_rgba(52,211,153,0.35)]'
-                          : 'border-slate-700 bg-slate-800/60 hover:border-slate-500'
+                          : 'border-slate-700 bg-slate-800/80 hover:border-slate-500'
                       }`}
                     >
                       {isSelected && (
@@ -385,10 +385,10 @@ export function PMSimulatorWizard({
                       type="button"
                       whileHover={{ y: -4 }}
                       onClick={() => setSelectedThemeId(theme.id)}
-                      className={`relative rounded-2xl border-2 p-5 text-left transition ${
+                      className={`relative rounded-2xl border-2 p-5 text-left backdrop-blur-md transition ${
                         isSelected
                           ? 'border-emerald-400 bg-emerald-400/10 shadow-[0_0_24px_rgba(52,211,153,0.3)]'
-                          : 'border-slate-700 bg-slate-800/60 hover:border-slate-500'
+                          : 'border-slate-700 bg-slate-800/80 hover:border-slate-500'
                       }`}
                     >
                       {isSelected && (
