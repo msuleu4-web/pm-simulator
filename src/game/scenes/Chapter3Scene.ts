@@ -150,6 +150,7 @@ export class Chapter3Scene extends Phaser.Scene {
   private choiceTitle!: Phaser.GameObjects.Text;
   private choiceOpts: Phaser.GameObjects.Text[] = [];
   private resultText!: Phaser.GameObjects.Text;
+  private resultCue!: Phaser.GameObjects.Text;
 
   // chapter clear UI
   private clearGfx!: Phaser.GameObjects.Graphics;
@@ -471,8 +472,12 @@ export class Chapter3Scene extends Phaser.Scene {
 
     this.resultText = this.add.text(CANVAS_W / 2, PY + PH / 2 + 10, '', {
       fontSize: '15px', color: '#ffdd88', fontFamily: JP, align: 'center',
-      wordWrap: { width: 520 }, backgroundColor: '#00000099', padding: { x: 14, y: 10 },
+      wordWrap: { width: 520, useAdvancedWrap: true }, backgroundColor: '#00000099', padding: { x: 14, y: 10 },
     }).setOrigin(0.5, 0.5).setVisible(false);
+
+    this.resultCue = this.add.text(PX + PW - 14, PY + PH - 10, '', {
+      fontSize: '11px', color: '#556677', fontFamily: 'monospace',
+    }).setOrigin(1, 1).setVisible(false);
   }
 
   private openChoices(key: 'design' | 'review' | 'incident') {
@@ -504,18 +509,22 @@ export class Chapter3Scene extends Phaser.Scene {
     for (const o of this.choiceOpts) o.setVisible(false);
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
+    this.resultCue.setText('Space: 次へ ▶').setVisible(true);
+  }
 
-    if (this.missionKey === 'incident') {
-      this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
+  private finishChoiceResult() {
+    const missionKey = this.missionKey;
+    this.resultCue.setVisible(false);
+
+    if (missionKey === 'incident') {
+      this.updateHud(); this.closeChoices();
       return;
     }
 
-    const next = this.missionKey === 'design' ? 2 : 4;
-    this.time.delayedCall(2400, () => {
-      this.gameStep = next; this.updateHud(); this.closeChoices();
-      if (next === 4) this.showChapterClear();
-      if (next === 2) this.scheduleIncident();
-    });
+    const next = missionKey === 'design' ? 2 : 4;
+    this.gameStep = next; this.updateHud(); this.closeChoices();
+    if (next === 4) this.showChapterClear();
+    if (next === 2) this.scheduleIncident();
   }
 
   // ── 炎上イベント ──────────────────────────────────────────────
@@ -549,6 +558,7 @@ export class Chapter3Scene extends Phaser.Scene {
     this.choiceGfx.setVisible(false); this.choiceTitle.setVisible(false);
     for (const o of this.choiceOpts) o.setVisible(false);
     this.resultText.setVisible(false);
+    this.resultCue.setVisible(false);
     this.virtualPad.setChoiceButtonsVisible(false);
   }
 
@@ -654,7 +664,7 @@ export class Chapter3Scene extends Phaser.Scene {
       return;
     }
     if (this.choiceState === 'result') {
-      this.virtualPad.isActionPressed(); // 結果表示中の連打が次の操作に誤適用されないよう破棄
+      if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed()) this.finishChoiceResult();
       return;
     }
 
