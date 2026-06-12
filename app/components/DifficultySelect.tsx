@@ -13,6 +13,7 @@ export function DifficultySelect({
   ultraUnlocked: boolean;
 }) {
   const [mode, setMode] = useState<'landing' | 'wizard'>('landing');
+  const [showRpgDetails, setShowRpgDetails] = useState(false);
   const [showSimDetails, setShowSimDetails] = useState(false);
 
   // ウィザード表示中にブラウザの「戻る」を押すとページ自体から離脱してしまうため、
@@ -76,13 +77,41 @@ export function DifficultySelect({
                 >
                   🎮 ゲームをプレイする <span className="text-base">→</span>
                 </a>
-                <a
-                  href="/game"
+                <button
+                  type="button"
+                  onClick={() => setShowRpgDetails((prev) => !prev)}
+                  aria-expanded={showRpgDetails}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-500 px-6 py-3 text-sm font-bold text-slate-200 transition hover:border-slate-300 hover:text-white"
                 >
-                  詳細をみる
-                </a>
+                  {showRpgDetails ? '詳細を閉じる ▲' : '詳細をみる ▼'}
+                </button>
               </div>
+
+              <AnimatePresence initial={false}>
+                {showRpgDetails && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-slate-300">
+                      <p>
+                        新人SEとして現場に配属され、オフィスのマップを歩きながら上司やメンバーに話しかけ、
+                        資料を読み解いて各章のミッションを進めるストーリー型RPGです。
+                        場面ごとの選択肢によって評価が変わり、最後にあなたの「現場での働き方」が称号として評価されます。
+                      </p>
+                      <ul className="mt-3 space-y-1.5">
+                        <li>📋 第1〜7章：配属・要件定義・基本設計・製造・テスト・炎上対応・リリース運用までを体験</li>
+                        <li>🧭 2Dマップを移動してNPCに話しかけたり、資料を確認しながら進行</li>
+                        <li>💬 各章の選択肢に応じてスコアが変動し、全章の合計で評価が決まる</li>
+                        <li>🏆 スコアに応じて「エースSE」「一人前SE」「炎上サバイバー」のいずれかの称号を獲得</li>
+                      </ul>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* アイソメトリック風オフィスビル */}

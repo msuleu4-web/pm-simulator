@@ -180,7 +180,22 @@
       "Bash(grep -ril -E \"ec2|deploy|aws|ssh|pem\" \"C:\\\\Users\\\\KIMYONGJIN\\\\.claude\\\\projects\\\\c--Users-KIMYONGJIN-Desktop-pj\\\\memory\\\\\" 2>/dev/null)",
       "Read(//c/Users/KIMYONGJIN/.claude/projects/c--Users-KIMYONGJIN-Desktop-pj/memory\" 2>/dev/**)",
       "Bash(git status *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@52.195.180.22 \"cd /home/ubuntu/pm-simulator && git pull\")",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@52.195.180.22 \"cd /home/ubuntu/pm-simulator && source ~/.nvm/nvm.sh && npm run build 2>&1 | tail -30\")",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@52.195.180.22 \"source ~/.nvm/nvm.sh && pm2 restart pm-simulator && pm2 status\")",
+      "Bash(node -e \"console.log\\(require.resolve\\('sharp'\\)\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\('jimp'\\)\\)\")",
+      "Bash(python -c \"from PIL import Image; print\\('ok'\\)\")",
+      "Bash(mkdir -p .tmp-sprite-analysis)",
+      "Bash(python3)",
+      "Bash(node .tmp-verify/exit.js)",
+      "Bash(node .tmp-verify/exit2.js)",
+      "Bash(node .tmp-verify/verify_ch1.js)",
+      "Bash(PYTHONIOENCODING=utf-8 python3)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3005/game)",
+      "Bash(node .tmp-verify/verify_ch2.js)",
+      "Bash(node .tmp-verify/verify_rpg_details.js)"
     ],
     "additionalDirectories": [
       "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory",

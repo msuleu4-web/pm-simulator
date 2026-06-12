@@ -106,6 +106,7 @@ export class Chapter5Scene extends Phaser.Scene {
   private charGfx!: Phaser.GameObjects.Graphics;
   private player!: { x: number; y: number };
   private playerSprite!: Phaser.GameObjects.Sprite;
+  private npcSprites = new Map<string, Phaser.GameObjects.Image>();
   private facing: Facing = 'down';
 
   // game state
@@ -415,7 +416,8 @@ export class Chapter5Scene extends Phaser.Scene {
   }
 
   private openDialog(npc: NpcDef) {
-    this.proximityHint.setText('');
+    this.proximityHint.setText('').setVisible(false);
+    this.faceNpcToPlayer(npc);
     this.activeNpc = npc;
     this.activeLines = this.getLines(npc);
     this.lineIdx = 0;
@@ -424,7 +426,7 @@ export class Chapter5Scene extends Phaser.Scene {
   }
 
   private openDocDialog(doc: ChapterDocument) {
-    this.proximityHint.setText('');
+    this.proximityHint.setText('').setVisible(false);
     this.activeDoc = doc;
     this.activeNpc = null;
     this.activeLines = doc.dialog.split('\n\n');
@@ -578,7 +580,7 @@ export class Chapter5Scene extends Phaser.Scene {
       this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
     }
     this.resultText.setVisible(false);
-    this.proximityHint.setText('');
+    this.proximityHint.setText('').setVisible(false);
     this.virtualPad.setChoiceButtonsVisible(true);
   }
 
@@ -688,8 +690,17 @@ export class Chapter5Scene extends Phaser.Scene {
   // ── Characters ────────────────────────────────────────────────
 
   private buildCharacterSprites() {
+    if (!this.anims.exists('player-walk-down')) {
+      this.anims.create({
+        key: 'player-walk-down',
+        frames: this.anims.generateFrameNumbers('player-walk', { frames: [24, 26, 28, 30, 32, 34] }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
     for (const npc of NPCS) {
-      this.add.image(npc.col * TILE + 16, npc.row * TILE + 16, NPC_SPRITE_KEY[npc.name], 0).setScale(2);
+      const sprite = this.add.image(npc.col * TILE + 16, npc.row * TILE + 16, NPC_SPRITE_KEY[npc.name], 0).setScale(2);
+      this.npcSprites.set(npc.name, sprite);
     }
     this.playerSprite = this.add.sprite(this.player.x, this.player.y, 'player-walk', 0).setScale(2);
   }
@@ -697,8 +708,21 @@ export class Chapter5Scene extends Phaser.Scene {
   private drawChars() {
     this.charGfx.clear();
     this.playerSprite.setPosition(this.player.x, this.player.y);
-    this.playerSprite.setFrame(PLAYER_FRAME[this.facing]);
+    this.updatePlayerAnimation();
     this.drawDocuments();
+  }
+
+  private updatePlayerAnimation() {
+    const sprite = this.playerSprite;
+    sprite.setFlipX(this.facing === 'left');
+    sprite.play('player-walk-down', true);
+  }
+
+  private faceNpcToPlayer(npc: NpcDef) {
+    const sprite = this.npcSprites.get(npc.name);
+    if (!sprite) return;
+    const playerRow = this.player.y / TILE;
+    sprite.setFrame(playerRow >= npc.row ? 0 : 1);
   }
 
   // ── Collision ─────────────────────────────────────────────────
@@ -776,11 +800,10 @@ export class Chapter5Scene extends Phaser.Scene {
     if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'testcase' : 'bugfix'); return; }
     if (spaceJust && nearbyDoc) { this.openDocDialog(nearbyDoc); return; }
 
-    this.proximityHint.setText(
-      nearby ? `【${nearby.name}】  Space で話しかける` :
+    const hintText = nearby ? `【${nearby.name}】  Space で話しかける` :
       (onDesk && missionActive) ? '自分の机  Space で作業する' :
-      nearbyDoc ? '📄 Space で資料を確認する' : '',
-    );
+      nearbyDoc ? '📄 Space で資料を確認する' : '';
+    this.proximityHint.setText(hintText).setVisible(!!hintText);
 
     const dt = delta / 1000;
     let dx = 0, dy = 0;
@@ -791,7 +814,14 @@ export class Chapter5Scene extends Phaser.Scene {
     const pad = this.virtualPad.getDirection();
     if (pad.dx !== 0) dx = pad.dx;
     if (pad.dy !== 0) dy = pad.dy;
-    if (dx === 0 && dy === 0) return;
+    if (dx === 0 && dy === 0) {
+      if (this.playerSprite.anims.isPlaying) {
+        this.playerSprite.anims.stop();
+        this.playerSprite.setFlipX(false);
+        this.playerSprite.setFrame(PLAYER_FRAME[this.facing]);
+      }
+      return;
+    }
 
     if (dx < 0) this.facing = 'left';
     else if (dx > 0) this.facing = 'right';
