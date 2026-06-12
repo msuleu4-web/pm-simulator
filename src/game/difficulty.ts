@@ -39,7 +39,7 @@ export const DIFFICULTY_HUD_COLOR: Record<Difficulty, string> = {
   hard: '#ff8080',
 };
 
-const STORAGE_KEY = 'sier-office-difficulty';
+const STORAGE_KEY = 'sier-office-difficulty-v2';
 
 export function saveDifficulty(d: Difficulty): void {
   if (typeof window === 'undefined') return;

@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { markChapterCleared, saveChapterScore } from '../chapters';
+import { markChapterCleared, saveChapterScore, type ChapterDocument } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
 
@@ -45,44 +45,68 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['お疲れ様！第1章、専門用語ばかりで大変でしょ', '進捗どうですか？困ったことあったら聞いてね', 'ここだけの話、田中さんの『なんとかなる』は', '大体なんとかならないから気をつけて（笑）'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、三次請けなので参考意見なんですけど', '要件が伝言ゲームで歪んでて、誰の意図かもう分からないんです', '元請けの言うことところころ変わるんですよ', 'あまり深く考えないようにしてます…'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['おお、配属初日だね！第1章は配属・キックオフだ', 'まずはそこの机にある資料、全部目を通しておいて', 'WBSと体制図、多重下請けの仕組み…全部大事だから', '読み終わったら、自己紹介がてら話しかけてね', '気合いと根性、あとは資料を読む力でなんとかなる！'] },
+  { name: '佐藤先輩', col: 10, row: 3, lines: ['はじめまして、よろしくね！', '来週から客先常駐が始まるから、心構えしておいてね', '現場には元請けさんも下請けさんもいて、最初は混乱すると思う', '分からないことがあったら、いつでも聞いてね'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['あ、新人さんですか？よろしくお願いします', 'うちは三次請けなので、現場では一番下っ端なんですよね…', '指示系統、最初はほんとうにややこしいので気をつけてくださいね', '元請けさんの指示と、うちの会社からの指示、両方聞く感じです'] },
 ];
 
-// スコアバランス: ミッション1(minutes)+ミッション2(progress)+炎上イベント(INCIDENT)の
+const DOCUMENTS: ChapterDocument[] = [
+  { id: 'doc-wbs', col: 7, row: 2, label: '資料📄',
+    dialog: '机の上に古いバインダーが置いてある。\n\n表紙には「〇〇銀行 次世代勘定系プロジェクト\nWBS v2.3 ── 過去案件参考資料」と書かれている。\n\n「...これが実際のWBSか。\n自分の業務範囲がここまで細かく分解されているんだな。参考にしよう。」',
+    imageKey: 'wbs', required: true,
+    blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。' },
+  { id: 'doc-subcontract1', col: 11, row: 2, label: '資料📄',
+    dialog: '引き出しから折りたたまれた紙が出てきた。\n\n「SIer業界の多重下請け構造 ① ── 基本のしくみ」と書かれている。\n\n「元請け・2次請け・3次請け…なるほど、\n業界全体がこういう構造になっているのか。」',
+    imageKey: 'subcontract1', required: true,
+    blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。' },
+  { id: 'doc-subcontract2', col: 15, row: 2, label: '資料📄',
+    dialog: 'ホワイトボードの脇に貼られた図があった。\n\n「SIer業界の多重下請け構造 ② ── お金と指揮命令の流れ」と書かれている。\n\n「発注金額がどんどん減っていくんだな…\n指揮命令のラインも厳密に決まっているんだ。」',
+    imageKey: 'subcontract2', required: true,
+    blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。' },
+];
+
+// スコアバランス: ミッション1(kickoff)+ミッション2(chain)+炎上イベント(INCIDENT)の
 // 計3セット、各セット{+10,-5,+5}。本章の最大30点 / 最小-15点(NORMAL)。
-// 全5章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
-const CHOICES: Record<'minutes' | 'progress', Choice[]> = {
-  minutes: [
-    { text: 'テンプレを使って丁寧に書く', score: 10, result: '田中PMから「これは使えるね」と言われ、翌日のMTGで資料として使われた。[+10点]' },
-    { text: '適当にメモだけ書く',           score: -5, result: '提出した瞬間、田中PMの顔が曇った。「これじゃ伝わらないよ…」と突き返され、夜に書き直すことに。[-5点]' },
-    { text: '先輩に聞いてから書く',         score:  5, result: '佐藤先輩のアドバイス通りに書いたら「いいじゃん、及第点！」と言われた。[+5点]' },
+// 全7章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
+const CHOICES: Record<'kickoff' | 'chain', Choice[]> = {
+  kickoff: [
+    { text: '資料を踏まえて、自分の担当範囲と疑問点を聞く', score: 10,
+      result: '田中PMは「お、ちゃんと読んできたね！」と感心。WBSの読み方が分かっていると、初日からの印象が違う。佐藤先輩も「いいスタートだね」とにっこり。[+10点]' },
+    { text: '分かったふりをして「大丈夫です」とだけ言う', score: -5,
+      result: '「大丈夫です」と即答したが、後日、自分の担当範囲を勘違いしていたことが発覚。佐藤先輩に「最初に聞いておけばよかったのに…」と苦笑いされた。[-5点]' },
+    { text: '「客先常駐って何ですか？」と素朴に聞く', score: 5,
+      result: '佐藤先輩は「聞いてくれて助かるよ、説明するね」と丁寧に教えてくれた。ただ「基本用語は資料にも書いてあるから、自分でも調べる癖をつけてね」と一言。[+5点]' },
   ],
-  progress: [
-    { text: '数字で詳細に報告する',     score: 10, result: '「進捗60%、残タスク3件」と数字で伝えると、田中PMは満足げに頷いた。資料としてそのまま使われた。[+10点]' },
-    { text: '「順調です」とだけ言う',   score: -5, result: '「順調です」とだけ伝えたら、翌日「で、結局どこまで進んでるの？」と詰められた。[-5点]' },
-    { text: '問題点も含めて正直に話す', score:  5, result: '課題も正直に話したら、佐藤先輩が「早めに言ってくれて助かる」とフォローしてくれた。[+5点]' },
+  chain: [
+    { text: 'まず指示系統（誰の指示で動くか）を確認する', score: 10,
+      result: '佐藤先輩はホッとした様子で「それ、最初に聞けるの偉いよ。新人がよく間違えるところなんだ」と教えてくれた。元請け・協力会社・客先常駐の関係がクリアになった。[+10点]' },
+    { text: 'みんな同じチームだと思って、下請けの人に直接作業を頼む', score: -5,
+      result: '鈴木さんに直接「これお願いします」と頼んだ瞬間、佐藤先輩が慌てて止めに入った。「それ、指揮命令系統が違うとマズいやつ…！偽装請負になっちゃう」と冷や汗をかきながら説明された。[-5点]' },
+    { text: '元請けの指示だけを聞いて、それ以外は様子見する', score: 5,
+      result: '無難に元請けの指示だけ聞いて動いた。トラブルは起きなかったが、佐藤先輩から「それで間違いではないけど、全体の構造を理解しておくともっと動きやすくなるよ」とアドバイスされた。[+5点]' },
   ],
 };
 
 // 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
 const INCIDENT = {
-  notice: '🔥炎上アラート🔥\n客先から確認の電話が鳴り響く！\n「あの件、議事録に書いてありますよね？」',
-  title: '🔥 客先「言った言わない」論争、どう対応する？',
+  notice: '🔥プチ炎上アラート🔥\n会議室で電話が鳴る。\n「すみません、〇〇社の新人さんですよね？至急こちらに…」と呼び出された！',
+  title: '🔥 知らない会議に呼ばれた！どうする？',
   choices: [
-    { text: '議事録を見返し、該当箇所を提示する',       score: 10, result: '「第3回定例の3項目目に記載があります」と即答。客先担当者は「あ…本当だ、すみません」と静かに引き下がった。佐藤先輩「議事録様々だね」[+10点]' },
-    { text: '「言った記憶はあります」と気持ちで主張する', score: -5, result: '「記憶、ですか…」と客先担当者は苦笑い。電話の後、田中PMに「証拠は議事録だけだからね」と釘を刺された。[-5点]' },
-    { text: 'まず謝って、確認してから折り返すと伝える',   score:  5, result: 'その場は丸く収まったが、確認したら本当に書いていなかった…。改めて「認識合わせさせてください」と連絡することに。二度手間だけど、誠実ではあった。[+5点]' },
+    { text: '体制図を確認し、呼び出し元が誰か確認してから向かう', score: 10,
+      result: '体制図を見ると、呼び出し元は二次請けのリーダーだった。事前に「どの会議か」を確認してから向かったので、落ち着いて対応できた。佐藤先輩「準備してから動くの、大事だね」[+10点]' },
+    { text: 'とりあえず急いで会議室に飛び込む', score: -5,
+      result: '勢いよく飛び込んだら、別プロジェクトの会議だった。「すみません、人違いでした…！」と退出することに。田中PMに「まず誰が呼んでるか確認してね」と笑われた。[-5点]' },
+    { text: '佐藤先輩に「これ、行った方がいいですか？」と確認する', score: 5,
+      result: '佐藤先輩が一緒に確認してくれて、無事に正しい会議室にたどり着けた。「最初はみんなこうやって覚えるものだよ」と優しく言われた。[+5点]' },
   ] as Choice[],
 };
 
 const MISSION_LABEL = [
-  'NPCに話しかけよう',
-  '📋 議事録を書いて（自分の机へ）',
-  '📋 完了！  佐藤先輩に話しかけよう',
-  '📊 進捗報告して（自分の机へ）',
-  '📊 全ミッション完了！',
+  '📄 机の上の資料を全部チェックしよう',
+  '🤝 田中PMに話しかけよう',
+  '🤝 完了！  佐藤先輩に話しかけよう',
+  '🏢 客先常駐の心構えについて話そう',
+  '🏢 全ミッション完了！',
 ];
 
 type DialogState = 'closed' | 'typing' | 'waiting';
@@ -109,7 +133,7 @@ export class Chapter1Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'minutes' | 'progress' | 'incident' | null = null;
+  private missionKey: 'kickoff' | 'chain' | 'incident' | null = null;
 
   // 炎上イベント
   private incidentDone = false;
@@ -120,6 +144,13 @@ export class Chapter1Scene extends Phaser.Scene {
 
   // chapter clear
   private chapterClearShown = false;
+
+  // documents
+  private docsSeen = new Set<string>();
+  private docImageOpen = false;
+  private activeDoc: ChapterDocument | null = null;
+  private finalChoiceMade = false;
+  private pendingDocId: string | null = null;
 
   // input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -202,7 +233,10 @@ export class Chapter1Scene extends Phaser.Scene {
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
 
-    this.showNotice('「品質・コスト・納期、全部守れ」\nでも予算は半分です。', 4500);
+    window.addEventListener('sier-doc-image-closed', this.onDocImageClosed);
+    this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
+
+    this.showNotice('本日からこの現場に配属されました。\nまずは机の上に積まれた資料に目を通してみましょう。', 4500);
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -302,7 +336,7 @@ export class Chapter1Scene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
     g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
-    this.add.text(10, 5, '第1章　要件定義', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
+    this.add.text(10, 5, '第1章　配属・キックオフ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
     this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '12px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
     this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '12px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
   }
@@ -368,13 +402,12 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['おっす、新人くん！第1章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'];
-      if (this.gameStep === 1) return ['あれ、まだ議事録終わってないの？', '急かすわけじゃないけど、今日中ね', '机に戻って、サクッと仕上げちゃって'];
-      return ['おお、議事録ありがとう！', '中身は佐藤くんが見てくれるから大丈夫', '提出できればOK、OK！'];
+      if (this.gameStep === 0) return npc.lines;
+      return ['さっき話したこと、覚えてる？', '資料、ちゃんと目を通しておいてね', '何か困ったことがあったら佐藤くんに聞いてね'];
     }
     if (npc.name === '佐藤先輩') {
-      if (this.gameStep >= 2 && this.gameStep < 3) return ['そういえば、進捗報告はもうしましたか？', '形式は気にしなくていいから、正直に書けばOK', '机に戻って、チームへの共有をしましょう'];
-      if (this.gameStep >= 3) return ['進捗報告、ありがとう！', '正直に書いてくれて助かったよ', 'そういう積み重ねが、信頼につながるからね'];
+      if (this.gameStep === 2) return npc.lines;
+      if (this.gameStep > 2) return ['客先常駐、緊張するけど一緒に頑張ろうね！', '分からないことがあったら、いつでも聞いてね'];
     }
     return npc.lines;
   }
@@ -388,12 +421,22 @@ export class Chapter1Scene extends Phaser.Scene {
     this.startTyping();
   }
 
+  private openDocDialog(doc: ChapterDocument) {
+    this.proximityHint.setText('');
+    this.activeDoc = doc;
+    this.activeNpc = null;
+    this.activeLines = [doc.dialog];
+    this.lineIdx = 0;
+    this.dialogState = 'typing';
+    this.startTyping();
+  }
+
   private startTyping() {
-    if (!this.activeNpc) return;
+    if (!this.activeNpc && !this.activeDoc) return;
     const line = this.activeLines[this.lineIdx];
     this.typedLen = 0;
     this.dlgBg.setVisible(true);
-    this.dlgName.setText(this.activeNpc.name).setVisible(true);
+    this.dlgName.setText(this.activeDoc ? this.activeDoc.label : this.activeNpc!.name).setVisible(true);
     this.dlgBody.setText('').setVisible(true);
     this.dlgCue.setText('').setVisible(true);
     if (this.typingTimer) { this.typingTimer.destroy(); this.typingTimer = null; }
@@ -412,7 +455,7 @@ export class Chapter1Scene extends Phaser.Scene {
   }
 
   private advanceDialog() {
-    if (!this.activeNpc) return;
+    if (!this.activeNpc && !this.activeDoc) return;
     if (this.dialogState === 'typing') {
       if (this.typingTimer) { this.typingTimer.destroy(); this.typingTimer = null; }
       this.dlgBody.setText(this.activeLines[this.lineIdx]);
@@ -433,16 +476,60 @@ export class Chapter1Scene extends Phaser.Scene {
     this.dialogState = 'closed';
     this.dlgBg.setVisible(false); this.dlgName.setVisible(false);
     this.dlgBody.setVisible(false); this.dlgCue.setVisible(false);
+
+    if (this.activeDoc) {
+      const doc = this.activeDoc;
+      this.activeDoc = null;
+      window.dispatchEvent(new CustomEvent('sier-show-doc-image', {
+        detail: { path: `/game-assets/${doc.imageKey}.png`, label: doc.imageLabel ?? doc.label },
+      }));
+      this.docImageOpen = true;
+      this.pendingDocId = doc.id;
+      return;
+    }
+
     const npc = this.activeNpc;
     this.activeNpc = null;
     if (!npc) return;
     if (npc.name === '田中PM' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n📋 議事録を書いてください\n自分の机（青いタイル）へ行こう', 3000);
+      this.openChoices('kickoff');
     } else if (npc.name === '佐藤先輩' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
-      this.showNotice('ミッション受諾！\n📊 進捗報告をしてください\n自分の机へ行こう', 3000);
+      this.openChoices('chain');
     }
+  }
+
+  // ── Documents ─────────────────────────────────────────────────
+
+  private onDocImageClosed = () => {
+    if (this.pendingDocId) { this.docsSeen.add(this.pendingDocId); this.pendingDocId = null; }
+    this.docImageOpen = false;
+    if (this.finalChoiceMade && DOCUMENTS.filter(d => d.required).every(d => this.docsSeen.has(d.id))) {
+      this.showChapterClear();
+    }
+  };
+
+  private drawDocuments() {
+    const { col: pc, row: pr } = this.playerTile();
+    for (const doc of DOCUMENTS) {
+      const x = doc.col * TILE, y = doc.row * TILE;
+      this.charGfx.fillStyle(0xF5F0D0, 1); this.charGfx.fillRect(x + 5, y + 8, 12, 16);
+      this.charGfx.fillStyle(0xC8C080, 0.7);
+      this.charGfx.fillRect(x + 7, y + 11, 8, 1);
+      this.charGfx.fillRect(x + 7, y + 13, 8, 1);
+      this.charGfx.fillRect(x + 7, y + 15, 8, 1);
+      this.charGfx.lineStyle(1, 0x886640, 0.9); this.charGfx.strokeRect(x + 5, y + 8, 12, 16);
+      if (Math.abs(doc.col - pc) <= 1 && Math.abs(doc.row - pr) <= 1) {
+        this.charGfx.fillStyle(0xFFDD00, 0.95); this.charGfx.fillCircle(x + 11, y + 4, 4);
+        this.charGfx.fillStyle(0xFFFFAA, 1); this.charGfx.fillCircle(x + 11, y + 4, 2);
+      }
+    }
+  }
+
+  private getNearbyDocument(): ChapterDocument | null {
+    const { col, row } = this.playerTile();
+    return DOCUMENTS.find(d => Math.abs(d.col - col) <= 1 && Math.abs(d.row - row) <= 1) ?? null;
   }
 
   // ── Choice panel ──────────────────────────────────────────────
@@ -470,11 +557,11 @@ export class Chapter1Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'minutes' | 'progress' | 'incident') {
+  private openChoices(key: 'kickoff' | 'chain' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'minutes' ? '📋 議事録をどう書きますか？'
-      : key === 'progress' ? '📊 進捗報告をどうしますか？'
+    const title = key === 'kickoff' ? '🤝 田中PMの説明に、どう応じますか？'
+      : key === 'chain' ? '🏢 客先常駐の指示系統について、どう動きますか？'
       : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
@@ -505,11 +592,20 @@ export class Chapter1Scene extends Phaser.Scene {
       return;
     }
 
-    const next = this.missionKey === 'minutes' ? 2 : 4;
+    const next = this.missionKey === 'kickoff' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
-      if (next === 4) this.showChapterClear();
       if (next === 2) this.scheduleIncident();
+      if (next === 4) {
+        const requiredDocs = DOCUMENTS.filter(d => d.required);
+        const unread = requiredDocs.find(d => !this.docsSeen.has(d.id));
+        if (unread) {
+          this.finalChoiceMade = true;
+          this.showNotice(unread.blockedHint ?? '必要な資料を確認してから進もう。', 2800);
+        } else {
+          this.showChapterClear();
+        }
+      }
     });
   }
 
@@ -574,7 +670,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.chapterClearShown = true;
     this.clearGfx.setVisible(true);
     this.clearTitle.setVisible(true);
-    this.clearScore.setText(`第1章「要件定義」クリア！\nスコア：${this.score}点`).setVisible(true);
+    this.clearScore.setText(`第1章「配属・キックオフ」クリア！\nスコア：${this.score}点`).setVisible(true);
     this.clearNext.setVisible(true);
   }
 
@@ -596,6 +692,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.charGfx.fillStyle(0x000000, 0.18); this.charGfx.fillEllipse(x, y + h - 1, PLAYER_SIZE + 4, 8);
     this.charGfx.fillStyle(0x2a6abf, 1); this.charGfx.fillRect(x - h, y - h, PLAYER_SIZE, PLAYER_SIZE);
     this.charGfx.fillStyle(0xffffff, 0.28); this.charGfx.fillRect(x - h + 3, y - h + 3, 9, 9);
+    this.drawDocuments();
   }
 
   // ── Collision ─────────────────────────────────────────────────
@@ -621,14 +718,11 @@ export class Chapter1Scene extends Phaser.Scene {
     return NPCS.find(n => Math.abs(n.col - col) <= 1 && Math.abs(n.row - row) <= 1) ?? null;
   }
 
-  private isOnDesk(): boolean {
-    const { col, row } = this.playerTile();
-    return TILE_MAP[row]?.[col] === P;
-  }
-
   // ── Update ────────────────────────────────────────────────────
 
   update(_t: number, delta: number) {
+    if (this.docImageOpen) return;
+
     // 選択肢ボタン(1/2/3)は選択パネル表示中のみ有効。パネルが閉じている間の
     // 誤タップを毎フレーム破棄し、次に開くパネルへ持ち越されないようにする。
     if (this.choiceState !== 'open') this.virtualPad.getChoicePressed();
@@ -659,16 +753,15 @@ export class Chapter1Scene extends Phaser.Scene {
     }
 
     const nearby = this.getNearbyNpc();
-    const onDesk = this.isOnDesk();
-    const missionActive = this.gameStep === 1 || this.gameStep === 3;
+    const nearbyDoc = this.getNearbyDocument();
     const spaceJust = Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed();
 
     if (spaceJust && nearby) { this.openDialog(nearby); return; }
-    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'minutes' : 'progress'); return; }
+    if (spaceJust && nearbyDoc) { this.openDocDialog(nearbyDoc); return; }
 
     this.proximityHint.setText(
       nearby ? `【${nearby.name}】  Space で話しかける` :
-      (onDesk && missionActive) ? '自分の机  Space で作業する' : '',
+      nearbyDoc ? '📄 Space で資料を確認する' : '',
     );
 
     const dt = delta / 1000;

@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { markChapterCleared, saveChapterScore, type ChapterDocument } from '../chapters';
+import { markChapterCleared, saveChapterScore, getTotalScore, getEndingTier, ENDINGS, saveEarnedTitle, type ChapterDocument } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
 
@@ -45,51 +45,49 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['第2章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['お疲れ様！第2章、専門用語ばかりで大変でしょ', '進捗どうですか？困ったことあったら聞いてね', 'ここだけの話、田中さんの『なんとかなる』は', '大体なんとかならないから気をつけて（笑）'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、三次請けなので参考意見なんですけど', '要件が伝言ゲームで歪んでて、誰の意図かもう分からないんです', '元請けの言うことところころ変わるんですよ', 'あまり深く考えないようにしてます…'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'] },
+  { name: '佐藤先輩', col: 10, row: 3, lines: ['デプロイ手順、確認した？', '不安なところがあれば一緒に見るよ', '表向きは『手順書通りに』なんだけど', '実際は『何かあったら呼んで』が本音かな'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['運用保守って、終わりがないんですよ…', '運用フェーズになると、急に人減らされるんですよ', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'] },
 ];
 
 const DOCUMENTS: ChapterDocument[] = [
-  { id: 'doc-meeting-minutes', col: 11, row: 8, label: '資料📄',
-    dialog: '会議テーブルの上に、誰かが置き忘れた議事録のコピーがある。\n\n表紙には「第3回定例会議事録（サンプル）」と書かれ、\n決定事項・宿題事項・次回までのToDoが\n項目ごとにきれいに整理されている。\n\n「...なるほど、議事録って単なる記録じゃなくて、\n『言った言わない』を防ぐための武器にもなるんだな。」',
-    imageKey: 'meeting-minutes', imageLabel: '要件ヒアリング議事録（サンプル）', required: true,
-    blockedHint: '会議テーブルの上の議事録を確認してから進もう…\n記録が残っているかどうかが、後で大きな違いになる。' },
+  { id: 'doc-server-security', col: 19, row: 8, label: '資料📄',
+    dialog: '机の上に「本番サーバー室 入退室・作業ルール」という注意書きが貼ってある。\n\n「本番環境での作業は必ず作業申請を出してから。\nパスワードの使い回し厳禁。作業後はログアウト確認を忘れずに。」\n\n「...地味だけど、事故を防ぐための大事なルールなんだな。」',
+    imageKey: 'caution', imageLabel: '本番サーバー室での注意点' },
 ];
 
-// スコアバランス: ミッション1(minutes)+ミッション2(progress)+炎上イベント(INCIDENT)の
+// スコアバランス: ミッション1(deploy)+ミッション2(incident)+炎上イベント(FLAREUP)の
 // 計3セット、各セット{+10,-5,+5}。本章の最大30点 / 最小-15点(NORMAL)。
 // 全5章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
-const CHOICES: Record<'minutes' | 'progress', Choice[]> = {
-  minutes: [
-    { text: 'テンプレを使って丁寧に書く', score: 10, result: '田中PMから「これは使えるね」と言われ、翌日のMTGで資料として使われた。[+10点]' },
-    { text: '適当にメモだけ書く',           score: -5, result: '提出した瞬間、田中PMの顔が曇った。「これじゃ伝わらないよ…」と突き返され、夜に書き直すことに。[-5点]' },
-    { text: '先輩に聞いてから書く',         score:  5, result: '佐藤先輩のアドバイス通りに書いたら「いいじゃん、及第点！」と言われた。[+5点]' },
+const CHOICES: Record<'deploy' | 'incident', Choice[]> = {
+  deploy: [
+    { text: '手順書通りに慎重にリリース',         score: 10, result: '手順書を一つずつ確認しながら慎重にリリース。本番は何のトラブルもなく稼働し、佐藤先輩も「完璧だね」と笑顔だった。[+10点]' },
+    { text: '急いでそのままデプロイ',             score: -5, result: '早く終わらせたくて手順を一部飛ばしてデプロイ。直後にエラーログが大量に出力され、緊急対応に追われることに。[-5点]' },
+    { text: '先輩とダブルチェックしてリリース',   score:  5, result: '佐藤先輩とダブルチェックしながらリリース。二人で確認したことで安心感もあり、無事に本番稼働できた。[+5点]' },
   ],
-  progress: [
-    { text: '数字で詳細に報告する',     score: 10, result: '「進捗60%、残タスク3件」と数字で伝えると、田中PMは満足げに頷いた。資料としてそのまま使われた。[+10点]' },
-    { text: '「順調です」とだけ言う',   score: -5, result: '「順調です」とだけ伝えたら、翌日「で、結局どこまで進んでるの？」と詰められた。[-5点]' },
-    { text: '問題点も含めて正直に話す', score:  5, result: '課題も正直に話したら、佐藤先輩が「早めに言ってくれて助かる」とフォローしてくれた。[+5点]' },
+  incident: [
+    { text: 'ログを確認して原因を特定',           score: 10, result: 'ログを丁寧に確認し、原因の処理を特定。迅速に修正パッチを適用し、影響を最小限に抑えることができた。[+10点]' },
+    { text: 'とりあえずサーバー再起動',           score: -5, result: 'とりあえず再起動したら一時的に直ったように見えた。だが30分後に同じ障害が再発し、結局原因調査をする羽目に。[-5点]' },
+    { text: '影響範囲を確認してから対応',         score:  5, result: 'まず影響範囲を確認し、関係者に連絡してから対応。落ち着いて行動できたことで、混乱を最小限に抑えられた。[+5点]' },
   ],
 };
 
-// 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
-const INCIDENT = {
-  notice: '🔥炎上アラート🔥\n客先から確認の電話が鳴り響く！\n「あの件、議事録に書いてありますよね？」',
-  title: '🔥 客先「言った言わない」論争、どう対応する？',
+const FLAREUP = {
+  notice: '🔥炎上アラート🔥\nリリース当日、客先担当者と連絡が取れない！\n「あれ…今日有休でした」',
+  title: '🔥 客先承認なしのリリース、どうする？',
   choices: [
-    { text: '議事録を見返し、該当箇所を提示する',       score: 10, result: '「第3回定例の3項目目に記載があります」と即答。客先担当者は「あ…本当だ、すみません」と静かに引き下がった。佐藤先輩「議事録様々だね」[+10点]' },
-    { text: '「言った記憶はあります」と気持ちで主張する', score: -5, result: '「記憶、ですか…」と客先担当者は苦笑い。電話の後、田中PMに「証拠は議事録だけだからね」と釘を刺された。[-5点]' },
-    { text: 'まず謝って、確認してから折り返すと伝える',   score:  5, result: 'その場は丸く収まったが、確認したら本当に書いていなかった…。改めて「認識合わせさせてください」と連絡することに。二度手間だけど、誠実ではあった。[+5点]' },
+    { text: 'エスカレーション手順に従う',     score: 10, result: '事前に決めていたエスカレーション先に連絡し、代理承認をもらった。手順通りに進めたことで、リリースは予定通り完了した。[+10点]' },
+    { text: '承認を待たず勝手に進める',       score: -5, result: '「待ってられないから」と承認を待たずにリリース。後日、客先から「聞いてない」とクレームになり、田中PMが平謝りすることに。[-5点]' },
+    { text: 'リリース延期を判断する',         score:  5, result: '「今日は見送りましょう」と延期を判断。安全だったが、再調整したスケジュールはさらにタイトになり、佐藤先輩は「うーん、悩ましいね」と苦笑い。[+5点]' },
   ] as Choice[],
 };
 
 const MISSION_LABEL = [
   'NPCに話しかけよう',
-  '📋 議事録を書いて（自分の机へ）',
-  '📋 完了！  佐藤先輩に話しかけよう',
-  '📊 進捗報告して（自分の机へ）',
-  '📊 全ミッション完了！',
+  '🚀 本番デプロイ準備（自分の机へ）',
+  '🚀 完了！  佐藤先輩に話しかけよう',
+  '🔥 障害対応（自分の机へ）',
+  '🔥 全ミッション完了！',
 ];
 
 type DialogState = 'closed' | 'typing' | 'waiting';
@@ -97,7 +95,7 @@ type ChoiceState  = 'hidden' | 'open' | 'result';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export class Chapter2Scene extends Phaser.Scene {
+export class Chapter7Scene extends Phaser.Scene {
   private mapGfx!: Phaser.GameObjects.Graphics;
   private charGfx!: Phaser.GameObjects.Graphics;
   private player!: { x: number; y: number };
@@ -116,9 +114,7 @@ export class Chapter2Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'minutes' | 'progress' | 'incident' | null = null;
-
-  // 炎上イベント
+  private missionKey: 'deploy' | 'incident' | 'flareup' | null = null;
   private incidentDone = false;
 
   // 難易度
@@ -165,13 +161,13 @@ export class Chapter2Scene extends Phaser.Scene {
   private choiceOpts: Phaser.GameObjects.Text[] = [];
   private resultText!: Phaser.GameObjects.Text;
 
-  // chapter clear UI
+  // ending UI
   private clearGfx!: Phaser.GameObjects.Graphics;
   private clearTitle!: Phaser.GameObjects.Text;
   private clearScore!: Phaser.GameObjects.Text;
   private clearNext!: Phaser.GameObjects.Text;
 
-  constructor() { super({ key: 'Chapter2Scene' }); }
+  constructor() { super({ key: 'Chapter7Scene' }); }
 
   preload() {
     this.load.spritesheet('office', '/game-assets/Modern_Office_32x32.png', {
@@ -219,7 +215,7 @@ export class Chapter2Scene extends Phaser.Scene {
     window.addEventListener('sier-doc-image-closed', this.onDocImageClosed);
     this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
 
-    this.showNotice('「品質・コスト・納期、全部守れ」\nでも予算は半分です。', 4500);
+    this.showNotice('「無事これ名馬」\nリリース当日、何も起きないのが一番のお祝いです。', 4500);
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -319,7 +315,7 @@ export class Chapter2Scene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
     g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
-    this.add.text(10, 5, '第2章　要件定義', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
+    this.add.text(10, 5, 'Day 21  リリースフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
     this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '12px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
     this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '12px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
   }
@@ -385,13 +381,18 @@ export class Chapter2Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['第2章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'];
-      if (this.gameStep === 1) return ['あれ、まだ議事録終わってないの？', '急かすわけじゃないけど、今日中ね', '机に戻って、サクッと仕上げちゃって'];
-      return ['おお、議事録ありがとう！', '中身は佐藤くんが見てくれるから大丈夫', '提出できればOK、OK！'];
+      if (this.gameStep === 0) return ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'];
+      if (this.gameStep === 1) return ['リリース判定会議は通った。準備は万全かな', '何か不安なことがあれば、今のうちに言ってね', '机に戻って、最終チェックをお願い'];
+      return ['本番切替、緊張するね。落ち着いていこう', '何かあっても、みんなでなんとかするから', 'いよいよだね、頑張ろう'];
     }
     if (npc.name === '佐藤先輩') {
-      if (this.gameStep >= 2 && this.gameStep < 3) return ['そういえば、進捗報告はもうしましたか？', '形式は気にしなくていいから、正直に書けばOK', '机に戻って、チームへの共有をしましょう'];
-      if (this.gameStep >= 3) return ['進捗報告、ありがとう！', '正直に書いてくれて助かったよ', 'そういう積み重ねが、信頼につながるからね'];
+      if (this.gameStep < 2) return ['デプロイ手順、確認した？', '不安なところがあれば一緒に見るよ', '表向きは『手順書通りに』なんだけど', '実際は『何かあったら呼んで』が本音かな'];
+      if (this.gameStep === 2) return ['本番から障害報告が来た！対応お願い', '切り戻すかどうかも判断してね', '机に戻って対応しましょう'];
+      return ['対応お疲れ様。よく頑張ったね', 'この一年で、すごく成長したと思うよ', '胸を張っていいからね'];
+    }
+    if (npc.name === '鈴木さん') {
+      if (this.gameStep < 3) return ['運用保守って、終わりがないんですよ…', '運用フェーズになると、急に人減らされるんですよ', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'];
+      return ['お疲れ様でした！', 'これで一区切りですね。本当によく頑張りました', '正直、最初はどうなることかと思いましたよ', 'また一緒に仕事できたら嬉しいです'];
     }
     return npc.lines;
   }
@@ -477,10 +478,10 @@ export class Chapter2Scene extends Phaser.Scene {
     if (!npc) return;
     if (npc.name === '田中PM' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n📋 議事録を書いてください\n自分の机（青いタイル）へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n🚀 本番環境へのデプロイ準備をしてください\n自分の机（青いタイル）へ行こう', 3000);
     } else if (npc.name === '佐藤先輩' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
-      this.showNotice('ミッション受諾！\n📊 進捗報告をしてください\n自分の机へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n🔥 障害対応をしてください\n自分の机へ行こう', 3000);
     }
   }
 
@@ -541,15 +542,15 @@ export class Chapter2Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'minutes' | 'progress' | 'incident') {
+  private openChoices(key: 'deploy' | 'incident' | 'flareup') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'minutes' ? '📋 議事録をどう書きますか？'
-      : key === 'progress' ? '📊 進捗報告をどうしますか？'
-      : INCIDENT.title;
+    const title = key === 'deploy' ? '🚀 どうやってリリースしますか？'
+      : key === 'incident' ? '🔥 障害にどう対応しますか？'
+      : FLAREUP.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
+    const choices = key === 'flareup' ? FLAREUP.choices : CHOICES[key];
     const maxScore = Math.max(...choices.map(c => c.score));
     for (let i = 0; i < 3; i++) {
       const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
@@ -562,7 +563,7 @@ export class Chapter2Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const choices = this.missionKey === 'flareup' ? FLAREUP.choices : CHOICES[this.missionKey];
     const c = choices[idx];
     const mult = c.score >= 0 ? this.diffCfg.bonusMult : this.diffCfg.penaltyMult;
     this.score += Math.round(c.score * mult);
@@ -571,12 +572,12 @@ export class Chapter2Scene extends Phaser.Scene {
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
 
-    if (this.missionKey === 'incident') {
+    if (this.missionKey === 'flareup') {
       this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
       return;
     }
 
-    const next = this.missionKey === 'minutes' ? 2 : 4;
+    const next = this.missionKey === 'deploy' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 2) this.scheduleIncident();
@@ -606,7 +607,7 @@ export class Chapter2Scene extends Phaser.Scene {
       return;
     }
     this.incidentDone = true;
-    this.showNotice(INCIDENT.notice, 2200);
+    this.showNotice(FLAREUP.notice, 2200);
     this.time.delayedCall(2200, () => this.tryOpenIncidentChoices());
   }
 
@@ -616,7 +617,7 @@ export class Chapter2Scene extends Phaser.Scene {
       this.time.delayedCall(600, () => this.tryOpenIncidentChoices());
       return;
     }
-    this.openChoices('incident');
+    this.openChoices('flareup');
   }
 
   private closeChoices() {
@@ -627,35 +628,46 @@ export class Chapter2Scene extends Phaser.Scene {
     this.virtualPad.setChoiceButtonsVisible(false);
   }
 
-  // ── Chapter clear ─────────────────────────────────────────────
+  // ── Ending screen ─────────────────────────────────────────────
 
   private buildChapterClear() {
     this.clearGfx = this.add.graphics();
     this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     this.clearGfx.setDepth(50).setVisible(false);
 
-    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 50, '🎉 チャプタークリア！', {
-      fontSize: '26px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
+    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 130, '', {
+      fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
-    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 4, '', {
-      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center',
+    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2, '', {
+      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center', lineSpacing: 6,
+      wordWrap: { width: 640 },
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
-    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 60, 'Space：次のチャプターへ（準備中）', {
-      fontSize: '13px', color: '#88aacc', fontFamily: JP,
+    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 180, '', {
+      fontSize: '13px', color: '#88aacc', fontFamily: JP, align: 'center',
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(51).setVisible(false);
   }
 
   private showChapterClear() {
-    saveChapterScore('chapter2', this.score);
-    markChapterCleared('chapter2');
+    saveChapterScore('chapter7', this.score);
+    markChapterCleared('chapter7');
     this.chapterClearShown = true;
+
+    const total = getTotalScore();
+    const tier = getEndingTier(total);
+    const ending = ENDINGS[tier];
+    saveEarnedTitle(ending.title);
+
     this.clearGfx.setVisible(true);
-    this.clearTitle.setVisible(true);
-    this.clearScore.setText(`第2章「要件定義」クリア！\nスコア：${this.score}点`).setVisible(true);
-    this.clearNext.setVisible(true);
+    this.clearTitle.setText(`🏆 ${ending.title}`).setColor(ending.color).setVisible(true);
+    this.clearScore.setText(
+      `第7章「リリース・運用保守」クリア！　スコア：${this.score}点\n総合スコア：${total}点\n\n${ending.comment}`,
+    ).setVisible(true);
+    this.clearNext.setText(
+      'Space：チャプター選択に戻る\nもう一度挑戦して、難易度を変えれば結果も変わるかも？',
+    ).setVisible(true);
   }
 
   // ── Characters ────────────────────────────────────────────────
@@ -718,7 +730,7 @@ export class Chapter2Scene extends Phaser.Scene {
 
     if (this.chapterClearShown) {
       if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed()) {
-        window.dispatchEvent(new CustomEvent('sier-chapter-cleared', { detail: { chapterId: 'chapter2' } }));
+        window.dispatchEvent(new CustomEvent('sier-chapter-cleared', { detail: { chapterId: 'chapter7' } }));
       }
       return;
     }
@@ -748,7 +760,7 @@ export class Chapter2Scene extends Phaser.Scene {
     const spaceJust = Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed();
 
     if (spaceJust && nearby) { this.openDialog(nearby); return; }
-    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'minutes' : 'progress'); return; }
+    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'deploy' : 'incident'); return; }
     if (spaceJust && nearbyDoc) { this.openDocDialog(nearbyDoc); return; }
 
     this.proximityHint.setText(

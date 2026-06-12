@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { markChapterCleared, saveChapterScore, getTotalScore, getEndingTier, ENDINGS, saveEarnedTitle } from '../chapters';
+import { markChapterCleared, saveChapterScore, type ChapterDocument } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
 
@@ -45,43 +45,51 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['デプロイ手順、確認した？', '不安なところがあれば一緒に見るよ', '表向きは『手順書通りに』なんだけど', '実際は『何かあったら呼んで』が本音かな'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['運用保守って、終わりがないんですよ…', '運用フェーズになると、急に人減らされるんですよ', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['第5章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', 'テストは品質の砦。でも納期は動かせない（笑）', '矛盾してる？現場ではよくあることだから！'] },
+  { name: '佐藤先輩', col: 10, row: 3, lines: ['テスト観点、ちゃんと洗い出せてる？', 'バグ票の書き方も大事だからね', '表向きは『全項目テストします』なんだけど', '実際はリスクの高い所から優先的に、になりがち'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', 'バグ票、うちのせいにされがちなんですよね…', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'] },
 ];
 
-// スコアバランス: ミッション1(deploy)+ミッション2(incident)+炎上イベント(FLAREUP)の
+const DOCUMENTS: ChapterDocument[] = [
+  { id: 'doc-v-model', col: 7, row: 2, label: '資料📄',
+    dialog: '会議室の壁に「V字モデル」の図が貼られている。\n\n「要件定義 ⇔ 受入テスト」「基本設計 ⇔ 結合テスト」「詳細設計 ⇔ 単体テスト」…\nそれぞれの設計工程に対応するテスト工程が一目で分かるようになっている。\n\n「...なるほど、テストって行き当たりばったりじゃなくて、\n設計の裏返しとして計画するものなんだな。」',
+    imageKey: 'v-model', required: true,
+    blockedHint: '壁に貼られた図を確認してから進もう…\nテストの仕組みを理解することが品質管理の第一歩だ。' },
+];
+
+// スコアバランス: ミッション1(testcase)+ミッション2(bugfix)+炎上イベント(INCIDENT)の
 // 計3セット、各セット{+10,-5,+5}。本章の最大30点 / 最小-15点(NORMAL)。
 // 全5章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
-const CHOICES: Record<'deploy' | 'incident', Choice[]> = {
-  deploy: [
-    { text: '手順書通りに慎重にリリース',         score: 10, result: '手順書を一つずつ確認しながら慎重にリリース。本番は何のトラブルもなく稼働し、佐藤先輩も「完璧だね」と笑顔だった。[+10点]' },
-    { text: '急いでそのままデプロイ',             score: -5, result: '早く終わらせたくて手順を一部飛ばしてデプロイ。直後にエラーログが大量に出力され、緊急対応に追われることに。[-5点]' },
-    { text: '先輩とダブルチェックしてリリース',   score:  5, result: '佐藤先輩とダブルチェックしながらリリース。二人で確認したことで安心感もあり、無事に本番稼働できた。[+5点]' },
+const CHOICES: Record<'testcase' | 'bugfix', Choice[]> = {
+  testcase: [
+    { text: '境界値分析も含めて網羅的に書く', score: 10, result: '境界値分析を含めた網羅的なテストケースが完成。リリース後も大きな不具合は出ず、佐藤先輩に感謝された。[+10点]' },
+    { text: '正常系だけテストする',           score: -5, result: '正常系はすべてパス。だが異常系を確認しなかったため、本番後に「マイナス値でエラー画面が出る」と発覚した。[-5点]' },
+    { text: '先輩のテスト仕様書を参考にする', score:  5, result: '過去のテスト仕様書を参考に効率よく作成。観点の抜け漏れも少なく、レビューもスムーズだった。[+5点]' },
   ],
-  incident: [
-    { text: 'ログを確認して原因を特定',           score: 10, result: 'ログを丁寧に確認し、原因の処理を特定。迅速に修正パッチを適用し、影響を最小限に抑えることができた。[+10点]' },
-    { text: 'とりあえずサーバー再起動',           score: -5, result: 'とりあえず再起動したら一時的に直ったように見えた。だが30分後に同じ障害が再発し、結局原因調査をする羽目に。[-5点]' },
-    { text: '影響範囲を確認してから対応',         score:  5, result: 'まず影響範囲を確認し、関係者に連絡してから対応。落ち着いて行動できたことで、混乱を最小限に抑えられた。[+5点]' },
+  bugfix: [
+    { text: '原因を特定してから修正する',     score: 10, result: 'ログとコードを丁寧に追って根本原因を特定。再テストでも問題は再発せず「さすが」と評価された。[+10点]' },
+    { text: 'とりあえず動くように直す',       score: -5, result: '応急処置で動くようにはなったが、別画面で新たな不具合が発生。原因調査からやり直しに。[-5点]' },
+    { text: '再現手順を確認してから対応',     score:  5, result: '再現手順を一つずつ確認してから対応。ピンポイントで正確に修正でき、バグ票もきれいにcloseできた。[+5点]' },
   ],
 };
 
-const FLAREUP = {
-  notice: '🔥炎上アラート🔥\nリリース当日、客先担当者と連絡が取れない！\n「あれ…今日有休でした」',
-  title: '🔥 客先承認なしのリリース、どうする？',
+// 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
+const INCIDENT = {
+  notice: '🔥炎上アラート🔥\n本番でバグ報告！でもテスト環境では再現せず…\n「ローカルでは動くんですけど…」',
+  title: '🔥 本番でしか起きないバグ、どう調査する？',
   choices: [
-    { text: 'エスカレーション手順に従う',     score: 10, result: '事前に決めていたエスカレーション先に連絡し、代理承認をもらった。手順通りに進めたことで、リリースは予定通り完了した。[+10点]' },
-    { text: '承認を待たず勝手に進める',       score: -5, result: '「待ってられないから」と承認を待たずにリリース。後日、客先から「聞いてない」とクレームになり、田中PMが平謝りすることに。[-5点]' },
-    { text: 'リリース延期を判断する',         score:  5, result: '「今日は見送りましょう」と延期を判断。安全だったが、再調整したスケジュールはさらにタイトになり、佐藤先輩は「うーん、悩ましいね」と苦笑い。[+5点]' },
+    { text: '環境差分を一つずつ洗い出す',         score: 10, result: 'テスト環境と本番環境の設定値を一つずつ突き合わせ。タイムゾーン設定の差分を発見し、バグの真因にたどり着けた。[+10点]' },
+    { text: '再現しないので一旦放置する',         score: -5, result: '「再現しないので一旦保留」とバグ票をクローズ。1週間後、本番で同じ不具合が再発し、優先対応で呼び出されることに。[-5点]' },
+    { text: '先輩に相談して一緒に調べる',         score:  5, result: '佐藤先輩に相談したところ「環境差分、よくあるんだよね」と一緒に確認してくれた。原因特定までは時間がかかったが、一人で抱えずに済んだ。[+5点]' },
   ] as Choice[],
 };
 
 const MISSION_LABEL = [
   'NPCに話しかけよう',
-  '🚀 本番デプロイ準備（自分の机へ）',
-  '🚀 完了！  佐藤先輩に話しかけよう',
-  '🔥 障害対応（自分の机へ）',
-  '🔥 全ミッション完了！',
+  '🧪 テスト仕様書を作成（自分の机へ）',
+  '🧪 完了！  佐藤先輩に話しかけよう',
+  '🐛 バグ修正に対応（自分の机へ）',
+  '🐛 全ミッション完了！',
 ];
 
 type DialogState = 'closed' | 'typing' | 'waiting';
@@ -108,7 +116,7 @@ export class Chapter5Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'deploy' | 'incident' | 'flareup' | null = null;
+  private missionKey: 'testcase' | 'bugfix' | 'incident' | null = null;
   private incidentDone = false;
 
   // 難易度
@@ -117,6 +125,13 @@ export class Chapter5Scene extends Phaser.Scene {
 
   // chapter clear
   private chapterClearShown = false;
+
+  // documents
+  private docsSeen = new Set<string>();
+  private docImageOpen = false;
+  private activeDoc: ChapterDocument | null = null;
+  private finalChoiceMade = false;
+  private pendingDocId: string | null = null;
 
   // input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -148,7 +163,7 @@ export class Chapter5Scene extends Phaser.Scene {
   private choiceOpts: Phaser.GameObjects.Text[] = [];
   private resultText!: Phaser.GameObjects.Text;
 
-  // ending UI
+  // chapter clear UI
   private clearGfx!: Phaser.GameObjects.Graphics;
   private clearTitle!: Phaser.GameObjects.Text;
   private clearScore!: Phaser.GameObjects.Text;
@@ -199,7 +214,10 @@ export class Chapter5Scene extends Phaser.Scene {
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
 
-    this.showNotice('「無事これ名馬」\nリリース当日、何も起きないのが一番のお祝いです。', 4500);
+    window.addEventListener('sier-doc-image-closed', this.onDocImageClosed);
+    this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
+
+    this.showNotice('「品質は最優先です」\n（ただしスケジュールも最優先です）', 4500);
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -299,7 +317,7 @@ export class Chapter5Scene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
     g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
-    this.add.text(10, 5, 'Day 21  リリースフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
+    this.add.text(10, 5, 'Day 14  テストフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
     this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '12px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
     this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '12px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
   }
@@ -365,18 +383,18 @@ export class Chapter5Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['いよいよ最終章だ', '本番環境へのデプロイ準備をしてください', 'スケジュールは死守、品質は…まあなんとかなる', 'リリースさえすればこっちのもん。あとは運用で', 'よし、頼んだぞ！なんとかなるなる！'];
-      if (this.gameStep === 1) return ['リリース判定会議は通った。準備は万全かな', '何か不安なことがあれば、今のうちに言ってね', '机に戻って、最終チェックをお願い'];
-      return ['本番切替、緊張するね。落ち着いていこう', '何かあっても、みんなでなんとかするから', 'いよいよだね、頑張ろう'];
+      if (this.gameStep === 0) return ['第5章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', 'テストは品質の砦。でも納期は動かせない（笑）', '矛盾してる？現場ではよくあることだから！'];
+      if (this.gameStep === 1) return ['テスト計画は順調？品質管理が肝心だよ', '…で、いつ終わりそう？', '机に戻って、サクッと仕上げちゃって'];
+      return ['テストケース、ありがとう！', 'レビューに回しておくね', 'バグが出ても凹まなくていいからね'];
     }
     if (npc.name === '佐藤先輩') {
-      if (this.gameStep < 2) return ['デプロイ手順、確認した？', '不安なところがあれば一緒に見るよ', '表向きは『手順書通りに』なんだけど', '実際は『何かあったら呼んで』が本音かな'];
-      if (this.gameStep === 2) return ['本番から障害報告が来た！対応お願い', '切り戻すかどうかも判断してね', '机に戻って対応しましょう'];
-      return ['対応お疲れ様。よく頑張ったね', 'この一年で、すごく成長したと思うよ', '胸を張っていいからね'];
+      if (this.gameStep < 2) return ['テスト観点、ちゃんと洗い出せてる？', 'バグ票の書き方も大事だからね', '表向きは『全項目テストします』なんだけど', '実際はリスクの高い所から優先的に、になりがち'];
+      if (this.gameStep === 2) return ['バグ票が3件上がってきたよ。対応お願い', '優先度の高いものから見てね', '机に戻って対応しましょう'];
+      return ['バグ修正お疲れ様。再テストもよろしくね', '一個ずつ潰していけば、ちゃんと終わるから', 'あと少し、一緒に頑張ろう'];
     }
     if (npc.name === '鈴木さん') {
-      if (this.gameStep < 3) return ['運用保守って、終わりがないんですよ…', '運用フェーズになると、急に人減らされるんですよ', 'リリースしてもまた次の改修が始まりますからね', '客先常駐のまま何年目になるかな…', 'でも、ここまで一緒にやれて嬉しかったです'];
-      return ['お疲れ様でした！', 'これで一区切りですね。本当によく頑張りました', '正直、最初はどうなることかと思いましたよ', 'また一緒に仕事できたら嬉しいです'];
+      if (this.gameStep < 3) return ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', 'バグ票、うちのせいにされがちなんですよね…', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'];
+      return ['バグ対応、お疲れ様です。うちもよくありますよ', '直したつもりが、また別のバグが出るやつ…', '『もぐら叩き』って呼んでます、笑えますよね'];
     }
     return npc.lines;
   }
@@ -390,12 +408,22 @@ export class Chapter5Scene extends Phaser.Scene {
     this.startTyping();
   }
 
+  private openDocDialog(doc: ChapterDocument) {
+    this.proximityHint.setText('');
+    this.activeDoc = doc;
+    this.activeNpc = null;
+    this.activeLines = [doc.dialog];
+    this.lineIdx = 0;
+    this.dialogState = 'typing';
+    this.startTyping();
+  }
+
   private startTyping() {
-    if (!this.activeNpc) return;
+    if (!this.activeNpc && !this.activeDoc) return;
     const line = this.activeLines[this.lineIdx];
     this.typedLen = 0;
     this.dlgBg.setVisible(true);
-    this.dlgName.setText(this.activeNpc.name).setVisible(true);
+    this.dlgName.setText(this.activeDoc ? this.activeDoc.label : this.activeNpc!.name).setVisible(true);
     this.dlgBody.setText('').setVisible(true);
     this.dlgCue.setText('').setVisible(true);
     if (this.typingTimer) { this.typingTimer.destroy(); this.typingTimer = null; }
@@ -414,7 +442,7 @@ export class Chapter5Scene extends Phaser.Scene {
   }
 
   private advanceDialog() {
-    if (!this.activeNpc) return;
+    if (!this.activeNpc && !this.activeDoc) return;
     if (this.dialogState === 'typing') {
       if (this.typingTimer) { this.typingTimer.destroy(); this.typingTimer = null; }
       this.dlgBody.setText(this.activeLines[this.lineIdx]);
@@ -435,16 +463,60 @@ export class Chapter5Scene extends Phaser.Scene {
     this.dialogState = 'closed';
     this.dlgBg.setVisible(false); this.dlgName.setVisible(false);
     this.dlgBody.setVisible(false); this.dlgCue.setVisible(false);
+
+    if (this.activeDoc) {
+      const doc = this.activeDoc;
+      this.activeDoc = null;
+      window.dispatchEvent(new CustomEvent('sier-show-doc-image', {
+        detail: { path: `/game-assets/${doc.imageKey}.png`, label: doc.imageLabel ?? doc.label },
+      }));
+      this.docImageOpen = true;
+      this.pendingDocId = doc.id;
+      return;
+    }
+
     const npc = this.activeNpc;
     this.activeNpc = null;
     if (!npc) return;
     if (npc.name === '田中PM' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n🚀 本番環境へのデプロイ準備をしてください\n自分の机（青いタイル）へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n🧪 テスト仕様書を作成してください\n自分の机（青いタイル）へ行こう', 3000);
     } else if (npc.name === '佐藤先輩' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
-      this.showNotice('ミッション受諾！\n🔥 障害対応をしてください\n自分の机へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n🐛 バグ修正に対応してください\n自分の机へ行こう', 3000);
     }
+  }
+
+  // ── Documents ─────────────────────────────────────────────────
+
+  private onDocImageClosed = () => {
+    if (this.pendingDocId) { this.docsSeen.add(this.pendingDocId); this.pendingDocId = null; }
+    this.docImageOpen = false;
+    if (this.finalChoiceMade && DOCUMENTS.filter(d => d.required).every(d => this.docsSeen.has(d.id))) {
+      this.showChapterClear();
+    }
+  };
+
+  private drawDocuments() {
+    const { col: pc, row: pr } = this.playerTile();
+    for (const doc of DOCUMENTS) {
+      const x = doc.col * TILE, y = doc.row * TILE;
+      this.charGfx.fillStyle(0xF5F0D0, 1); this.charGfx.fillRect(x + 5, y + 8, 12, 16);
+      this.charGfx.fillStyle(0xC8C080, 0.7);
+      this.charGfx.fillRect(x + 7, y + 11, 8, 1);
+      this.charGfx.fillRect(x + 7, y + 13, 8, 1);
+      this.charGfx.fillRect(x + 7, y + 15, 8, 1);
+      this.charGfx.lineStyle(1, 0x886640, 0.9); this.charGfx.strokeRect(x + 5, y + 8, 12, 16);
+      if (Math.abs(doc.col - pc) <= 1 && Math.abs(doc.row - pr) <= 1) {
+        this.charGfx.fillStyle(0xFFDD00, 0.95); this.charGfx.fillCircle(x + 11, y + 4, 4);
+        this.charGfx.fillStyle(0xFFFFAA, 1); this.charGfx.fillCircle(x + 11, y + 4, 2);
+      }
+    }
+  }
+
+  private getNearbyDocument(): ChapterDocument | null {
+    const { col, row } = this.playerTile();
+    return DOCUMENTS.find(d => Math.abs(d.col - col) <= 1 && Math.abs(d.row - row) <= 1) ?? null;
   }
 
   // ── Choice panel ──────────────────────────────────────────────
@@ -472,15 +544,15 @@ export class Chapter5Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'deploy' | 'incident' | 'flareup') {
+  private openChoices(key: 'testcase' | 'bugfix' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'deploy' ? '🚀 どうやってリリースしますか？'
-      : key === 'incident' ? '🔥 障害にどう対応しますか？'
-      : FLAREUP.title;
+    const title = key === 'testcase' ? '🧪 どんなテストケースを書きますか？'
+      : key === 'bugfix' ? '🐛 バグをどう修正しますか？'
+      : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = key === 'flareup' ? FLAREUP.choices : CHOICES[key];
+    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     const maxScore = Math.max(...choices.map(c => c.score));
     for (let i = 0; i < 3; i++) {
       const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
@@ -493,7 +565,7 @@ export class Chapter5Scene extends Phaser.Scene {
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const choices = this.missionKey === 'flareup' ? FLAREUP.choices : CHOICES[this.missionKey];
+    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
     const c = choices[idx];
     const mult = c.score >= 0 ? this.diffCfg.bonusMult : this.diffCfg.penaltyMult;
     this.score += Math.round(c.score * mult);
@@ -502,16 +574,25 @@ export class Chapter5Scene extends Phaser.Scene {
     this.choiceTitle.setVisible(false);
     this.resultText.setText(c.result).setVisible(true);
 
-    if (this.missionKey === 'flareup') {
+    if (this.missionKey === 'incident') {
       this.time.delayedCall(2600, () => { this.updateHud(); this.closeChoices(); });
       return;
     }
 
-    const next = this.missionKey === 'deploy' ? 2 : 4;
+    const next = this.missionKey === 'testcase' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
-      if (next === 4) this.showChapterClear();
       if (next === 2) this.scheduleIncident();
+      if (next === 4) {
+        const requiredDocs = DOCUMENTS.filter(d => d.required);
+        const unread = requiredDocs.find(d => !this.docsSeen.has(d.id));
+        if (unread) {
+          this.finalChoiceMade = true;
+          this.showNotice(unread.blockedHint ?? '必要な資料を確認してから進もう。', 2800);
+        } else {
+          this.showChapterClear();
+        }
+      }
     });
   }
 
@@ -528,7 +609,7 @@ export class Chapter5Scene extends Phaser.Scene {
       return;
     }
     this.incidentDone = true;
-    this.showNotice(FLAREUP.notice, 2200);
+    this.showNotice(INCIDENT.notice, 2200);
     this.time.delayedCall(2200, () => this.tryOpenIncidentChoices());
   }
 
@@ -538,7 +619,7 @@ export class Chapter5Scene extends Phaser.Scene {
       this.time.delayedCall(600, () => this.tryOpenIncidentChoices());
       return;
     }
-    this.openChoices('flareup');
+    this.openChoices('incident');
   }
 
   private closeChoices() {
@@ -549,24 +630,23 @@ export class Chapter5Scene extends Phaser.Scene {
     this.virtualPad.setChoiceButtonsVisible(false);
   }
 
-  // ── Ending screen ─────────────────────────────────────────────
+  // ── Chapter clear ─────────────────────────────────────────────
 
   private buildChapterClear() {
     this.clearGfx = this.add.graphics();
     this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     this.clearGfx.setDepth(50).setVisible(false);
 
-    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 130, '', {
-      fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
+    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 50, '🎉 チャプタークリア！', {
+      fontSize: '26px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
-    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2, '', {
-      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center', lineSpacing: 6,
-      wordWrap: { width: 640 },
+    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 4, '', {
+      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center',
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
-    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 180, '', {
-      fontSize: '13px', color: '#88aacc', fontFamily: JP, align: 'center',
+    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 60, 'Space：次のチャプターへ（準備中）', {
+      fontSize: '13px', color: '#88aacc', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(51).setVisible(false);
   }
@@ -575,20 +655,10 @@ export class Chapter5Scene extends Phaser.Scene {
     saveChapterScore('chapter5', this.score);
     markChapterCleared('chapter5');
     this.chapterClearShown = true;
-
-    const total = getTotalScore();
-    const tier = getEndingTier(total);
-    const ending = ENDINGS[tier];
-    saveEarnedTitle(ending.title);
-
     this.clearGfx.setVisible(true);
-    this.clearTitle.setText(`🏆 ${ending.title}`).setColor(ending.color).setVisible(true);
-    this.clearScore.setText(
-      `第5章「リリース・運用保守」クリア！　スコア：${this.score}点\n総合スコア：${total}点\n\n${ending.comment}`,
-    ).setVisible(true);
-    this.clearNext.setText(
-      'Space：チャプター選択に戻る\nもう一度挑戦して、難易度を変えれば結果も変わるかも？',
-    ).setVisible(true);
+    this.clearTitle.setVisible(true);
+    this.clearScore.setText(`第5章「テスト」クリア！\nスコア：${this.score}点`).setVisible(true);
+    this.clearNext.setVisible(true);
   }
 
   // ── Characters ────────────────────────────────────────────────
@@ -609,6 +679,7 @@ export class Chapter5Scene extends Phaser.Scene {
     this.charGfx.fillStyle(0x000000, 0.18); this.charGfx.fillEllipse(x, y + h - 1, PLAYER_SIZE + 4, 8);
     this.charGfx.fillStyle(0x2a6abf, 1); this.charGfx.fillRect(x - h, y - h, PLAYER_SIZE, PLAYER_SIZE);
     this.charGfx.fillStyle(0xffffff, 0.28); this.charGfx.fillRect(x - h + 3, y - h + 3, 9, 9);
+    this.drawDocuments();
   }
 
   // ── Collision ─────────────────────────────────────────────────
@@ -642,6 +713,8 @@ export class Chapter5Scene extends Phaser.Scene {
   // ── Update ────────────────────────────────────────────────────
 
   update(_t: number, delta: number) {
+    if (this.docImageOpen) return;
+
     // 選択肢ボタン(1/2/3)は選択パネル表示中のみ有効。パネルが閉じている間の
     // 誤タップを毎フレーム破棄し、次に開くパネルへ持ち越されないようにする。
     if (this.choiceState !== 'open') this.virtualPad.getChoicePressed();
@@ -673,15 +746,18 @@ export class Chapter5Scene extends Phaser.Scene {
 
     const nearby = this.getNearbyNpc();
     const onDesk = this.isOnDesk();
+    const nearbyDoc = this.getNearbyDocument();
     const missionActive = this.gameStep === 1 || this.gameStep === 3;
     const spaceJust = Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed();
 
     if (spaceJust && nearby) { this.openDialog(nearby); return; }
-    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'deploy' : 'incident'); return; }
+    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'testcase' : 'bugfix'); return; }
+    if (spaceJust && nearbyDoc) { this.openDocDialog(nearbyDoc); return; }
 
     this.proximityHint.setText(
       nearby ? `【${nearby.name}】  Space で話しかける` :
-      (onDesk && missionActive) ? '自分の机  Space で作業する' : '',
+      (onDesk && missionActive) ? '自分の机  Space で作業する' :
+      nearbyDoc ? '📄 Space で資料を確認する' : '',
     );
 
     const dt = delta / 1000;

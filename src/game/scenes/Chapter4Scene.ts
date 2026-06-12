@@ -45,44 +45,44 @@ interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['第4章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', 'テストは品質の砦。でも納期は動かせない（笑）', '矛盾してる？現場ではよくあることだから！'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['テスト観点、ちゃんと洗い出せてる？', 'バグ票の書き方も大事だからね', '表向きは『全項目テストします』なんだけど', '実際はリスクの高い所から優先的に、になりがち'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', 'バグ票、うちのせいにされがちなんですよね…', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'] },
+  { name: '田中PM',   col: 2,  row: 3, lines: ['第4章は製造フェーズだ', '担当モジュールのコーディングをよろしく', 'スケジュールは…まあ予定通り進めば大丈夫', '設計の解釈は任せるよ、なんとかなるなる！'] },
+  { name: '佐藤先輩', col: 10, row: 3, lines: ['コード、書けてきた？', 'レビューでしっかり見るから安心してね', '表向きは『規約を守りましょう』なんだけど', '実際は『早く動くものを』が優先になりがち'] },
+  { name: '鈴木さん', col: 18, row: 9, lines: ['うちの現場、テスト書かない文化なんですよ…', 'テストコード？工数に入ってないんで書きません（キリッ）', '『動けばOK』って空気、ちょっと怖いですよね', 'あと、このシステム、Aさんしか仕様分からないんです', '属人化ってやつ、目の前にあると笑えないですね'] },
 ];
 
-// スコアバランス: ミッション1(testcase)+ミッション2(bugfix)+炎上イベント(INCIDENT)の
+// スコアバランス: ミッション1(coding)+ミッション2(progress90)+炎上イベント(INCIDENT)の
 // 計3セット、各セット{+10,-5,+5}。本章の最大30点 / 最小-15点(NORMAL)。
 // 全5章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
-const CHOICES: Record<'testcase' | 'bugfix', Choice[]> = {
-  testcase: [
-    { text: '境界値分析も含めて網羅的に書く', score: 10, result: '境界値分析を含めた網羅的なテストケースが完成。リリース後も大きな不具合は出ず、佐藤先輩に感謝された。[+10点]' },
-    { text: '正常系だけテストする',           score: -5, result: '正常系はすべてパス。だが異常系を確認しなかったため、本番後に「マイナス値でエラー画面が出る」と発覚した。[-5点]' },
-    { text: '先輩のテスト仕様書を参考にする', score:  5, result: '過去のテスト仕様書を参考に効率よく作成。観点の抜け漏れも少なく、レビューもスムーズだった。[+5点]' },
+const CHOICES: Record<'coding' | 'progress90', Choice[]> = {
+  coding: [
+    { text: '設計書を見ながら丁寧に実装', score: 10, result: '設計書通りに丁寧に実装。レビューでの指摘はほぼゼロで「バグの少ないコードだね」と褒められた。[+10点]' },
+    { text: 'とりあえず動けばOKで実装',     score: -5, result: 'とりあえず動くものは完成。だが2日後、想定外の入力でエラーが続出し、深夜まで原因調査することに。[-5点]' },
+    { text: '先輩のコードを参考にする',     score:  5, result: '先輩の過去のコードを参考に実装。「ちゃんと読んで理解してるね」と効率の良さを褒められた。[+5点]' },
   ],
-  bugfix: [
-    { text: '原因を特定してから修正する',     score: 10, result: 'ログとコードを丁寧に追って根本原因を特定。再テストでも問題は再発せず「さすが」と評価された。[+10点]' },
-    { text: 'とりあえず動くように直す',       score: -5, result: '応急処置で動くようにはなったが、別画面で新たな不具合が発生。原因調査からやり直しに。[-5点]' },
-    { text: '再現手順を確認してから対応',     score:  5, result: '再現手順を一つずつ確認してから対応。ピンポイントで正確に修正でき、バグ票もきれいにcloseできた。[+5点]' },
+  progress90: [
+    { text: '正直に遅れを報告する',         score: 10, result: '「実は遅れています」と正直に報告。早めに人員調整が行われ、影響は最小限で済んだ。[+10点]' },
+    { text: '「90%です」と言い続ける',      score: -5, result: '今週も「90%です」と報告。佐藤先輩の表情が一瞬曇った。いわゆる『90%シンドローム』が発動した。[-5点]' },
+    { text: '残作業を洗い出して報告',       score:  5, result: '残タスクを洗い出してリスト化。「これなら一緒に対策立てられるね」と前向きな話し合いになった。[+5点]' },
   ],
 };
 
 // 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
 const INCIDENT = {
-  notice: '🔥炎上アラート🔥\n本番でバグ報告！でもテスト環境では再現せず…\n「ローカルでは動くんですけど…」',
-  title: '🔥 本番でしか起きないバグ、どう調査する？',
+  notice: '🔥炎上アラート🔥\n金曜18時、元請けから着信…\n「この機能、月曜までに追加でお願いします」',
+  title: '🔥 金曜夜の追加要望、どう対応する？',
   choices: [
-    { text: '環境差分を一つずつ洗い出す',         score: 10, result: 'テスト環境と本番環境の設定値を一つずつ突き合わせ。タイムゾーン設定の差分を発見し、バグの真因にたどり着けた。[+10点]' },
-    { text: '再現しないので一旦放置する',         score: -5, result: '「再現しないので一旦保留」とバグ票をクローズ。1週間後、本番で同じ不具合が再発し、優先対応で呼び出されることに。[-5点]' },
-    { text: '先輩に相談して一緒に調べる',         score:  5, result: '佐藤先輩に相談したところ「環境差分、よくあるんだよね」と一緒に確認してくれた。原因特定までは時間がかかったが、一人で抱えずに済んだ。[+5点]' },
+    { text: '影響と工数を説明して交渉する',     score: 10, result: '現状のタスクと工数への影響を整理して佐藤先輩に共有。「それなら優先度を見直そう」と元請けとの交渉に持ち込んでもらえた。[+10点]' },
+    { text: '黙って引き受けて徹夜で対応する',   score: -5, result: '「やります…」と一人で抱え込み、土日返上で対応。月曜には動くものができたが、佐藤先輩に「先に相談してよ…」と心配された。[-5点]' },
+    { text: '一旦持ち帰り、週明けに回答する',   score:  5, result: '「持ち帰って確認します」とその場での即答は避けた。週明けチームで分担して対応できたが、金曜のうちに動けなかった分スケジュールはタイトに。[+5点]' },
   ] as Choice[],
 };
 
 const MISSION_LABEL = [
   'NPCに話しかけよう',
-  '🧪 テスト仕様書を作成（自分の机へ）',
-  '🧪 完了！  佐藤先輩に話しかけよう',
-  '🐛 バグ修正に対応（自分の机へ）',
-  '🐛 全ミッション完了！',
+  '💻 製造（コーディング）開始（自分の机へ）',
+  '💻 完了！  佐藤先輩に話しかけよう',
+  '📊 進捗を報告して（自分の机へ）',
+  '📊 全ミッション完了！',
 ];
 
 type DialogState = 'closed' | 'typing' | 'waiting';
@@ -109,7 +109,9 @@ export class Chapter4Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'testcase' | 'bugfix' | 'incident' | null = null;
+  private missionKey: 'coding' | 'progress90' | 'incident' | null = null;
+
+  // 炎上イベント
   private incidentDone = false;
 
   // 難易度
@@ -200,7 +202,7 @@ export class Chapter4Scene extends Phaser.Scene {
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
 
-    this.showNotice('「品質は最優先です」\n（ただしスケジュールも最優先です）', 4500);
+    this.showNotice('「動けば正義」\nそのコード、半年後の自分が泣きます。', 4500);
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -300,7 +302,7 @@ export class Chapter4Scene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
     g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
-    this.add.text(10, 5, 'Day 14  テストフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
+    this.add.text(10, 5, 'Day 7  製造フェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
     this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '12px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
     this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '12px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
   }
@@ -366,18 +368,18 @@ export class Chapter4Scene extends Phaser.Scene {
 
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '田中PM') {
-      if (this.gameStep === 0) return ['第4章はテストフェーズだ', 'テスト仕様書を作成してください', '品質は最優先だよ！…リリース日は予定通りでね', 'テストは品質の砦。でも納期は動かせない（笑）', '矛盾してる？現場ではよくあることだから！'];
-      if (this.gameStep === 1) return ['テスト計画は順調？品質管理が肝心だよ', '…で、いつ終わりそう？', '机に戻って、サクッと仕上げちゃって'];
-      return ['テストケース、ありがとう！', 'レビューに回しておくね', 'バグが出ても凹まなくていいからね'];
+      if (this.gameStep === 0) return ['第4章は製造フェーズだ', '担当モジュールのコーディングをよろしく', 'スケジュールは…まあ予定通り進めば大丈夫', '設計の解釈は任せるよ、なんとかなるなる！'];
+      if (this.gameStep === 1) return ['コーディング、進んでる？', '進捗会議で『順調です』って言えるくらいにね', '机で作業してね、応援してるよ'];
+      return ['コーディングお疲れ様', '進捗90%でしょ？じゃあ残り10%もすぐだね', 'マイルストーンは守れそう？', '最後はみんな何とかするから、頼りにしてるよ'];
     }
     if (npc.name === '佐藤先輩') {
-      if (this.gameStep < 2) return ['テスト観点、ちゃんと洗い出せてる？', 'バグ票の書き方も大事だからね', '表向きは『全項目テストします』なんだけど', '実際はリスクの高い所から優先的に、になりがち'];
-      if (this.gameStep === 2) return ['バグ票が3件上がってきたよ。対応お願い', '優先度の高いものから見てね', '机に戻って対応しましょう'];
-      return ['バグ修正お疲れ様。再テストもよろしくね', '一個ずつ潰していけば、ちゃんと終わるから', 'あと少し、一緒に頑張ろう'];
+      if (this.gameStep < 2) return ['コード、書けてきた？', 'レビューでしっかり見るから安心してね', '表向きは『規約を守りましょう』なんだけど', '実際は『早く動くものを』が優先になりがち'];
+      if (this.gameStep === 2) return ['進捗どう？実は90%って言ってたのに…', '先週も今週も90%って、ちょっと心配だよ', '今の状況、正直に教えてくれる？'];
+      return ['進捗報告ありがとう', '正直に言ってくれて、田中さんにもフォローしておいたよ', '一緒に挽回しよう、一人で抱え込まないで'];
     }
     if (npc.name === '鈴木さん') {
-      if (this.gameStep < 3) return ['テスト工数、いつも見積もりの半分なんですよ…', '結局残業でカバーすることになるんですよね', 'バグ票、うちのせいにされがちなんですよね…', '客先常駐だと、定時で帰るのも気が引けて', '…あ、これ『甘え』とか言われそうな話でした'];
-      return ['バグ対応、お疲れ様です。うちもよくありますよ', '直したつもりが、また別のバグが出るやつ…', '『もぐら叩き』って呼んでます、笑えますよね'];
+      if (this.gameStep < 3) return ['うちの現場、テスト書かない文化なんですよ…', 'テストコード？工数に入ってないんで書きません（キリッ）', '『動けばOK』って空気、ちょっと怖いですよね', 'あと、このシステム、Aさんしか仕様分からないんです', '属人化ってやつ、目の前にあると笑えないですね'];
+      return ['進捗の話、他人事じゃないですね…', 'うちも『90%です』が3週間続いたことありますよ', '正直に言うの勇気いりますよね、応援してます'];
     }
     return npc.lines;
   }
@@ -441,10 +443,10 @@ export class Chapter4Scene extends Phaser.Scene {
     if (!npc) return;
     if (npc.name === '田中PM' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n🧪 テスト仕様書を作成してください\n自分の机（青いタイル）へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n💻 担当モジュールのコーディングをしてください\n自分の机（青いタイル）へ行こう', 3000);
     } else if (npc.name === '佐藤先輩' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
-      this.showNotice('ミッション受諾！\n🐛 バグ修正に対応してください\n自分の机へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n📊 進捗を報告してください\n自分の机へ行こう', 3000);
     }
   }
 
@@ -473,11 +475,11 @@ export class Chapter4Scene extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
-  private openChoices(key: 'testcase' | 'bugfix' | 'incident') {
+  private openChoices(key: 'coding' | 'progress90' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'testcase' ? '🧪 どんなテストケースを書きますか？'
-      : key === 'bugfix' ? '🐛 バグをどう修正しますか？'
+    const title = key === 'coding' ? '💻 どうやって実装しますか？'
+      : key === 'progress90' ? '📊 進捗をどう報告しますか？'
       : INCIDENT.title;
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
@@ -508,7 +510,7 @@ export class Chapter4Scene extends Phaser.Scene {
       return;
     }
 
-    const next = this.missionKey === 'testcase' ? 2 : 4;
+    const next = this.missionKey === 'coding' ? 2 : 4;
     this.time.delayedCall(2400, () => {
       this.gameStep = next; this.updateHud(); this.closeChoices();
       if (next === 4) this.showChapterClear();
@@ -577,7 +579,7 @@ export class Chapter4Scene extends Phaser.Scene {
     this.chapterClearShown = true;
     this.clearGfx.setVisible(true);
     this.clearTitle.setVisible(true);
-    this.clearScore.setText(`第4章「テスト」クリア！\nスコア：${this.score}点`).setVisible(true);
+    this.clearScore.setText(`第4章「製造」クリア！\nスコア：${this.score}点`).setVisible(true);
     this.clearNext.setVisible(true);
   }
 
@@ -667,7 +669,7 @@ export class Chapter4Scene extends Phaser.Scene {
     const spaceJust = Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed();
 
     if (spaceJust && nearby) { this.openDialog(nearby); return; }
-    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'testcase' : 'bugfix'); return; }
+    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'coding' : 'progress90'); return; }
 
     this.proximityHint.setText(
       nearby ? `【${nearby.name}】  Space で話しかける` :
