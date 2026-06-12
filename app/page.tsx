@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { allPhases, useGameState, getPhasesForDifficulty } from '../lib/useGameReducer';
 import { difficultyConfigs, projectThemes } from '../lib/difficultyConfig';
 import type { Difficulty } from '../lib/types';
-import { LoginPage } from './components/LoginPage';
 import { PhaseStepper } from './components/PhaseStepper';
 import { GanttChart } from './components/GanttChart';
 import { IssueTracker } from './components/IssueTracker';
@@ -68,7 +66,6 @@ function HomeContent() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [lastFeedback, setLastFeedback] = useState<{ label: string; explanation: string; pmBokTags: string[] } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState('');
   const [ultraUnlocked, setUltraUnlocked] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('pm-sim-ultra-unlocked') === 'true' : false
   );
@@ -80,17 +77,6 @@ function HomeContent() {
 
   const isPmoMode = state.difficulty.startsWith('pmo');
   const isOpsMode = state.difficulty.startsWith('ops');
-
-  useEffect(() => {
-    setLoggedInUser(localStorage.getItem('pm-sim-username') ?? '');
-  }, []);
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    localStorage.removeItem('pm-sim-auth');
-    localStorage.removeItem('pm-sim-username');
-    window.location.reload();
-  }
 
   const isGameComplete = hasFinishedPhase && !hasMorePhase;
   useEffect(() => {
@@ -163,27 +149,13 @@ function HomeContent() {
 
   if (!state.gameStarted) {
     return (
-      <div className="relative">
-        {loggedInUser && (
-          <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500">{loggedInUser}</span>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-700"
-            >
-              ログアウト
-            </button>
-          </div>
-        )}
-        <DifficultySelect
-          ultraUnlocked={ultraUnlocked}
-          onStart={(difficulty: Difficulty, projectThemeId: string) => {
-            dispatch({ type: 'startGame', difficulty, projectThemeId });
-            setLastFeedback(null);
-          }}
-        />
-      </div>
+      <DifficultySelect
+        ultraUnlocked={ultraUnlocked}
+        onStart={(difficulty: Difficulty, projectThemeId: string) => {
+          dispatch({ type: 'startGame', difficulty, projectThemeId });
+          setLastFeedback(null);
+        }}
+      />
     );
   }
 
@@ -204,12 +176,6 @@ function HomeContent() {
               <p className="mt-2 max-w-3xl text-sm text-slate-600">{projectTheme?.description}</p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2 pt-1">
-              {loggedInUser && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-500">{loggedInUser}</span>
-                  <button type="button" onClick={handleLogout} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-700">ログアウト</button>
-                </div>
-              )}
               {confirmReset ? (
                 <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 py-2">
                   <span className="text-xs font-semibold text-red-700">リセットしますか？</span>
@@ -498,100 +464,11 @@ function HomeContent() {
   );
 }
 
-function setAuthCookie(token: string) {
-  document.cookie = `sb-access-token=${token}; path=/; max-age=3600; SameSite=Strict`;
-}
-
-function clearAuthCookie() {
-  document.cookie = 'sb-access-token=; path=/; max-age=0; SameSite=Strict';
-}
-
-const IDLE_LIMIT_MS = 30 * 60 * 1000; // 30分操作がない場合は自動ログアウト
-const LAST_ACTIVITY_KEY = 'pm-sim-last-activity';
-const IDLE_LOGOUT_FLAG = 'pm-sim-idle-logout';
-
-function AuthGate({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState<boolean | null>(null);
-  const [idleLogout, setIdleLogout] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        const username = data.session.user.user_metadata?.username ?? data.session.user.email ?? '';
-        setAuthCookie(data.session.access_token);
-        localStorage.setItem('pm-sim-auth', 'true');
-        localStorage.setItem('pm-sim-username', username);
-        setAuthed(true);
-      } else {
-        clearAuthCookie();
-        localStorage.removeItem('pm-sim-auth');
-        setAuthed(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-        const username = session.user.user_metadata?.username ?? session.user.email ?? '';
-        setAuthCookie(session.access_token);
-        localStorage.setItem('pm-sim-auth', 'true');
-        localStorage.setItem('pm-sim-username', username);
-        setIdleLogout(false);
-        setAuthed(true);
-      } else if (event === 'SIGNED_OUT') {
-        clearAuthCookie();
-        localStorage.removeItem('pm-sim-auth');
-        localStorage.removeItem('pm-sim-username');
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
-        if (localStorage.getItem(IDLE_LOGOUT_FLAG) === 'true') {
-          localStorage.removeItem(IDLE_LOGOUT_FLAG);
-          setIdleLogout(true);
-        }
-        setAuthed(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // 30分操作がない場合に自動ログアウトする
-  useEffect(() => {
-    if (!authed) return;
-
-    const recordActivity = () => {
-      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
-    };
-
-    const checkIdle = () => {
-      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) ?? Date.now());
-      if (Date.now() - last >= IDLE_LIMIT_MS) {
-        localStorage.setItem(IDLE_LOGOUT_FLAG, 'true');
-        supabase.auth.signOut();
-      }
-    };
-
-    recordActivity();
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
-    activityEvents.forEach((ev) => window.addEventListener(ev, recordActivity, { passive: true }));
-    const interval = window.setInterval(checkIdle, 60 * 1000);
-
-    return () => {
-      activityEvents.forEach((ev) => window.removeEventListener(ev, recordActivity));
-      window.clearInterval(interval);
-    };
-  }, [authed]);
-
-  if (authed === null) return null;
-  if (!authed) return <LoginPage onLogin={() => setAuthed(true)} idleLogout={idleLogout} />;
-  return <>{children}</>;
-}
-
 export default function HomePage() {
   return (
-    <AuthGate>
-      <LearningProgressProvider>
-        <HomeContent />
-      </LearningProgressProvider>
-    </AuthGate>
+    <LearningProgressProvider>
+      <HomeContent />
+    </LearningProgressProvider>
   );
 }
 
