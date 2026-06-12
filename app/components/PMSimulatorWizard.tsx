@@ -86,8 +86,103 @@ export function PMSimulatorWizard({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 px-4 py-10 text-white">
-      <div className="mx-auto max-w-5xl">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 px-4 py-10 text-white">
+      {/* ── 背景：システム構成図風イラスト ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <svg
+          className="absolute bottom-0 left-1/2 h-[640px] w-[1400px] -translate-x-1/2 text-slate-400 opacity-[0.22]"
+          viewBox="0 0 1200 600"
+          preserveAspectRatio="xMidYMax meet"
+          aria-hidden="true"
+        >
+          <defs>
+            <symbol id="ic-gear" viewBox="-12 -12 24 24">
+              <circle r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <g stroke="currentColor" strokeWidth="1.5">
+                <line x1="0" y1="-11" x2="0" y2="-8" />
+                <line x1="0" y1="11" x2="0" y2="8" />
+                <line x1="-11" y1="0" x2="-8" y2="0" />
+                <line x1="11" y1="0" x2="8" y2="0" />
+                <line x1="-7.8" y1="-7.8" x2="-5.6" y2="-5.6" />
+                <line x1="7.8" y1="7.8" x2="5.6" y2="5.6" />
+                <line x1="-7.8" y1="7.8" x2="-5.6" y2="5.6" />
+                <line x1="7.8" y1="-7.8" x2="5.6" y2="-5.6" />
+              </g>
+            </symbol>
+            <symbol id="ic-people" viewBox="-14 -12 28 24">
+              <circle cx="-5" cy="-5" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M-11,9 q0,-8 6,-8 q6,0 6,8 z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="5" cy="-5" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M-1,9 q0,-8 6,-8 q6,0 6,8 z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </symbol>
+            <symbol id="ic-doc" viewBox="-10 -12 20 24">
+              <rect x="-8" y="-11" width="16" height="22" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <line x1="-5" y1="-5" x2="5" y2="-5" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="-5" y1="-1" x2="5" y2="-1" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="-5" y1="3" x2="5" y2="3" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="-5" y1="7" x2="2" y2="7" stroke="currentColor" strokeWidth="1.2" />
+            </symbol>
+            <symbol id="ic-db" viewBox="-12 -13 24 26">
+              <ellipse cx="0" cy="-7" rx="10" ry="3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M-10,-7 v14 a10,3.5 0 0 0 20,0 v-14" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M-10,-1 a10,3.5 0 0 0 20,0" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </symbol>
+            <symbol id="ic-chart" viewBox="-12 -12 24 24">
+              <rect x="-10" y="-10" width="20" height="20" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <rect x="-6" y="0" width="3" height="6" fill="currentColor" />
+              <rect x="-1.5" y="-4" width="3" height="10" fill="currentColor" />
+              <rect x="3" y="-7" width="3" height="13" fill="currentColor" />
+            </symbol>
+            <symbol id="ic-cloud" viewBox="-14 -10 28 20">
+              <path d="M-10,4 a5,5 0 0 1 0,-10 a6,6 0 0 1 11,-2 a5,5 0 0 1 4,9.5 a4,4 0 0 1 -1,2.5 z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </symbol>
+          </defs>
+
+          {/* connector lines */}
+          <g fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M115,300 H250" />
+            <path d="M430,300 H530" />
+            <path d="M710,300 H810" />
+            <path d="M990,300 H1085" />
+            <path d="M430,110 H530" />
+            <path d="M710,110 H810" />
+            <path d="M430,490 H530" />
+            <path d="M710,490 H810" />
+            <path d="M340,160 V250" />
+            <path d="M340,350 V440" />
+            <path d="M900,160 V250" />
+            <path d="M900,350 V440" />
+          </g>
+
+          {/* hubs */}
+          <circle cx="70" cy="300" r="45" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <text x="70" y="305" textAnchor="middle" fontSize="15" fill="currentColor">PM</text>
+          <circle cx="1130" cy="300" r="45" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <text x="1130" y="305" textAnchor="middle" fontSize="15" fill="currentColor">顧客</text>
+
+          {/* process boxes */}
+          {[
+            { x: 250, y: 60,  label: '要件管理',        icon: 'ic-doc' },
+            { x: 530, y: 60,  label: '進捗管理',        icon: 'ic-chart' },
+            { x: 810, y: 60,  label: 'リスク管理',      icon: 'ic-gear' },
+            { x: 250, y: 250, label: '品質管理',        icon: 'ic-doc' },
+            { x: 530, y: 250, label: 'チーム',          icon: 'ic-people', accent: true },
+            { x: 810, y: 250, label: '予算管理',        icon: 'ic-chart' },
+            { x: 250, y: 440, label: '成果物',          icon: 'ic-doc' },
+            { x: 530, y: 440, label: 'データ基盤',      icon: 'ic-db' },
+            { x: 810, y: 440, label: 'ステークホルダー', icon: 'ic-cloud' },
+          ].map((box) => (
+            <g key={box.label} className={box.accent ? 'text-emerald-400' : undefined}>
+              <rect x={box.x} y={box.y} width="180" height="100" rx="10" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <use href={`#${box.icon}`} x={box.x + 36} y={box.y + 38} width="28" height="28" />
+              <text x={box.x + 90} y={box.y + 78} textAnchor="middle" fontSize="15" fill="currentColor">{box.label}</text>
+            </g>
+          ))}
+        </svg>
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/30 via-transparent to-slate-950" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-5xl">
         {/* ── ヘッダー ── */}
         <div className="flex items-center justify-between">
           <button
