@@ -1,5 +1,5 @@
-const CACHE_NAME = 'sier-dojo-v1';
-const OFFLINE_FALLBACK = '/game';
+const CACHE_NAME = 'sier-dojo-v2';
+const OFFLINE_FALLBACK = '/';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

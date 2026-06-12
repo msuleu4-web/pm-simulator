@@ -2,7 +2,7 @@
   "name": "SIer道場",
   "short_name": "SIer道場",
   "description": "日本のSIer現場を体験できる教育ゲーム",
-  "start_url": "/game",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a14",
   "theme_color": "#0a0a14",
