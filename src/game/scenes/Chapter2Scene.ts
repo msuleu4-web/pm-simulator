@@ -373,7 +373,7 @@ export class Chapter2Scene extends Phaser.Scene {
   // ── Dialog box ────────────────────────────────────────────────
 
   private buildDialogBox() {
-    const BX = 10, BY = 504, BW = CANVAS_W - 20, BH = 70, P2 = 14;
+    const BX = 10, BY = 454, BW = CANVAS_W - 20, BH = 120, P2 = 14;
     this.dlgBg = this.add.graphics();
     this.dlgBg.fillStyle(0x000000, 0.88); this.dlgBg.fillRoundedRect(BX, BY, BW, BH, 8);
     this.dlgBg.lineStyle(1, 0x445566, 0.9); this.dlgBg.strokeRoundedRect(BX, BY, BW, BH, 8);
@@ -409,7 +409,7 @@ export class Chapter2Scene extends Phaser.Scene {
     this.proximityHint.setText('');
     this.activeDoc = doc;
     this.activeNpc = null;
-    this.activeLines = [doc.dialog];
+    this.activeLines = doc.dialog.split('\n\n');
     this.lineIdx = 0;
     this.dialogState = 'typing';
     this.startTyping();
