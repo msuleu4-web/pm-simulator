@@ -138,6 +138,7 @@ export class Chapter7Scene extends Phaser.Scene {
   private key1!: Phaser.Input.Keyboard.Key;
   private key2!: Phaser.Input.Keyboard.Key;
   private key3!: Phaser.Input.Keyboard.Key;
+  private keyZ!: Phaser.Input.Keyboard.Key;
   private virtualPad!: VirtualPad;
 
   // HUD
@@ -212,6 +213,7 @@ export class Chapter7Scene extends Phaser.Scene {
     this.key1 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+    this.keyZ = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
 
     window.addEventListener('sier-doc-image-closed', this.onDocImageClosed);
     this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
@@ -732,7 +734,10 @@ export class Chapter7Scene extends Phaser.Scene {
   // ── Update ────────────────────────────────────────────────────
 
   update(_t: number, delta: number) {
-    if (this.docImageOpen) return;
+    if (this.docImageOpen) {
+      if (Phaser.Input.Keyboard.JustDown(this.keyZ)) window.dispatchEvent(new CustomEvent('sier-doc-image-closed'));
+      return;
+    }
 
     // 選択肢ボタン(1/2/3)は選択パネル表示中のみ有効。パネルが閉じている間の
     // 誤タップを毎フレーム破棄し、次に開くパネルへ持ち越されないようにする。
