@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { handleApiError } from '../../../src/lib/apiError';
 
 type EvaluationItem = {
   label: string;
@@ -23,7 +24,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const body: EvaluateRequest = await request.json();
+  let body: EvaluateRequest;
+  try {
+    body = await request.json();
+  } catch (error) {
+    return handleApiError(error, 'evaluate');
+  }
   const { averageScore, overallRank, evaluationItems, decisionCount, topTags, siloCount } = body;
 
   const weakItems = evaluationItems

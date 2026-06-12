@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { sanitizeMessages } from '../../../src/lib/sanitize';
+import { handleApiError } from '../../../src/lib/apiError';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -24,7 +26,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ reply: '（AIとの接続に失敗しました）', finished: false }, { status: 200 });
   }
 
-  const { messages, turnNumber, context }: ReflectRequest = await request.json();
+  let parsedBody: ReflectRequest;
+  try {
+    parsedBody = await request.json();
+  } catch (error) {
+    return handleApiError(error, 'game-reflect');
+  }
+  const { messages: rawMessages, turnNumber, context } = parsedBody;
+  const messages = sanitizeMessages(rawMessages);
   const { playerName, endingType, quality, cost, delivery, trust, total } = context;
 
   const endingDesc = endingType === 'A'

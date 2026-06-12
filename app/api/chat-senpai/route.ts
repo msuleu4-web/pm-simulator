@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { sanitizeMessages } from '../../../src/lib/sanitize';
+import { handleApiError } from '../../../src/lib/apiError';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -63,8 +65,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ content: 'APIキーが設定されていません。' });
   }
 
-  const body: Body = await request.json();
-  const { messages, gameContext } = body;
+  let body: Body;
+  try {
+    body = await request.json();
+  } catch (error) {
+    return handleApiError(error, 'chat-senpai');
+  }
+  const { messages: rawMessages, gameContext } = body;
+  const messages = sanitizeMessages(rawMessages);
 
   let contextNote = '';
   if (gameContext) {

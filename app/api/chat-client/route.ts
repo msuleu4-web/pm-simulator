@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { sanitizeMessages } from '../../../src/lib/sanitize';
+import { handleApiError } from '../../../src/lib/apiError';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -25,8 +27,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ content: 'APIキーが設定されていません。' });
   }
 
-  const body: Body = await request.json();
-  const { scenarioTitle, scenarioDescription, clientName, clientDescription, phaseLabel, kpiSummary, messages, turnCount, maxTurns, meetingReason, meetingInitiator, clientPersonality } = body;
+  let body: Body;
+  try {
+    body = await request.json();
+  } catch (error) {
+    return handleApiError(error, 'chat-client');
+  }
+  const { scenarioTitle, scenarioDescription, clientName, clientDescription, phaseLabel, kpiSummary, messages: rawMessages, turnCount, maxTurns, meetingReason, meetingInitiator, clientPersonality } = body;
+  const messages = sanitizeMessages(rawMessages);
 
   const remainingTurns = maxTurns - turnCount;
   const isAlmostDone = remainingTurns <= 2;
