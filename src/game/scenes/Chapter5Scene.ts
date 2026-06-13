@@ -217,6 +217,17 @@ export class Chapter5Scene extends Phaser.Scene {
 
     this.drawChars();
 
+    // Phaser.Scale.RESIZE makes the canvas fill the device viewport; zoom the
+    // fixed 800x600 layout to fit and center it so this scene's look is unchanged.
+    const applyFitZoom = () => {
+      const zoom = Math.min(this.scale.width / CANVAS_W, this.scale.height / CANVAS_H);
+      this.cameras.main.setZoom(zoom);
+      this.cameras.main.centerOn(CANVAS_W / 2, CANVAS_H / 2);
+    };
+    applyFitZoom();
+    this.scale.on('resize', applyFitZoom);
+    this.events.once('shutdown', () => this.scale.off('resize', applyFitZoom));
+
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = {
       up:    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),

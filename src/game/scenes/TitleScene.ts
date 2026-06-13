@@ -32,6 +32,20 @@ export class TitleScene extends Phaser.Scene {
     this.input.on('pointerdown', () => this.handleStart());
 
     this.scheduleTypingSound();
+
+    // Phaser.Scale.RESIZE makes the canvas fill the device viewport; zoom the
+    // fixed 800x600 layout to fit and center it so this scene's look is unchanged.
+    this.applyFitZoom();
+    this.scale.on('resize', this.onResize, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
+  }
+
+  private onResize = () => this.applyFitZoom();
+
+  private applyFitZoom() {
+    const zoom = Math.min(this.scale.width / CANVAS_W, this.scale.height / CANVAS_H);
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(CANVAS_W / 2, CANVAS_H / 2);
   }
 
   // ── Decoration ──────────────────────────────────────────────

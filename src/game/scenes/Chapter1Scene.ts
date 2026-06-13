@@ -6,8 +6,8 @@ import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty
 const TILE = 32;
 const COLS = 25;
 const ROWS = 18;
-const CANVAS_W = 800;
-const CANVAS_H = 600;
+const MAP_W = COLS * TILE;
+const MAP_H = ROWS * TILE;
 const PLAYER_SIZE = 28;
 const SPEED = 160;
 const JP = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",Arial,sans-serif';
@@ -121,6 +121,11 @@ type ChoiceState  = 'hidden' | 'open' | 'result';
 export class Chapter1Scene extends Phaser.Scene {
   private mapGfx!: Phaser.GameObjects.Graphics;
   private charGfx!: Phaser.GameObjects.Graphics;
+
+  // dynamic canvas size (Phaser.Scale.RESIZE) — UI overlay is laid out against these
+  private canvasW = 800;
+  private canvasH = 600;
+
   private player!: { x: number; y: number };
   private playerSprite!: Phaser.GameObjects.Sprite;
   private npcSprites = new Map<string, Phaser.GameObjects.Image>();
@@ -170,6 +175,8 @@ export class Chapter1Scene extends Phaser.Scene {
   private virtualPad!: VirtualPad;
 
   // HUD
+  private hudBg!: Phaser.GameObjects.Graphics;
+  private hudTitle!: Phaser.GameObjects.Text;
   private hudMission!: Phaser.GameObjects.Text;
   private hudScore!: Phaser.GameObjects.Text;
 
@@ -177,6 +184,8 @@ export class Chapter1Scene extends Phaser.Scene {
   private proximityHint!: Phaser.GameObjects.Text;
   private noticeText!: Phaser.GameObjects.Text;
   private noticeTimer: Phaser.Time.TimerEvent | null = null;
+  private hintBarBg!: Phaser.GameObjects.Graphics;
+  private hintBarText!: Phaser.GameObjects.Text;
 
   // dialog UI
   private dlgBg!: Phaser.GameObjects.Graphics;
@@ -213,6 +222,9 @@ export class Chapter1Scene extends Phaser.Scene {
     this.diffLevel = getDifficulty();
     this.diffCfg = DIFFICULTY_CONFIG[this.diffLevel];
 
+    this.canvasW = this.scale.width;
+    this.canvasH = this.scale.height;
+
     this.mapGfx = this.add.graphics();
 
     this.buildMap();
@@ -235,6 +247,10 @@ export class Chapter1Scene extends Phaser.Scene {
     this.virtualPad = new VirtualPad(this);
 
     this.drawChars();
+    this.updateCamera();
+
+    this.scale.on('resize', this.onResize, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = {
@@ -349,12 +365,32 @@ export class Chapter1Scene extends Phaser.Scene {
   // ── HUD ──────────────────────────────────────────────────────
 
   private buildHud() {
-    const g = this.add.graphics();
-    g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
-    g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
-    this.add.text(10, 5, '第1章　配属・キックオフ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
-    this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
-    this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
+    this.hudBg = this.add.graphics().setScrollFactor(0);
+    this.hudTitle = this.add.text(10, 5, '第1章　配属・キックオフ', { fontSize: '11px', color: '#7799aa', fontFamily: JP }).setScrollFactor(0);
+    this.hudMission = this.add.text(0, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0).setScrollFactor(0);
+    this.hudScore   = this.add.text(0, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0).setScrollFactor(0);
+    this.layoutHud();
+  }
+
+  // On narrow (mobile) canvases the title + mission + score labels collide
+  // if kept on one row, so they're split onto two rows with a smaller font.
+  private layoutHud() {
+    const compact = this.canvasW < 560;
+    const h = compact ? 46 : 26;
+
+    this.hudBg.clear();
+    this.hudBg.fillStyle(0x0a0a14, 0.93); this.hudBg.fillRect(0, 0, this.canvasW, h);
+    this.hudBg.lineStyle(1, 0x223344, 1); this.hudBg.strokeRect(0, 0, this.canvasW, h);
+
+    this.hudTitle.setPosition(10, 5);
+    // Leave room on the right for the floating "← 戻る" button, which now
+    // overlaps the canvas edge since the canvas fills the viewport.
+    this.hudScore.setPosition(this.canvasW - 90, 5);
+    if (compact) {
+      this.hudMission.setFontSize(12).setPosition(this.canvasW / 2, 25);
+    } else {
+      this.hudMission.setFontSize(14).setPosition(this.canvasW / 2, 5);
+    }
   }
 
   private updateHud() {
@@ -375,17 +411,28 @@ export class Chapter1Scene extends Phaser.Scene {
   // ── Misc UI ───────────────────────────────────────────────────
 
   private buildProximityHint() {
-    this.proximityHint = this.add.text(CANVAS_W / 2, ROWS * TILE - 28, '', {
+    this.proximityHint = this.add.text(0, 0, '', {
       fontSize: '15px', color: '#ffee88', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 10, y: 4 },
-    }).setOrigin(0.5, 1);
+    }).setOrigin(0.5, 1).setScrollFactor(0);
+    this.layoutProximityHint();
+  }
+
+  private layoutProximityHint() {
+    this.proximityHint.setPosition(this.canvasW / 2, this.canvasH - 100);
   }
 
   private buildNotice() {
-    this.noticeText = this.add.text(CANVAS_W / 2, 120, '', {
+    this.noticeText = this.add.text(0, 120, '', {
       fontSize: '17px', color: '#ffeeaa', fontFamily: JP, align: 'center',
       backgroundColor: '#000000aa', padding: { x: 16, y: 10 },
-    }).setOrigin(0.5, 0.5).setVisible(false);
+    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0);
+    this.layoutNotice();
+  }
+
+  private layoutNotice() {
+    this.noticeText.setX(this.canvasW / 2);
+    this.noticeText.setWordWrapWidth(Math.min(560, this.canvasW - 40), true);
   }
 
   private showNotice(msg: string, ms = 2800) {
@@ -395,25 +442,40 @@ export class Chapter1Scene extends Phaser.Scene {
   }
 
   private buildHintBar() {
-    const y = ROWS * TILE;
-    const g = this.add.graphics();
-    g.fillStyle(0x0e0e16, 1); g.fillRect(0, y, CANVAS_W, CANVAS_H - y);
-    this.add.text(CANVAS_W / 2, y + 10, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
+    this.hintBarBg = this.add.graphics().setScrollFactor(0);
+    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
       fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
-    }).setOrigin(0.5, 0);
+    }).setOrigin(0.5, 0).setScrollFactor(0);
+    this.layoutHintBar();
+  }
+
+  private layoutHintBar() {
+    const h = 24;
+    const y = this.canvasH - h;
+    this.hintBarBg.clear();
+    this.hintBarBg.fillStyle(0x0e0e16, 1); this.hintBarBg.fillRect(0, y, this.canvasW, h);
+    this.hintBarText.setPosition(this.canvasW / 2, y + 5);
   }
 
   // ── Dialog box ────────────────────────────────────────────────
 
   private buildDialogBox() {
-    const BX = 10, BY = 454, BW = CANVAS_W - 20, BH = 120, P2 = 14;
-    this.dlgBg = this.add.graphics();
+    this.dlgBg = this.add.graphics().setVisible(false).setScrollFactor(0);
+    this.dlgName = this.add.text(0, 0, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false).setScrollFactor(0);
+    this.dlgBody = this.add.text(0, 0, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0);
+    this.dlgCue  = this.add.text(0, 0, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false).setScrollFactor(0);
+    this.layoutDialogBox();
+  }
+
+  private layoutDialogBox() {
+    const BX = 10, BW = this.canvasW - 20, BH = 120, P2 = 14;
+    const BY = this.canvasH - BH - 10;
+    this.dlgBg.clear();
     this.dlgBg.fillStyle(0x000000, 0.88); this.dlgBg.fillRoundedRect(BX, BY, BW, BH, 8);
     this.dlgBg.lineStyle(1, 0x445566, 0.9); this.dlgBg.strokeRoundedRect(BX, BY, BW, BH, 8);
-    this.dlgBg.setVisible(false);
-    this.dlgName = this.add.text(BX + P2, BY + 10, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false);
-    this.dlgBody = this.add.text(BX + P2, BY + 30, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP, wordWrap: { width: BW - P2 * 2 - 60 } }).setVisible(false);
-    this.dlgCue  = this.add.text(BX + BW - P2, BY + BH - 10, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false);
+    this.dlgName.setPosition(BX + P2, BY + 10);
+    this.dlgBody.setPosition(BX + P2, BY + 30).setWordWrapWidth(BW - P2 * 2 - 60);
+    this.dlgCue.setPosition(BX + BW - P2, BY + BH - 10);
   }
 
   private getLines(npc: NpcDef): string[] {
@@ -552,30 +614,48 @@ export class Chapter1Scene extends Phaser.Scene {
   // ── Choice panel ──────────────────────────────────────────────
 
   private buildChoicePanel() {
-    const PW = 580, PH = 210, PX = 110, PY = 185;
-    this.choiceGfx = this.add.graphics();
-    this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
-    this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
-    this.choiceGfx.setVisible(false);
+    this.choiceGfx = this.add.graphics().setVisible(false).setScrollFactor(0);
 
-    this.choiceTitle = this.add.text(CANVAS_W / 2, PY + 18, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false);
+    this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0);
 
     this.choiceOpts = [];
     for (let i = 0; i < 3; i++) {
       this.choiceOpts.push(
-        this.add.text(PX + 18, PY + 56 + i * 46, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP, wordWrap: { width: PW - 40 } }).setVisible(false),
+        this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0),
       );
     }
 
-    this.resultText = this.add.text(CANVAS_W / 2, PY + PH / 2 + 10, '', {
+    this.resultText = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ffdd88', fontFamily: JP, align: 'center',
-      wordWrap: { width: 520, useAdvancedWrap: true }, backgroundColor: '#00000099', padding: { x: 14, y: 10 },
-    }).setOrigin(0.5, 0.5).setVisible(false);
+      backgroundColor: '#00000099', padding: { x: 14, y: 10 },
+    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0);
 
-    this.resultCue = this.add.text(PX + PW - 14, PY + PH - 10, '', {
+    this.resultCue = this.add.text(0, 0, '', {
       fontSize: '12px', color: '#556677', fontFamily: 'monospace',
-    }).setOrigin(1, 1).setVisible(false);
+    }).setOrigin(1, 1).setVisible(false).setScrollFactor(0);
+
+    this.layoutChoicePanel();
+  }
+
+  private layoutChoicePanel() {
+    const PW = Math.min(580, this.canvasW - 40);
+    const PH = Math.min(210, this.canvasH - 40);
+    const PX = (this.canvasW - PW) / 2;
+    const PY = (this.canvasH - PH) / 2;
+
+    this.choiceGfx.clear();
+    this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, this.canvasW, this.canvasH);
+    this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
+    this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
+
+    this.choiceTitle.setPosition(this.canvasW / 2, PY + 18);
+
+    for (let i = 0; i < 3; i++) {
+      this.choiceOpts[i].setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40);
+    }
+
+    this.resultText.setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
+    this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
   }
 
   private openChoices(key: 'kickoff' | 'chain' | 'incident') {
@@ -672,22 +752,30 @@ export class Chapter1Scene extends Phaser.Scene {
   // ── Chapter clear ─────────────────────────────────────────────
 
   private buildChapterClear() {
-    this.clearGfx = this.add.graphics();
-    this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    this.clearGfx.setDepth(50).setVisible(false);
+    this.clearGfx = this.add.graphics().setDepth(50).setVisible(false).setScrollFactor(0);
 
-    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 50, '🎉 チャプタークリア！', {
+    this.clearTitle = this.add.text(0, 0, '🎉 チャプタークリア！', {
       fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(51).setVisible(false);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0);
 
-    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 4, '', {
+    this.clearScore = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ddeeff', fontFamily: JP, align: 'center',
-    }).setOrigin(0.5).setDepth(51).setVisible(false);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0);
 
-    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 60, 'Space：次のチャプターへ（準備中）', {
+    this.clearNext = this.add.text(0, 0, 'Space：次のチャプターへ（準備中）', {
       fontSize: '15px', color: '#88aacc', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
-    }).setOrigin(0.5).setDepth(51).setVisible(false);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0);
+
+    this.layoutChapterClear();
+  }
+
+  private layoutChapterClear() {
+    this.clearGfx.clear();
+    this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, this.canvasW, this.canvasH);
+    this.clearTitle.setPosition(this.canvasW / 2, this.canvasH / 2 - 50);
+    this.clearScore.setPosition(this.canvasW / 2, this.canvasH / 2 + 4);
+    this.clearNext.setPosition(this.canvasW / 2, this.canvasH / 2 + 60);
   }
 
   private showChapterClear() {
@@ -760,6 +848,38 @@ export class Chapter1Scene extends Phaser.Scene {
     const { col, row } = this.playerTile();
     return NPCS.find(n => Math.abs(n.col - col) <= 1 && Math.abs(n.row - row) <= 1) ?? null;
   }
+
+  // ── Camera & resize ───────────────────────────────────────────
+
+  /**
+   * Keeps the fixed-size tile map (MAP_W x MAP_H) centered when the canvas is
+   * larger than the map, or scrolls to follow the player (clamped to the map
+   * bounds) when the canvas is smaller — per axis.
+   */
+  private updateCamera() {
+    const cam = this.cameras.main;
+    cam.setSize(this.canvasW, this.canvasH);
+    const scrollX = MAP_W <= this.canvasW
+      ? (MAP_W - this.canvasW) / 2
+      : Phaser.Math.Clamp(this.player.x - this.canvasW / 2, 0, MAP_W - this.canvasW);
+    const scrollY = MAP_H <= this.canvasH
+      ? (MAP_H - this.canvasH) / 2
+      : Phaser.Math.Clamp(this.player.y - this.canvasH / 2, 0, MAP_H - this.canvasH);
+    cam.setScroll(scrollX, scrollY);
+  }
+
+  private onResize = (gameSize: Phaser.Structs.Size) => {
+    this.canvasW = gameSize.width;
+    this.canvasH = gameSize.height;
+    this.layoutHud();
+    this.layoutProximityHint();
+    this.layoutNotice();
+    this.layoutHintBar();
+    this.layoutDialogBox();
+    this.layoutChoicePanel();
+    this.layoutChapterClear();
+    this.updateCamera();
+  };
 
   // ── Update ────────────────────────────────────────────────────
 
@@ -842,5 +962,6 @@ export class Chapter1Scene extends Phaser.Scene {
     if (this.canMoveTo(nx, this.player.y)) this.player.x = nx;
     if (this.canMoveTo(this.player.x, ny)) this.player.y = ny;
     this.drawChars();
+    this.updateCamera();
   }
 }

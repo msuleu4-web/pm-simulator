@@ -1,8 +1,5 @@
 import * as Phaser from 'phaser';
 
-const CANVAS_W = 800;
-const CANVAS_H = 600;
-
 const BTN_COLOR = 0x333333;
 const BTN_ACTIVE_COLOR = 0x5588cc;
 const BTN_ALPHA = 0.5;
@@ -10,10 +7,15 @@ const BTN_ACTIVE_ALPHA = 0.8;
 
 type Dir = 'up' | 'down' | 'left' | 'right';
 
+const DPAD_DIRS: Dir[] = ['up', 'down', 'left', 'right'];
+const DPAD_LABEL: Record<Dir, string> = { up: '▲', down: '▼', left: '◀', right: '▶' };
+
 /**
  * Touch-only virtual gamepad: D-pad (left) + action button "A" (right) +
  * choice buttons "1"/"2"/"3" (right, shown only while a choice panel is open).
  * Drawn purely with Graphics-based shapes — no external images.
+ * All buttons are screen-space (scrollFactor 0) and repositioned via layout()
+ * whenever the canvas size changes (Phaser.Scale.RESIZE).
  */
 export class VirtualPad {
   readonly enabled: boolean;
@@ -25,6 +27,9 @@ export class VirtualPad {
 
   private choiceButtons: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text }[] = [];
   private dpadButtons: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text }[] = [];
+  private actionButton?: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text };
+
+  private resizeHandler = (gameSize: Phaser.Structs.Size) => this.layout(gameSize.width, gameSize.height);
 
   constructor(private scene: Phaser.Scene) {
     this.enabled = !!scene.sys.game.device.input.touch;
@@ -36,15 +41,50 @@ export class VirtualPad {
     this.buildDpad();
     this.buildActionButton();
     this.buildChoiceButtons();
+    this.layout(this.scene.scale.width, this.scene.scale.height);
+    this.scene.scale.on('resize', this.resizeHandler);
+    this.scene.events.once('shutdown', () => this.scene.scale.off('resize', this.resizeHandler));
+  }
+
+  /** Reposition all buttons for the given canvas size (bottom-anchored). */
+  private layout(w: number, h: number) {
+    const cx = 70, cy = h - 90, gap = 46;
+    const dirPos: Record<Dir, [number, number]> = {
+      up: [cx, cy - gap],
+      down: [cx, cy + gap],
+      left: [cx - gap, cy],
+      right: [cx + gap, cy],
+    };
+    this.dpadButtons.forEach((b, i) => {
+      const [x, y] = dirPos[DPAD_DIRS[i]];
+      b.circle.setPosition(x, y);
+      b.text.setPosition(x, y);
+    });
+
+    if (this.actionButton) {
+      const x = w - 50, y = h - 60;
+      this.actionButton.circle.setPosition(x, y);
+      this.actionButton.text.setPosition(x, y);
+    }
+
+    const choicePos = [
+      { x: w - 220, y: h - 140 },
+      { x: w - 150, y: h - 140 },
+      { x: w - 80, y: h - 140 },
+    ];
+    this.choiceButtons.forEach((b, i) => {
+      b.circle.setPosition(choicePos[i].x, choicePos[i].y);
+      b.text.setPosition(choicePos[i].x, choicePos[i].y);
+    });
   }
 
   private addButton(
-    x: number, y: number, r: number, label: string, fontSize: string,
+    r: number, label: string, fontSize: string,
     onDown: () => void, onUp?: () => void,
   ): { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text } {
-    const circle = this.scene.add.circle(x, y, r, BTN_COLOR, BTN_ALPHA)
+    const circle = this.scene.add.circle(0, 0, r, BTN_COLOR, BTN_ALPHA)
       .setScrollFactor(0).setDepth(200).setInteractive();
-    const text = this.scene.add.text(x, y, label, {
+    const text = this.scene.add.text(0, 0, label, {
       fontSize, color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
 
@@ -63,17 +103,11 @@ export class VirtualPad {
   }
 
   private buildDpad() {
-    const cx = 80, cy = 430, r = 22, gap = 46;
-    const dirs: { dir: Dir; x: number; y: number; label: string }[] = [
-      { dir: 'up',    x: cx,       y: cy - gap, label: '▲' },
-      { dir: 'down',  x: cx,       y: cy + gap, label: '▼' },
-      { dir: 'left',  x: cx - gap, y: cy,       label: '◀' },
-      { dir: 'right', x: cx + gap, y: cy,       label: '▶' },
-    ];
-    for (const d of dirs) {
-      this.dpadButtons.push(this.addButton(d.x, d.y, r, d.label, '18px',
-        () => this.setDir(d.dir, true),
-        () => this.setDir(d.dir, false)));
+    const r = 22;
+    for (const dir of DPAD_DIRS) {
+      this.dpadButtons.push(this.addButton(r, DPAD_LABEL[dir], '18px',
+        () => this.setDir(dir, true),
+        () => this.setDir(dir, false)));
     }
   }
 
@@ -85,19 +119,13 @@ export class VirtualPad {
   }
 
   private buildActionButton() {
-    const x = CANVAS_W - 60, y = 535, r = 32;
-    this.addButton(x, y, r, 'A', '22px', () => { this.actionJustPressed = true; });
+    this.actionButton = this.addButton(32, 'A', '22px', () => { this.actionJustPressed = true; });
   }
 
   private buildChoiceButtons() {
     const r = 24;
-    const positions = [
-      { x: CANVAS_W - 220, y: 460 },
-      { x: CANVAS_W - 150, y: 460 },
-      { x: CANVAS_W - 80,  y: 460 },
-    ];
     for (let i = 0; i < 3; i++) {
-      const { circle, text } = this.addButton(positions[i].x, positions[i].y, r, String(i + 1), '20px',
+      const { circle, text } = this.addButton(r, String(i + 1), '20px',
         () => { this.choiceJustPressed = i + 1; });
       circle.setVisible(false);
       text.setVisible(false);

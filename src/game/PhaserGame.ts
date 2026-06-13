@@ -30,16 +30,14 @@ export function createGame(parent: HTMLElement, startScene?: string): Phaser.Gam
 
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 598,
+    width: window.innerWidth,
+    height: window.innerHeight,
     parent,
     backgroundColor: '#0d1a2e',
     scene: sceneList,
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: 800,
-      height: 598,
       parent,
     },
     input: {
