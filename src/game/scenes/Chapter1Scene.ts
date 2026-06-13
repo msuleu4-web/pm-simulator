@@ -179,6 +179,7 @@ export class Chapter1Scene extends Phaser.Scene {
   private hudTitle!: Phaser.GameObjects.Text;
   private hudMission!: Phaser.GameObjects.Text;
   private hudScore!: Phaser.GameObjects.Text;
+  private missionLabel = MISSION_LABEL[0];
 
   // misc UI
   private proximityHint!: Phaser.GameObjects.Text;
@@ -391,10 +392,25 @@ export class Chapter1Scene extends Phaser.Scene {
     } else {
       this.hudMission.setFontSize(14).setPosition(this.canvasW / 2, 5);
     }
+    this.refreshMissionText();
+  }
+
+  // Mission label can run long; if it doesn't fit the available HUD width,
+  // truncate with an ellipsis rather than letting it overflow the canvas.
+  private refreshMissionText() {
+    const compact = this.canvasW < 560;
+    const maxWidth = compact ? this.canvasW - 20 : this.canvasW - 200;
+    let text = this.missionLabel;
+    this.hudMission.setText(text);
+    while (this.hudMission.width > maxWidth && text.length > 1) {
+      text = text.slice(0, -1);
+      this.hudMission.setText(text + '…');
+    }
   }
 
   private updateHud() {
-    this.hudMission.setText(MISSION_LABEL[this.gameStep] ?? '');
+    this.missionLabel = MISSION_LABEL[this.gameStep] ?? '';
+    this.refreshMissionText();
     this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
   }
 
@@ -431,8 +447,9 @@ export class Chapter1Scene extends Phaser.Scene {
   }
 
   private layoutNotice() {
-    this.noticeText.setX(this.canvasW / 2);
-    this.noticeText.setWordWrapWidth(Math.min(560, this.canvasW - 40), true);
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
+    this.noticeText.setFontSize(fontSize).setX(this.canvasW / 2);
+    this.noticeText.setWordWrapWidth(this.canvasW - 60, true);
   }
 
   private showNotice(msg: string, ms = 2800) {
@@ -470,11 +487,12 @@ export class Chapter1Scene extends Phaser.Scene {
   private layoutDialogBox() {
     const BX = 10, BW = this.canvasW - 20, BH = 120, P2 = 14;
     const BY = this.canvasH - BH - 10;
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
     this.dlgBg.clear();
     this.dlgBg.fillStyle(0x000000, 0.88); this.dlgBg.fillRoundedRect(BX, BY, BW, BH, 8);
     this.dlgBg.lineStyle(1, 0x445566, 0.9); this.dlgBg.strokeRoundedRect(BX, BY, BW, BH, 8);
     this.dlgName.setPosition(BX + P2, BY + 10);
-    this.dlgBody.setPosition(BX + P2, BY + 30).setWordWrapWidth(BW - P2 * 2 - 60);
+    this.dlgBody.setFontSize(fontSize).setPosition(BX + P2, BY + 30).setWordWrapWidth(BW - 40, true);
     this.dlgCue.setPosition(BX + BW - P2, BY + BH - 10);
   }
 
@@ -642,19 +660,20 @@ export class Chapter1Scene extends Phaser.Scene {
     const PH = Math.min(210, this.canvasH - 40);
     const PX = (this.canvasW - PW) / 2;
     const PY = (this.canvasH - PH) / 2;
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
 
     this.choiceGfx.clear();
     this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, this.canvasW, this.canvasH);
     this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
     this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
 
-    this.choiceTitle.setPosition(this.canvasW / 2, PY + 18);
+    this.choiceTitle.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + 18).setWordWrapWidth(PW - 40, true);
 
     for (let i = 0; i < 3; i++) {
-      this.choiceOpts[i].setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40);
+      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40, true);
     }
 
-    this.resultText.setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
+    this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
     this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
   }
 
@@ -771,11 +790,12 @@ export class Chapter1Scene extends Phaser.Scene {
   }
 
   private layoutChapterClear() {
+    const wrap = this.canvasW - 60;
     this.clearGfx.clear();
     this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, this.canvasW, this.canvasH);
-    this.clearTitle.setPosition(this.canvasW / 2, this.canvasH / 2 - 50);
-    this.clearScore.setPosition(this.canvasW / 2, this.canvasH / 2 + 4);
-    this.clearNext.setPosition(this.canvasW / 2, this.canvasH / 2 + 60);
+    this.clearTitle.setPosition(this.canvasW / 2, this.canvasH / 2 - 50).setWordWrapWidth(wrap, true);
+    this.clearScore.setPosition(this.canvasW / 2, this.canvasH / 2 + 4).setWordWrapWidth(wrap, true);
+    this.clearNext.setPosition(this.canvasW / 2, this.canvasH / 2 + 60).setWordWrapWidth(wrap, true);
   }
 
   private showChapterClear() {
