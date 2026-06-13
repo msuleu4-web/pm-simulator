@@ -279,10 +279,10 @@ export class Chapter1Scene extends Phaser.Scene {
       for (let c = 0; c < COLS; c++)
         this.drawTile(c, r, TILE_MAP[r][c]);
 
-    this.add.text(TILE + 4, TILE + 4, '会議室', { fontSize: '10px', color: '#999', fontFamily: 'monospace' });
+    this.add.text(TILE + 4, TILE + 4, '会議室', { fontSize: '10px', color: '#999', fontFamily: 'monospace' }).setResolution(2);
     this.add.text(6 * TILE + 16, 16 * TILE - 2, '自分の机', {
       fontSize: '9px', color: '#88aaff', fontFamily: JP, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0.5, 1);
+    }).setOrigin(0.5, 1).setResolution(2);
   }
 
   private drawTile(col: number, row: number, type: number) {
@@ -367,9 +367,9 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private buildHud() {
     this.hudBg = this.add.graphics().setScrollFactor(0);
-    this.hudTitle = this.add.text(10, 5, '第1章　配属・キックオフ', { fontSize: '11px', color: '#7799aa', fontFamily: JP }).setScrollFactor(0);
-    this.hudMission = this.add.text(0, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0).setScrollFactor(0);
-    this.hudScore   = this.add.text(0, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0).setScrollFactor(0);
+    this.hudTitle = this.add.text(10, 5, '第1章　配属・キックオフ', { fontSize: '11px', color: '#7799aa', fontFamily: JP }).setScrollFactor(0).setResolution(2);
+    this.hudMission = this.add.text(0, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
+    this.hudScore   = this.add.text(0, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0).setScrollFactor(0).setResolution(2);
     this.layoutHud();
   }
 
@@ -420,7 +420,7 @@ export class Chapter1Scene extends Phaser.Scene {
     for (const npc of NPCS) {
       this.add.text(npc.col * TILE + 16, npc.row * TILE - 2, npc.name, {
         fontSize: '10px', color: '#ffffaa', fontFamily: JP, stroke: '#000', strokeThickness: 3,
-      }).setOrigin(0.5, 1);
+      }).setOrigin(0.5, 1).setResolution(2);
     }
   }
 
@@ -430,7 +430,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.proximityHint = this.add.text(0, 0, '', {
       fontSize: '15px', color: '#ffee88', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 10, y: 4 },
-    }).setOrigin(0.5, 1).setScrollFactor(0);
+    }).setOrigin(0.5, 1).setScrollFactor(0).setResolution(2);
     this.layoutProximityHint();
   }
 
@@ -442,7 +442,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.noticeText = this.add.text(0, 120, '', {
       fontSize: '17px', color: '#ffeeaa', fontFamily: JP, align: 'center',
       backgroundColor: '#000000aa', padding: { x: 16, y: 10 },
-    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0);
+    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0).setResolution(2);
     this.layoutNotice();
   }
 
@@ -462,7 +462,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.hintBarBg = this.add.graphics().setScrollFactor(0);
     this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
       fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
-    }).setOrigin(0.5, 0).setScrollFactor(0);
+    }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
     this.layoutHintBar();
   }
 
@@ -478,9 +478,9 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private buildDialogBox() {
     this.dlgBg = this.add.graphics().setVisible(false).setScrollFactor(0);
-    this.dlgName = this.add.text(0, 0, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false).setScrollFactor(0);
-    this.dlgBody = this.add.text(0, 0, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0);
-    this.dlgCue  = this.add.text(0, 0, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false).setScrollFactor(0);
+    this.dlgName = this.add.text(0, 0, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.dlgBody = this.add.text(0, 0, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.dlgCue  = this.add.text(0, 0, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false).setScrollFactor(0).setResolution(2);
     this.layoutDialogBox();
   }
 
@@ -634,23 +634,23 @@ export class Chapter1Scene extends Phaser.Scene {
   private buildChoicePanel() {
     this.choiceGfx = this.add.graphics().setVisible(false).setScrollFactor(0);
 
-    this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0);
+    this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.choiceOpts = [];
     for (let i = 0; i < 3; i++) {
       this.choiceOpts.push(
-        this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0),
+        this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2),
       );
     }
 
     this.resultText = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ffdd88', fontFamily: JP, align: 'center',
       backgroundColor: '#00000099', padding: { x: 14, y: 10 },
-    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0);
+    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.resultCue = this.add.text(0, 0, '', {
       fontSize: '12px', color: '#556677', fontFamily: 'monospace',
-    }).setOrigin(1, 1).setVisible(false).setScrollFactor(0);
+    }).setOrigin(1, 1).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.layoutChoicePanel();
   }
@@ -775,16 +775,16 @@ export class Chapter1Scene extends Phaser.Scene {
 
     this.clearTitle = this.add.text(0, 0, '🎉 チャプタークリア！', {
       fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.clearScore = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ddeeff', fontFamily: JP, align: 'center',
-    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.clearNext = this.add.text(0, 0, 'Space：次のチャプターへ（準備中）', {
       fontSize: '15px', color: '#88aacc', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
-    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.layoutChapterClear();
   }

@@ -6,8 +6,8 @@ import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty
 const TILE = 32;
 const COLS = 25;
 const ROWS = 18;
-const CANVAS_W = 800;
-const CANVAS_H = 600;
+const MAP_W = COLS * TILE;
+const MAP_H = ROWS * TILE;
 const PLAYER_SIZE = 28;
 const SPEED = 160;
 const JP = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",Arial,sans-serif';
@@ -102,6 +102,8 @@ type ChoiceState  = 'hidden' | 'open' | 'result';
 export class Chapter7Scene extends Phaser.Scene {
   private mapGfx!: Phaser.GameObjects.Graphics;
   private charGfx!: Phaser.GameObjects.Graphics;
+  private canvasW = 800;
+  private canvasH = 600;
   private player!: { x: number; y: number };
   private playerSprite!: Phaser.GameObjects.Sprite;
   private npcSprites = new Map<string, Phaser.GameObjects.Image>();
@@ -149,13 +151,18 @@ export class Chapter7Scene extends Phaser.Scene {
   private virtualPad!: VirtualPad;
 
   // HUD
+  private hudBg!: Phaser.GameObjects.Graphics;
+  private hudTitle!: Phaser.GameObjects.Text;
   private hudMission!: Phaser.GameObjects.Text;
   private hudScore!: Phaser.GameObjects.Text;
+  private missionLabel = MISSION_LABEL[0];
 
   // misc UI
   private proximityHint!: Phaser.GameObjects.Text;
   private noticeText!: Phaser.GameObjects.Text;
   private noticeTimer: Phaser.Time.TimerEvent | null = null;
+  private hintBarBg!: Phaser.GameObjects.Graphics;
+  private hintBarText!: Phaser.GameObjects.Text;
 
   // dialog UI
   private dlgBg!: Phaser.GameObjects.Graphics;
@@ -192,6 +199,9 @@ export class Chapter7Scene extends Phaser.Scene {
     this.diffLevel = getDifficulty();
     this.diffCfg = DIFFICULTY_CONFIG[this.diffLevel];
 
+    this.canvasW = this.scale.width;
+    this.canvasH = this.scale.height;
+
     this.mapGfx = this.add.graphics();
 
     this.buildMap();
@@ -214,17 +224,9 @@ export class Chapter7Scene extends Phaser.Scene {
     this.virtualPad = new VirtualPad(this);
 
     this.drawChars();
-
-    // Phaser.Scale.RESIZE makes the canvas fill the device viewport; zoom the
-    // fixed 800x600 layout to fit and center it so this scene's look is unchanged.
-    const applyFitZoom = () => {
-      const zoom = Math.min(this.scale.width / CANVAS_W, this.scale.height / CANVAS_H);
-      this.cameras.main.setZoom(zoom);
-      this.cameras.main.centerOn(CANVAS_W / 2, CANVAS_H / 2);
-    };
-    applyFitZoom();
-    this.scale.on('resize', applyFitZoom);
-    this.events.once('shutdown', () => this.scale.off('resize', applyFitZoom));
+    this.updateCamera();
+    this.scale.on('resize', this.onResize, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = {
@@ -252,10 +254,10 @@ export class Chapter7Scene extends Phaser.Scene {
       for (let c = 0; c < COLS; c++)
         this.drawTile(c, r, TILE_MAP[r][c]);
 
-    this.add.text(TILE + 4, TILE + 4, '会議室', { fontSize: '10px', color: '#999', fontFamily: 'monospace' });
+    this.add.text(TILE + 4, TILE + 4, '会議室', { fontSize: '10px', color: '#999', fontFamily: 'monospace' }).setResolution(2);
     this.add.text(6 * TILE + 16, 16 * TILE - 2, '自分の机', {
       fontSize: '9px', color: '#88aaff', fontFamily: JP, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0.5, 1);
+    }).setOrigin(0.5, 1).setResolution(2);
   }
 
   private drawTile(col: number, row: number, type: number) {
@@ -339,16 +341,40 @@ export class Chapter7Scene extends Phaser.Scene {
   // ── HUD ──────────────────────────────────────────────────────
 
   private buildHud() {
-    const g = this.add.graphics();
-    g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
-    g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
-    this.add.text(10, 5, 'Day 21  リリースフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
-    this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
-    this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
+    this.hudBg = this.add.graphics().setScrollFactor(0);
+    this.hudTitle = this.add.text(10, 5, 'Day 21  リリースフェーズ', { fontSize: '11px', color: '#7799aa', fontFamily: JP }).setScrollFactor(0).setResolution(2);
+    this.hudMission = this.add.text(0, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
+    this.hudScore   = this.add.text(0, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0).setScrollFactor(0).setResolution(2);
+    this.layoutHud();
+  }
+
+  private layoutHud() {
+    const compact = this.canvasW < 560;
+    const h = compact ? 46 : 26;
+    this.hudBg.clear();
+    this.hudBg.fillStyle(0x0a0a14, 0.93); this.hudBg.fillRect(0, 0, this.canvasW, h);
+    this.hudBg.lineStyle(1, 0x223344, 1); this.hudBg.strokeRect(0, 0, this.canvasW, h);
+    this.hudTitle.setPosition(10, 5);
+    this.hudScore.setPosition(this.canvasW - 90, 5);
+    if (compact) { this.hudMission.setFontSize(12).setPosition(this.canvasW / 2, 25); }
+    else { this.hudMission.setFontSize(14).setPosition(this.canvasW / 2, 5); }
+    this.refreshMissionText();
+  }
+
+  private refreshMissionText() {
+    const compact = this.canvasW < 560;
+    const maxWidth = compact ? this.canvasW - 20 : this.canvasW - 200;
+    let text = this.missionLabel;
+    this.hudMission.setText(text);
+    while (this.hudMission.width > maxWidth && text.length > 1) {
+      text = text.slice(0, -1);
+      this.hudMission.setText(text + '…');
+    }
   }
 
   private updateHud() {
-    this.hudMission.setText(MISSION_LABEL[this.gameStep] ?? '');
+    this.missionLabel = MISSION_LABEL[this.gameStep] ?? '';
+    this.refreshMissionText();
     this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
   }
 
@@ -358,24 +384,36 @@ export class Chapter7Scene extends Phaser.Scene {
     for (const npc of NPCS) {
       this.add.text(npc.col * TILE + 16, npc.row * TILE - 2, npc.name, {
         fontSize: '10px', color: '#ffffaa', fontFamily: JP, stroke: '#000', strokeThickness: 3,
-      }).setOrigin(0.5, 1);
+      }).setOrigin(0.5, 1).setResolution(2);
     }
   }
 
   // ── Misc UI ───────────────────────────────────────────────────
 
   private buildProximityHint() {
-    this.proximityHint = this.add.text(CANVAS_W / 2, ROWS * TILE - 28, '', {
+    this.proximityHint = this.add.text(0, 0, '', {
       fontSize: '15px', color: '#ffee88', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 10, y: 4 },
-    }).setOrigin(0.5, 1);
+    }).setOrigin(0.5, 1).setScrollFactor(0).setResolution(2);
+    this.layoutProximityHint();
+  }
+
+  private layoutProximityHint() {
+    this.proximityHint.setPosition(this.canvasW / 2, this.canvasH - 100);
   }
 
   private buildNotice() {
-    this.noticeText = this.add.text(CANVAS_W / 2, 120, '', {
+    this.noticeText = this.add.text(0, 120, '', {
       fontSize: '17px', color: '#ffeeaa', fontFamily: JP, align: 'center',
       backgroundColor: '#000000aa', padding: { x: 16, y: 10 },
-    }).setOrigin(0.5, 0.5).setVisible(false);
+    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.layoutNotice();
+  }
+
+  private layoutNotice() {
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
+    this.noticeText.setFontSize(fontSize).setX(this.canvasW / 2);
+    this.noticeText.setWordWrapWidth(this.canvasW - 60, true);
   }
 
   private showNotice(msg: string, ms = 2800) {
@@ -385,25 +423,41 @@ export class Chapter7Scene extends Phaser.Scene {
   }
 
   private buildHintBar() {
-    const y = ROWS * TILE;
-    const g = this.add.graphics();
-    g.fillStyle(0x0e0e16, 1); g.fillRect(0, y, CANVAS_W, CANVAS_H - y);
-    this.add.text(CANVAS_W / 2, y + 10, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
+    this.hintBarBg = this.add.graphics().setScrollFactor(0);
+    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
       fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
-    }).setOrigin(0.5, 0);
+    }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
+    this.layoutHintBar();
+  }
+
+  private layoutHintBar() {
+    const h = 24;
+    const y = this.canvasH - h;
+    this.hintBarBg.clear();
+    this.hintBarBg.fillStyle(0x0e0e16, 1); this.hintBarBg.fillRect(0, y, this.canvasW, h);
+    this.hintBarText.setPosition(this.canvasW / 2, y + 5);
   }
 
   // ── Dialog box ────────────────────────────────────────────────
 
   private buildDialogBox() {
-    const BX = 10, BY = 454, BW = CANVAS_W - 20, BH = 120, P2 = 14;
-    this.dlgBg = this.add.graphics();
+    this.dlgBg = this.add.graphics().setVisible(false).setScrollFactor(0);
+    this.dlgName = this.add.text(0, 0, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.dlgBody = this.add.text(0, 0, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.dlgCue  = this.add.text(0, 0, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.layoutDialogBox();
+  }
+
+  private layoutDialogBox() {
+    const BX = 10, BW = this.canvasW - 20, BH = 120, P2 = 14;
+    const BY = this.canvasH - BH - 10;
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
+    this.dlgBg.clear();
     this.dlgBg.fillStyle(0x000000, 0.88); this.dlgBg.fillRoundedRect(BX, BY, BW, BH, 8);
     this.dlgBg.lineStyle(1, 0x445566, 0.9); this.dlgBg.strokeRoundedRect(BX, BY, BW, BH, 8);
-    this.dlgBg.setVisible(false);
-    this.dlgName = this.add.text(BX + P2, BY + 10, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false);
-    this.dlgBody = this.add.text(BX + P2, BY + 30, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP, wordWrap: { width: BW - P2 * 2 - 60 } }).setVisible(false);
-    this.dlgCue  = this.add.text(BX + BW - P2, BY + BH - 10, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false);
+    this.dlgName.setPosition(BX + P2, BY + 10);
+    this.dlgBody.setFontSize(fontSize).setPosition(BX + P2, BY + 30).setWordWrapWidth(BW - 40, true);
+    this.dlgCue.setPosition(BX + BW - P2, BY + BH - 10);
   }
 
   private getLines(npc: NpcDef): string[] {
@@ -548,30 +602,40 @@ export class Chapter7Scene extends Phaser.Scene {
   // ── Choice panel ──────────────────────────────────────────────
 
   private buildChoicePanel() {
-    const PW = 580, PH = 210, PX = 110, PY = 185;
-    this.choiceGfx = this.add.graphics();
-    this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
-    this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
-    this.choiceGfx.setVisible(false);
-
-    this.choiceTitle = this.add.text(CANVAS_W / 2, PY + 18, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false);
-
+    this.choiceGfx = this.add.graphics().setVisible(false).setScrollFactor(0);
+    this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0).setResolution(2);
     this.choiceOpts = [];
     for (let i = 0; i < 3; i++) {
       this.choiceOpts.push(
-        this.add.text(PX + 18, PY + 56 + i * 46, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP, wordWrap: { width: PW - 40 } }).setVisible(false),
+        this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2),
       );
     }
-
-    this.resultText = this.add.text(CANVAS_W / 2, PY + PH / 2 + 10, '', {
+    this.resultText = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ffdd88', fontFamily: JP, align: 'center',
-      wordWrap: { width: 520, useAdvancedWrap: true }, backgroundColor: '#00000099', padding: { x: 14, y: 10 },
-    }).setOrigin(0.5, 0.5).setVisible(false);
-
-    this.resultCue = this.add.text(PX + PW - 14, PY + PH - 10, '', {
+      backgroundColor: '#00000099', padding: { x: 14, y: 10 },
+    }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.resultCue = this.add.text(0, 0, '', {
       fontSize: '12px', color: '#556677', fontFamily: 'monospace',
-    }).setOrigin(1, 1).setVisible(false);
+    }).setOrigin(1, 1).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.layoutChoicePanel();
+  }
+
+  private layoutChoicePanel() {
+    const PW = Math.min(580, this.canvasW - 40);
+    const PH = Math.min(210, this.canvasH - 40);
+    const PX = (this.canvasW - PW) / 2;
+    const PY = (this.canvasH - PH) / 2;
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
+    this.choiceGfx.clear();
+    this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, this.canvasW, this.canvasH);
+    this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
+    this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
+    this.choiceTitle.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + 18).setWordWrapWidth(PW - 40, true);
+    for (let i = 0; i < 3; i++) {
+      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40, true);
+    }
+    this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
+    this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
   }
 
   private openChoices(key: 'deploy' | 'incident' | 'flareup') {
@@ -668,23 +732,27 @@ export class Chapter7Scene extends Phaser.Scene {
   // ── Ending screen ─────────────────────────────────────────────
 
   private buildChapterClear() {
-    this.clearGfx = this.add.graphics();
-    this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    this.clearGfx.setDepth(50).setVisible(false);
-
-    this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 130, '', {
+    this.clearGfx = this.add.graphics().setDepth(50).setVisible(false).setScrollFactor(0);
+    this.clearTitle = this.add.text(0, 0, '', {
       fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(51).setVisible(false);
-
-    this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2, '', {
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.clearScore = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ddeeff', fontFamily: JP, align: 'center', lineSpacing: 6,
-      wordWrap: { width: 640, useAdvancedWrap: true },
-    }).setOrigin(0.5).setDepth(51).setVisible(false);
-
-    this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 180, '', {
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.clearNext = this.add.text(0, 0, '', {
       fontSize: '15px', color: '#88aacc', fontFamily: JP, align: 'center',
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
-    }).setOrigin(0.5).setDepth(51).setVisible(false);
+    }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
+    this.layoutChapterClear();
+  }
+
+  private layoutChapterClear() {
+    const wrap = this.canvasW - 60;
+    this.clearGfx.clear();
+    this.clearGfx.fillStyle(0x000000, 0.85); this.clearGfx.fillRect(0, 0, this.canvasW, this.canvasH);
+    this.clearTitle.setPosition(this.canvasW / 2, this.canvasH / 2 - 50).setWordWrapWidth(wrap, true);
+    this.clearScore.setPosition(this.canvasW / 2, this.canvasH / 2 + 4).setWordWrapWidth(wrap, true);
+    this.clearNext.setPosition(this.canvasW / 2, this.canvasH / 2 + 60).setWordWrapWidth(wrap, true);
   }
 
   private showChapterClear() {
@@ -773,6 +841,31 @@ export class Chapter7Scene extends Phaser.Scene {
     return TILE_MAP[row]?.[col] === P;
   }
 
+  private updateCamera() {
+    const cam = this.cameras.main;
+    cam.setSize(this.canvasW, this.canvasH);
+    const scrollX = MAP_W <= this.canvasW
+      ? (MAP_W - this.canvasW) / 2
+      : Phaser.Math.Clamp(this.player.x - this.canvasW / 2, 0, MAP_W - this.canvasW);
+    const scrollY = MAP_H <= this.canvasH
+      ? (MAP_H - this.canvasH) / 2
+      : Phaser.Math.Clamp(this.player.y - this.canvasH / 2, 0, MAP_H - this.canvasH);
+    cam.setScroll(scrollX, scrollY);
+  }
+
+  private onResize = (gameSize: Phaser.Structs.Size) => {
+    this.canvasW = gameSize.width;
+    this.canvasH = gameSize.height;
+    this.layoutHud();
+    this.layoutProximityHint();
+    this.layoutNotice();
+    this.layoutHintBar();
+    this.layoutDialogBox();
+    this.layoutChoicePanel();
+    this.layoutChapterClear();
+    this.updateCamera();
+  };
+
   // ── Update ────────────────────────────────────────────────────
 
   update(_t: number, delta: number) {
@@ -858,5 +951,6 @@ export class Chapter7Scene extends Phaser.Scene {
     if (this.canMoveTo(nx, this.player.y)) this.player.x = nx;
     if (this.canMoveTo(this.player.x, ny)) this.player.y = ny;
     this.drawChars();
+    this.updateCamera();
   }
 }
