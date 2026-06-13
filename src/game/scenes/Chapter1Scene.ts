@@ -5,7 +5,7 @@ import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty
 
 const TILE = 32;
 const COLS = 25;
-const ROWS = 18;
+const ROWS = 20;
 const MAP_W = COLS * TILE;
 const MAP_H = ROWS * TILE;
 const PLAYER_SIZE = 28;
@@ -17,21 +17,23 @@ const F = 0, W = 1, D = 2, E = 3, P = 5; // P = player desk (blue, walkable)
 const TILE_MAP: number[][] = [
   [W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W],
   [W,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,W,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,W,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,W,W,W,W,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,F,P,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W], // P = col6
+  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,W,W,W,W,W,W,W,W,W,W,W,E,W,W,W,W,W,W,W,W,W,W,W,W],
 ];
 
@@ -49,9 +51,9 @@ const PLAYER_FRAME: Record<Facing, number> = { down: 0, left: 1, right: 2, up: 3
 const NPC_SPRITE_KEY: Record<string, string> = { '田中PM': 'npc-tanaka', '佐藤先輩': 'npc-sato', '鈴木さん': 'npc-suzuki' };
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['おお、配属初日だね！第1章は配属・キックオフだ', 'まずはそこの机にある資料、全部目を通しておいて', 'WBSと体制図、多重下請けの仕組み…全部大事だから', '読み終わったら、自己紹介がてら話しかけてね', '気合いと根性、あとは資料を読む力でなんとかなる！'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['はじめまして、よろしくね！', '来週から客先常駐が始まるから、心構えしておいてね', '現場には元請けさんも下請けさんもいて、最初は混乱すると思う', '分からないことがあったら、いつでも聞いてね'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['あ、新人さんですか？よろしくお願いします', 'うちは三次請けなので、現場では一番下っ端なんですよね…', '指示系統、最初はほんとうにややこしいので気をつけてくださいね', '元請けさんの指示と、うちの会社からの指示、両方聞く感じです'] },
+  { name: '田中PM',   col: 2,  row: 1, lines: ['おお、配属初日だね！第1章は配属・キックオフだ', 'まずはそこの机にある資料、全部目を通しておいて', 'WBSと体制図、多重下請けの仕組み…全部大事だから', '読み終わったら、自己紹介がてら話しかけてね', '気合いと根性、あとは資料を読む力でなんとかなる！'] },
+  { name: '佐藤先輩', col: 9, row: 3, lines: ['はじめまして、よろしくね！', '来週から客先常駐が始まるから、心構えしておいてね', '現場には元請けさんも下請けさんもいて、最初は混乱すると思う', '分からないことがあったら、いつでも聞いてね'] },
+  { name: '鈴木さん', col: 14, row: 9, lines: ['あ、新人さんですか？よろしくお願いします', 'うちは三次請けなので、現場では一番下っ端なんですよね…', '指示系統、最初はほんとうにややこしいので気をつけてくださいね', '元請けさんの指示と、うちの会社からの指示、両方聞く感じです'] },
 ];
 
 const DOCUMENTS: ChapterDocument[] = [
@@ -59,11 +61,11 @@ const DOCUMENTS: ChapterDocument[] = [
     dialog: '机の上に古いバインダーが置いてある。\n\n表紙には「〇〇銀行 次世代勘定系プロジェクト\nWBS v2.3 ── 過去案件参考資料」と書かれている。\n\n「...これが実際のWBSか。\n自分の業務範囲がここまで細かく分解されているんだな。参考にしよう。」',
     imageKey: 'wbs', required: true,
     blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。' },
-  { id: 'doc-subcontract1', col: 11, row: 2, label: '資料📄',
+  { id: 'doc-subcontract1', col: 12, row: 2, label: '資料📄',
     dialog: '引き出しから折りたたまれた紙が出てきた。\n\n「SIer業界の多重下請け構造 ① ── 基本のしくみ」と書かれている。\n\n「元請け・2次請け・3次請け…なるほど、\n業界全体がこういう構造になっているのか。」',
     imageKey: 'subcontract1', required: true,
     blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。' },
-  { id: 'doc-subcontract2', col: 15, row: 2, label: '資料📄',
+  { id: 'doc-subcontract2', col: 17, row: 2, label: '資料📄',
     dialog: 'ホワイトボードの脇に貼られた図があった。\n\n「SIer業界の多重下請け構造 ② ── お金と指揮命令の流れ」と書かれている。\n\n「発注金額がどんどん減っていくんだな…\n指揮命令のラインも厳密に決まっているんだ。」',
     imageKey: 'subcontract2', required: true,
     blockedHint: '机の上の資料をすべてチェックしてみよう…\n現場では自分から情報を取りにいく姿勢が大切だ。' },
@@ -233,7 +235,7 @@ export class Chapter1Scene extends Phaser.Scene {
 
     this.charGfx = this.add.graphics();
 
-    this.player = { x: 12 * TILE + TILE / 2, y: 15 * TILE + TILE / 2 };
+    this.player = { x: 12 * TILE + TILE / 2, y: 17 * TILE + TILE / 2 };
     this.buildCharacterSprites();
 
     this.buildNpcLabels();
@@ -280,7 +282,7 @@ export class Chapter1Scene extends Phaser.Scene {
         this.drawTile(c, r, TILE_MAP[r][c]);
 
     this.add.text(TILE + 4, TILE + 4, '会議室', { fontSize: '10px', color: '#999', fontFamily: 'monospace' }).setResolution(2);
-    this.add.text(6 * TILE + 16, 16 * TILE - 2, '自分の机', {
+    this.add.text(6 * TILE + 16, 17 * TILE - 2, '自分の机', {
       fontSize: '9px', color: '#88aaff', fontFamily: JP, stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5, 1).setResolution(2);
   }
@@ -320,10 +322,9 @@ export class Chapter1Scene extends Phaser.Scene {
       }
     }
 
-    // 2-4. Desk groups (3x2) + chair + monitor
+    // 2-4. Desk groups (3x2) + chair (2-tile, in the empty row below) + monitor (desk-top center)
     const deskTop = [455, 456, 457];
     const deskBottom = [471, 472, 473];
-    const chairFrames = [700, 716];
     const monitorFrames = [712, 713];
     let groupIdx = 0;
     for (let r = 0; r < ROWS; r++) {
@@ -333,17 +334,21 @@ export class Chapter1Scene extends Phaser.Scene {
             this.add.image((c + i) * TILE + TILE / 2, r * TILE + TILE / 2, 'office', deskTop[i]);
             this.add.image((c + i) * TILE + TILE / 2, (r + 1) * TILE + TILE / 2, 'office', deskBottom[i]);
           }
-          this.add.image((c + 1) * TILE + TILE / 2, (r + 2) * TILE + TILE / 2, 'office', chairFrames[groupIdx % 2]);
-          this.add.image((c + 1) * TILE + TILE / 2, r * TILE + TILE / 2, 'office', monitorFrames[groupIdx % 2]);
+          const centerX = (c + 1) * TILE + TILE / 2;
+          this.add.image(centerX, r * TILE + TILE / 2, 'office', monitorFrames[groupIdx % 2]);
+          if (TILE_MAP[r + 2]?.[c + 1] === F) {
+            this.add.image(centerX, (r + 2) * TILE + TILE / 2, 'office', 700);
+            this.add.image(centerX, (r + 3) * TILE + TILE / 2, 'office', 716);
+          }
           groupIdx++;
         }
       }
     }
 
-    // 5. Plants in the 4 map corners (2-tile vertical stack)
+    // 5. Plants (4 spots, 2-tile vertical stack)
     const plantSpots = [
-      { col: 1, row: 1 }, { col: 23, row: 1 },
-      { col: 1, row: 14 }, { col: 23, row: 14 },
+      { col: 1, row: 1 }, { col: 23, row: 5 },
+      { col: 1, row: 17 }, { col: 23, row: 17 },
     ];
     for (const { col, row } of plantSpots) {
       this.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 166);

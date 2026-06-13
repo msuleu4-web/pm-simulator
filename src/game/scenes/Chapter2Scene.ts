@@ -5,7 +5,7 @@ import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty
 
 const TILE = 32;
 const COLS = 25;
-const ROWS = 18;
+const ROWS = 20;
 const MAP_W = COLS * TILE;
 const MAP_H = ROWS * TILE;
 const PLAYER_SIZE = 28;
@@ -17,21 +17,23 @@ const F = 0, W = 1, D = 2, E = 3, P = 5; // P = player desk (blue, walkable)
 const TILE_MAP: number[][] = [
   [W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W],
   [W,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,W,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,W,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,W,W,W,W,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
-  [W,F,F,F,F,F,F,D,D,D,F,D,D,D,F,D,D,D,F,D,D,D,F,F,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
+  [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,F,F,F,F,F,P,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W], // P = col6
+  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,W,W,W,W,W,W,W,W,W,W,W,E,W,W,W,W,W,W,W,W,W,W,W,W],
 ];
 
@@ -49,13 +51,13 @@ const PLAYER_FRAME: Record<Facing, number> = { down: 0, left: 1, right: 2, up: 3
 const NPC_SPRITE_KEY: Record<string, string> = { '田中PM': 'npc-tanaka', '佐藤先輩': 'npc-sato', '鈴木さん': 'npc-suzuki' };
 
 const NPCS: NpcDef[] = [
-  { name: '田中PM',   col: 2,  row: 3, lines: ['第2章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
-  { name: '佐藤先輩', col: 10, row: 3, lines: ['お疲れ様！第2章、専門用語ばかりで大変でしょ', '進捗どうですか？困ったことあったら聞いてね', 'ここだけの話、田中さんの『なんとかなる』は', '大体なんとかならないから気をつけて（笑）'] },
-  { name: '鈴木さん', col: 18, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、三次請けなので参考意見なんですけど', '要件が伝言ゲームで歪んでて、誰の意図かもう分からないんです', '元請けの言うことところころ変わるんですよ', 'あまり深く考えないようにしてます…'] },
+  { name: '田中PM',   col: 2,  row: 1, lines: ['第2章は要件定義フェーズだ', '今日中に議事録、出しといてね', 'フォーマットはSharePointのどこかにあるはず', '工数？気合でなんとかして', '細かいことは気にしなくて大丈夫、なんとかなる！'] },
+  { name: '佐藤先輩', col: 9, row: 3, lines: ['お疲れ様！第2章、専門用語ばかりで大変でしょ', '進捗どうですか？困ったことあったら聞いてね', 'ここだけの話、田中さんの『なんとかなる』は', '大体なんとかならないから気をつけて（笑）'] },
+  { name: '鈴木さん', col: 14, row: 9, lines: ['あの…この仕様、誰が決めたんですか…？', 'うち、三次請けなので参考意見なんですけど', '要件が伝言ゲームで歪んでて、誰の意図かもう分からないんです', '元請けの言うことところころ変わるんですよ', 'あまり深く考えないようにしてます…'] },
 ];
 
 const DOCUMENTS: ChapterDocument[] = [
-  { id: 'doc-meeting-minutes', col: 11, row: 8, label: '資料📄',
+  { id: 'doc-meeting-minutes', col: 12, row: 8, label: '資料📄',
     dialog: '会議テーブルの上に、誰かが置き忘れた議事録のコピーがある。\n\n表紙には「第3回定例会議事録（サンプル）」と書かれ、\n決定事項・宿題事項・次回までのToDoが\n項目ごとにきれいに整理されている。\n\n「...なるほど、議事録って単なる記録じゃなくて、\n『言った言わない』を防ぐための武器にもなるんだな。」',
     imageKey: 'meeting-minutes', imageLabel: '要件ヒアリング議事録（サンプル）', required: true,
     blockedHint: '会議テーブルの上の議事録を確認してから進もう…\n記録が残っているかどうかが、後で大きな違いになる。' },
@@ -216,7 +218,7 @@ export class Chapter2Scene extends Phaser.Scene {
 
     this.charGfx = this.add.graphics();
 
-    this.player = { x: 12 * TILE + TILE / 2, y: 15 * TILE + TILE / 2 };
+    this.player = { x: 12 * TILE + TILE / 2, y: 17 * TILE + TILE / 2 };
     this.buildCharacterSprites();
 
     this.buildNpcLabels();
@@ -263,7 +265,7 @@ export class Chapter2Scene extends Phaser.Scene {
         this.drawTile(c, r, TILE_MAP[r][c]);
 
     this.add.text(TILE + 4, TILE + 4, '会議室', { fontSize: '10px', color: '#999', fontFamily: 'monospace' }).setResolution(2);
-    this.add.text(6 * TILE + 16, 16 * TILE - 2, '自分の机', {
+    this.add.text(6 * TILE + 16, 17 * TILE - 2, '自分の机', {
       fontSize: '9px', color: '#88aaff', fontFamily: JP, stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5, 1).setResolution(2);
   }
@@ -303,10 +305,9 @@ export class Chapter2Scene extends Phaser.Scene {
       }
     }
 
-    // 2-4. Desk groups (3x2) + chair + monitor
+    // 2-4. Desk groups (3x2) + chair (2-tile, in the empty row below) + monitor (desk-top center)
     const deskTop = [455, 456, 457];
     const deskBottom = [471, 472, 473];
-    const chairFrames = [700, 716];
     const monitorFrames = [712, 713];
     let groupIdx = 0;
     for (let r = 0; r < ROWS; r++) {
@@ -316,17 +317,21 @@ export class Chapter2Scene extends Phaser.Scene {
             this.add.image((c + i) * TILE + TILE / 2, r * TILE + TILE / 2, 'office', deskTop[i]);
             this.add.image((c + i) * TILE + TILE / 2, (r + 1) * TILE + TILE / 2, 'office', deskBottom[i]);
           }
-          this.add.image((c + 1) * TILE + TILE / 2, (r + 2) * TILE + TILE / 2, 'office', chairFrames[groupIdx % 2]);
-          this.add.image((c + 1) * TILE + TILE / 2, r * TILE + TILE / 2, 'office', monitorFrames[groupIdx % 2]);
+          const centerX = (c + 1) * TILE + TILE / 2;
+          this.add.image(centerX, r * TILE + TILE / 2, 'office', monitorFrames[groupIdx % 2]);
+          if (TILE_MAP[r + 2]?.[c + 1] === F) {
+            this.add.image(centerX, (r + 2) * TILE + TILE / 2, 'office', 700);
+            this.add.image(centerX, (r + 3) * TILE + TILE / 2, 'office', 716);
+          }
           groupIdx++;
         }
       }
     }
 
-    // 5. Plants in the 4 map corners (2-tile vertical stack)
+    // 5. Plants (4 spots, 2-tile vertical stack)
     const plantSpots = [
-      { col: 1, row: 1 }, { col: 23, row: 1 },
-      { col: 1, row: 14 }, { col: 23, row: 14 },
+      { col: 1, row: 1 }, { col: 23, row: 5 },
+      { col: 1, row: 17 }, { col: 23, row: 17 },
     ];
     for (const { col, row } of plantSpots) {
       this.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 166);
