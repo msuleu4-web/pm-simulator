@@ -24,6 +24,7 @@ export class VirtualPad {
   private choiceJustPressed: number | null = null;
 
   private choiceButtons: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text }[] = [];
+  private dpadButtons: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text }[] = [];
 
   constructor(private scene: Phaser.Scene) {
     this.enabled = !!scene.sys.game.device.input.touch;
@@ -70,9 +71,9 @@ export class VirtualPad {
       { dir: 'right', x: cx + gap, y: cy,       label: '▶' },
     ];
     for (const d of dirs) {
-      this.addButton(d.x, d.y, r, d.label, '18px',
+      this.dpadButtons.push(this.addButton(d.x, d.y, r, d.label, '18px',
         () => this.setDir(d.dir, true),
-        () => this.setDir(d.dir, false));
+        () => this.setDir(d.dir, false)));
     }
   }
 
@@ -110,6 +111,15 @@ export class VirtualPad {
       b.circle.setVisible(visible);
       b.text.setVisible(visible);
     }
+  }
+
+  setDpadVisible(visible: boolean) {
+    if (!this.enabled) return;
+    for (const b of this.dpadButtons) {
+      b.circle.setVisible(visible);
+      b.text.setVisible(visible);
+    }
+    if (!visible) { this.dx = 0; this.dy = 0; }
   }
 
   getDirection(): { dx: number; dy: number } {

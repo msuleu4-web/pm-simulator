@@ -336,8 +336,8 @@ export class Chapter2Scene extends Phaser.Scene {
     g.fillStyle(0x0a0a14, 0.93); g.fillRect(0, 0, CANVAS_W, 26);
     g.lineStyle(1, 0x223344, 1); g.strokeRect(0, 0, CANVAS_W, 26);
     this.add.text(10, 5, '第2章　要件定義', { fontSize: '11px', color: '#7799aa', fontFamily: JP });
-    this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '12px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
-    this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '12px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
+    this.hudMission = this.add.text(CANVAS_W / 2, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0);
+    this.hudScore   = this.add.text(CANVAS_W - 10, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0);
   }
 
   private updateHud() {
@@ -359,14 +359,14 @@ export class Chapter2Scene extends Phaser.Scene {
 
   private buildProximityHint() {
     this.proximityHint = this.add.text(CANVAS_W / 2, ROWS * TILE - 28, '', {
-      fontSize: '12px', color: '#ffee88', fontFamily: JP,
+      fontSize: '15px', color: '#ffee88', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 10, y: 4 },
     }).setOrigin(0.5, 1);
   }
 
   private buildNotice() {
     this.noticeText = this.add.text(CANVAS_W / 2, 120, '', {
-      fontSize: '14px', color: '#ffeeaa', fontFamily: JP, align: 'center',
+      fontSize: '17px', color: '#ffeeaa', fontFamily: JP, align: 'center',
       backgroundColor: '#000000aa', padding: { x: 16, y: 10 },
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
@@ -382,7 +382,7 @@ export class Chapter2Scene extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0e0e16, 1); g.fillRect(0, y, CANVAS_W, CANVAS_H - y);
     this.add.text(CANVAS_W / 2, y + 10, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
-      fontSize: '11px', color: '#3a4a5a', fontFamily: 'monospace',
+      fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
   }
 
@@ -394,9 +394,9 @@ export class Chapter2Scene extends Phaser.Scene {
     this.dlgBg.fillStyle(0x000000, 0.88); this.dlgBg.fillRoundedRect(BX, BY, BW, BH, 8);
     this.dlgBg.lineStyle(1, 0x445566, 0.9); this.dlgBg.strokeRoundedRect(BX, BY, BW, BH, 8);
     this.dlgBg.setVisible(false);
-    this.dlgName = this.add.text(BX + P2, BY + 10, '', { fontSize: '12px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false);
-    this.dlgBody = this.add.text(BX + P2, BY + 30, '', { fontSize: '14px', color: '#eeeeff', fontFamily: JP, wordWrap: { width: BW - P2 * 2 - 60 } }).setVisible(false);
-    this.dlgCue  = this.add.text(BX + BW - P2, BY + BH - 10, '', { fontSize: '11px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false);
+    this.dlgName = this.add.text(BX + P2, BY + 10, '', { fontSize: '15px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold' }).setVisible(false);
+    this.dlgBody = this.add.text(BX + P2, BY + 30, '', { fontSize: '18px', color: '#eeeeff', fontFamily: JP, wordWrap: { width: BW - P2 * 2 - 60 } }).setVisible(false);
+    this.dlgCue  = this.add.text(BX + BW - P2, BY + BH - 10, '', { fontSize: '12px', color: '#556677', fontFamily: 'monospace' }).setOrigin(1, 1).setVisible(false);
   }
 
   private getLines(npc: NpcDef): string[] {
@@ -543,22 +543,22 @@ export class Chapter2Scene extends Phaser.Scene {
     this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
     this.choiceGfx.setVisible(false);
 
-    this.choiceTitle = this.add.text(CANVAS_W / 2, PY + 18, '', { fontSize: '14px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false);
+    this.choiceTitle = this.add.text(CANVAS_W / 2, PY + 18, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false);
 
     this.choiceOpts = [];
     for (let i = 0; i < 3; i++) {
       this.choiceOpts.push(
-        this.add.text(PX + 18, PY + 56 + i * 46, '', { fontSize: '14px', color: '#ddeeff', fontFamily: JP, wordWrap: { width: PW - 40 } }).setVisible(false),
+        this.add.text(PX + 18, PY + 56 + i * 46, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP, wordWrap: { width: PW - 40 } }).setVisible(false),
       );
     }
 
     this.resultText = this.add.text(CANVAS_W / 2, PY + PH / 2 + 10, '', {
-      fontSize: '15px', color: '#ffdd88', fontFamily: JP, align: 'center',
+      fontSize: '17px', color: '#ffdd88', fontFamily: JP, align: 'center',
       wordWrap: { width: 520, useAdvancedWrap: true }, backgroundColor: '#00000099', padding: { x: 14, y: 10 },
     }).setOrigin(0.5, 0.5).setVisible(false);
 
     this.resultCue = this.add.text(PX + PW - 14, PY + PH - 10, '', {
-      fontSize: '11px', color: '#556677', fontFamily: 'monospace',
+      fontSize: '12px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(1, 1).setVisible(false);
   }
 
@@ -661,15 +661,15 @@ export class Chapter2Scene extends Phaser.Scene {
     this.clearGfx.setDepth(50).setVisible(false);
 
     this.clearTitle = this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 50, '🎉 チャプタークリア！', {
-      fontSize: '26px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
+      fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
     this.clearScore = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 4, '', {
-      fontSize: '15px', color: '#ddeeff', fontFamily: JP, align: 'center',
+      fontSize: '17px', color: '#ddeeff', fontFamily: JP, align: 'center',
     }).setOrigin(0.5).setDepth(51).setVisible(false);
 
     this.clearNext = this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 60, 'Space：次のチャプターへ（準備中）', {
-      fontSize: '13px', color: '#88aacc', fontFamily: JP,
+      fontSize: '15px', color: '#88aacc', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(51).setVisible(false);
   }
@@ -753,6 +753,11 @@ export class Chapter2Scene extends Phaser.Scene {
   // ── Update ────────────────────────────────────────────────────
 
   update(_t: number, delta: number) {
+    this.virtualPad.setDpadVisible(
+      !this.docImageOpen && !this.chapterClearShown &&
+      this.choiceState === 'hidden' && this.dialogState === 'closed',
+    );
+
     if (this.docImageOpen) {
       if (Phaser.Input.Keyboard.JustDown(this.keyZ)) window.dispatchEvent(new CustomEvent('sier-doc-image-closed'));
       return;

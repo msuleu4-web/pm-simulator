@@ -195,7 +195,18 @@
       "Bash(PYTHONIOENCODING=utf-8 python3)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3005/game)",
       "Bash(node .tmp-verify/verify_ch2.js)",
-      "Bash(node .tmp-verify/verify_rpg_details.js)"
+      "Bash(node .tmp-verify/verify_rpg_details.js)",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@52.195.180.22 \"cd /home/ubuntu/pm-simulator && source ~/.nvm/nvm.sh && npm run build 2>&1 | tail -40\")",
+      "Bash(curl -s -o /dev/null -w \"home: %{http_code}\\\\n\" http://52.195.180.22/)",
+      "Bash(curl -s -o /dev/null -w \"game: %{http_code}\\\\n\" http://52.195.180.22/game)",
+      "Bash(curl -s http://localhost:3005/game)",
+      "Bash(taskkill //F //PID 32936)",
+      "Bash(node .tmp-verify/mobile_check.js)",
+      "Bash(python .tmp-verify/bump_fonts.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3005/game --max-time 5)",
+      "Bash(node .tmp-verify/verify_mobile_fix.js)",
+      "Bash(node .tmp-verify/verify_mobile_fix2.js)",
+      "Bash(node .tmp-verify/verify_desktop.js)"
     ],
     "additionalDirectories": [
       "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory",
