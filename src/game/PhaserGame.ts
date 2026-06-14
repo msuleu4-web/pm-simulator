@@ -19,10 +19,30 @@ const NORMAL_CHAPTER_SCENES = [Chapter1Scene, Chapter2Scene, Chapter3Scene, Chap
 const EASY_CHAPTER_SCENES = [EasyChapter1Scene, EasyChapter2Scene, EasyChapter3Scene, EasyChapter4Scene, EasyChapter5Scene, EasyChapter6Scene, EasyChapter7Scene];
 const ALL_CHAPTER_SCENES = [...NORMAL_CHAPTER_SCENES, ...EASY_CHAPTER_SCENES];
 
+// Keyed by string literal (not class.name) so scene lookup survives production minification,
+// which mangles class names but never rewrites object-literal string keys.
+const SCENE_REGISTRY: Record<string, new (...args: never[]) => Phaser.Scene> = {
+  'TitleScene': TitleScene,
+  'Chapter1Scene': Chapter1Scene,
+  'Chapter2Scene': Chapter2Scene,
+  'Chapter3Scene': Chapter3Scene,
+  'Chapter4Scene': Chapter4Scene,
+  'Chapter5Scene': Chapter5Scene,
+  'Chapter6Scene': Chapter6Scene,
+  'Chapter7Scene': Chapter7Scene,
+  'EasyChapter1Scene': EasyChapter1Scene,
+  'EasyChapter2Scene': EasyChapter2Scene,
+  'EasyChapter3Scene': EasyChapter3Scene,
+  'EasyChapter4Scene': EasyChapter4Scene,
+  'EasyChapter5Scene': EasyChapter5Scene,
+  'EasyChapter6Scene': EasyChapter6Scene,
+  'EasyChapter7Scene': EasyChapter7Scene,
+};
+
 export function createGame(parent: HTMLElement, startScene?: string): Phaser.Game {
   // Build scene list — first entry boots automatically
   const allScenes = [TitleScene, ...ALL_CHAPTER_SCENES];
-  const startSceneClass = allScenes.find((s) => s.name === startScene);
+  const startSceneClass = startScene ? SCENE_REGISTRY[startScene] : undefined;
   const sceneList = startSceneClass
     ? [startSceneClass, ...allScenes.filter((s) => s !== startSceneClass)]
     : allScenes;
