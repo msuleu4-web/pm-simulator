@@ -3,12 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Game } from 'phaser';
-import { CHAPTERS, getClearedChapters, isChapterUnlocked, getEarnedTitles, ENDINGS } from '../../src/game/chapters';
+import { CHAPTERS, getClearedChapters, isChapterUnlocked, getEarnedTitles, getModeChapterId, ENDINGS } from '../../src/game/chapters';
 import { DIFFICULTY_CONFIG, getDifficulty, saveDifficulty, type Difficulty as SierDifficulty } from '../../src/game/difficulty';
 
 const JP_FONT = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",Arial,sans-serif';
 
-const IMPLEMENTED_SCENES = new Set(['Chapter1Scene', 'Chapter2Scene', 'Chapter3Scene', 'Chapter4Scene', 'Chapter5Scene', 'Chapter6Scene', 'Chapter7Scene']);
+const IMPLEMENTED_SCENES = new Set([
+  'Chapter1Scene', 'Chapter2Scene', 'Chapter3Scene', 'Chapter4Scene', 'Chapter5Scene', 'Chapter6Scene', 'Chapter7Scene',
+  'EasyChapter1Scene', 'EasyChapter2Scene', 'EasyChapter3Scene', 'EasyChapter4Scene', 'EasyChapter5Scene', 'EasyChapter6Scene', 'EasyChapter7Scene',
+]);
 
 // ── SIer道場 title screen (Phaser) ─────────────────────────────
 
@@ -160,9 +163,12 @@ function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
 
       <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {CHAPTERS.map((ch, i) => {
-          const isCleared = cleared.includes(ch.id);
-          const unlocked = isChapterUnlocked(i, cleared);
-          const playable = unlocked && IMPLEMENTED_SCENES.has(ch.sceneName);
+          const isCleared = cleared.includes(getModeChapterId(ch.id, difficulty));
+          const unlocked = isChapterUnlocked(i, cleared, difficulty);
+          const sceneName = difficulty === 'easy' ? ch.easySceneName : ch.sceneName;
+          const title = difficulty === 'easy' ? ch.easyTitle : ch.title;
+          const description = difficulty === 'easy' ? ch.easyDescription : ch.description;
+          const playable = unlocked && IMPLEMENTED_SCENES.has(sceneName);
           return (
             <div
               key={ch.id}
@@ -175,17 +181,17 @@ function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ color: unlocked ? '#e0eeff' : '#556677', fontSize: 14, fontWeight: 700, fontFamily: JP_FONT }}>
-                  {ch.title}
+                  {title}
                 </span>
                 {isCleared && <span style={{ color: '#4caf80', fontSize: 11 }}>✅ クリア済み</span>}
                 {!unlocked && <span style={{ color: '#556677', fontSize: 11 }}>🔒 ロック中</span>}
               </div>
               <p style={{ color: '#7a9abc', fontSize: 12, lineHeight: 1.6, marginBottom: 10, fontFamily: JP_FONT }}>
-                {ch.description}
+                {description}
               </p>
               <button
                 disabled={!playable}
-                onClick={() => playable && onPlay(ch.sceneName)}
+                onClick={() => playable && onPlay(sceneName)}
                 style={{
                   width: '100%', padding: '8px', borderRadius: 6, border: 'none',
                   background: playable ? '#1a4a2a' : '#1a2230',

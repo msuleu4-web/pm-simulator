@@ -1,8 +1,13 @@
+import type { Difficulty } from './difficulty';
+
 export interface Chapter {
   id: string;
   title: string;
   description: string;
   sceneName: string;
+  easySceneName: string;
+  easyTitle: string;
+  easyDescription: string;
 }
 
 export interface ChapterDocument {
@@ -23,42 +28,63 @@ export const CHAPTERS: Chapter[] = [
     title: '第1章　配属・キックオフ',
     description: '初出社、机の上に積まれた資料の山。WBSや体制図、多重下請けの仕組みを読み解き、現場のルールを学ぶ。',
     sceneName: 'Chapter1Scene',
+    easySceneName: 'EasyChapter1Scene',
+    easyTitle: '第1章　要件ヒアリング',
+    easyDescription: '社内ポータル刷新プロジェクト、始動。各部署にヒアリングして、欲しい機能を聞いてみよう。',
   },
   {
     id: 'chapter2',
     title: '第2章　要件定義',
     description: '配属初日。議事録の書き方と進捗報告のいろはを、現場で叩き込まれる。',
     sceneName: 'Chapter2Scene',
+    easySceneName: 'EasyChapter2Scene',
+    easyTitle: '第2章　画面設計・UI設計',
+    easyDescription: 'ヒアリング結果をもとに画面を設計。使いやすさを第一に、ワイヤーフレームとユーザーレビューを進めよう。',
   },
   {
     id: 'chapter3',
     title: '第3章　基本設計',
     description: 'お客様の要望と現実のギャップ。レビュー指摘との戦いが始まる。',
     sceneName: 'Chapter3Scene',
+    easySceneName: 'EasyChapter3Scene',
+    easyTitle: '第3章　開発・実装',
+    easyDescription: 'Next.jsで掲示板機能を実装。コードレビューを受けながら、品質の高いコードを目指そう。',
   },
   {
     id: 'chapter4',
     title: '第4章　製造',
     description: '担当モジュールのコーディング開始。「90%」の罠と、正直な進捗報告の大切さを学ぶ。',
     sceneName: 'Chapter4Scene',
+    easySceneName: 'EasyChapter4Scene',
+    easyTitle: '第4章　テスト・品質確認',
+    easyDescription: '社内向けでも品質は大事。テスト計画を立てて、見つかったバグを丁寧に修正しよう。',
   },
   {
     id: 'chapter5',
     title: '第5章　テスト',
     description: 'テスト仕様書を作り、上がってきたバグ票と向き合う。品質を支える地道な工程。',
     sceneName: 'Chapter5Scene',
+    easySceneName: 'EasyChapter5Scene',
+    easyTitle: '第5章　リリース・展開',
+    easyDescription: 'いよいよリリース。マニュアルを整え、社内お披露目会で新ポータルを発表しよう。',
   },
   {
     id: 'chapter6',
     title: '第6章　炎上と立て直し',
     description: 'リリース直前の仕様変更要求。スコープクリープとQCDのトレードオフに向き合い、現実的な落としどころを探る。',
     sceneName: 'Chapter6Scene',
+    easySceneName: 'EasyChapter6Scene',
+    easyTitle: '第6章　運用フィードバック',
+    easyDescription: 'リリース後の声を集めて分析。利用率を上げるための施策を考えよう。',
   },
   {
     id: 'chapter7',
     title: '第7章　リリース・運用保守',
     description: '本番リリースと、その先に待つ障害対応。終わりなき運用保守の世界へ。',
     sceneName: 'Chapter7Scene',
+    easySceneName: 'EasyChapter7Scene',
+    easyTitle: '第7章　振り返り・次期企画',
+    easyDescription: '3ヶ月の歩みをKPTで振り返り、次のプロジェクトの企画を考えよう。',
   },
 ];
 
@@ -81,9 +107,15 @@ export function markChapterCleared(id: string): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...cleared]));
 }
 
-export function isChapterUnlocked(index: number, cleared: string[]): boolean {
+// イージーモードはノーマルモードと進行状況・スコアを分けて管理するため、
+// 章クリアID/スコアIDに 'easy-' プレフィックスを付ける。
+export function getModeChapterId(chapterId: string, difficulty: Difficulty): string {
+  return difficulty === 'easy' ? `easy-${chapterId}` : chapterId;
+}
+
+export function isChapterUnlocked(index: number, cleared: string[], difficulty: Difficulty = 'normal'): boolean {
   if (index === 0) return true;
-  return cleared.includes(CHAPTERS[index - 1].id);
+  return cleared.includes(getModeChapterId(CHAPTERS[index - 1].id, difficulty));
 }
 
 const SCORE_KEY = 'sier-office-chapter-scores-v2';

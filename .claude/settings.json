@@ -206,12 +206,45 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3005/game --max-time 5)",
       "Bash(node .tmp-verify/verify_mobile_fix.js)",
       "Bash(node .tmp-verify/verify_mobile_fix2.js)",
-      "Bash(node .tmp-verify/verify_desktop.js)"
+      "Bash(node .tmp-verify/verify_desktop.js)",
+      "Bash(ssh -i \"C:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\pjtest.pem\" -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@52.195.180.22 \"pm2 restart pm-simulator && pm2 status\")",
+      "Bash(curl -s -o /dev/null -w \"home: %{http_code}\\\\n\" http://52.195.180.22/ --max-time 10)",
+      "Bash(curl -s -o /dev/null -w \"game: %{http_code}\\\\n\" http://52.195.180.22/game --max-time 10)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3005/game)",
+      "Bash(node .tmp-verify/verify-resize.mjs)",
+      "Bash(grep -n \"第1章\\\\|第\\\\${\\\\|chapterLabel\\\\|chTitle\\\\|ChapterTitle\" src/game/scenes/Chapter1Scene.ts)",
+      "Bash(node .tmp-verify/verify-dynamic-resize.mjs)",
+      "Bash(node .tmp-verify/verify-chapter2.mjs)",
+      "Bash(ssh -i pjtest.pem -o StrictHostKeyChecking=no ubuntu@52.195.180.22 'source ~/.nvm/nvm.sh && cd /home/ubuntu/pm-simulator && git pull origin main && npm run build && pm2 restart pm-simulator')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://52.195.180.22/game --insecure)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://52.195.180.22/game)",
+      "Bash(node .tmp-verify/verify-dialog.mjs)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/game --max-time 3)",
+      "Bash(node .tmp-verify/verify-ui.mjs)",
+      "Bash(node .tmp-verify/verify-ch2.mjs)",
+      "Bash(ssh -i ~/pjtest.pem -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"cd /home/ubuntu/pm-simulator && git pull && npm run build && pm2 restart pm-simulator\")",
+      "Read(//c//**)",
+      "Read(//c/Users/**)",
+      "Bash(ssh -i \"/c/Users/KIMYONGJIN/Desktop/pj/pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"cd /home/ubuntu/pm-simulator && git pull && npm run build && pm2 restart pm-simulator\")",
+      "Bash(ssh -i \"/c/Users/KIMYONGJIN/Desktop/pj/pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"bash -lc 'cd /home/ubuntu/pm-simulator && npm run build && pm2 restart pm-simulator'\")",
+      "Bash(ssh -i \"/c/Users/KIMYONGJIN/Desktop/pj/pjtest.pem\" -o StrictHostKeyChecking=no ubuntu@52.195.180.22 \"bash -lc 'command -v node; command -v npm; ls ~/.nvm/versions/node 2>/dev/null; cat ~/.bashrc | grep -i nvm'\")",
+      "Bash(ssh -i /c/Users/KIMYONGJIN/Desktop/pj/pjtest.pem -o StrictHostKeyChecking=no ubuntu@52.195.180.22 'bash -lc '\\\\''export NVM_DIR=$HOME/.nvm; . $NVM_DIR/nvm.sh; cd /home/ubuntu/pm-simulator && npm run build && pm2 restart pm-simulator'\\\\''')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://52.195.180.22/game --max-time 10)",
+      "Bash(node .tmp-verify/verify-all.mjs)",
+      "Bash(ssh -i /c/Users/KIMYONGJIN/Desktop/pj/pjtest.pem -o StrictHostKeyChecking=no ubuntu@52.195.180.22 'bash -lc '\\\\''export NVM_DIR=$HOME/.nvm; . $NVM_DIR/nvm.sh; cd /home/ubuntu/pm-simulator && git pull origin main && npm run build && pm2 restart pm-simulator'\\\\''')",
+      "Bash(which chromium-cli *)",
+      "Bash(ls .tmp-verify)",
+      "Bash(find / -maxdepth 8 -iname \"chromium-cli*\" -type f 2>/dev/null | head -20)",
+      "Bash(node .tmp-verify/verify-maps.js)",
+      "Bash(rmdir .tmp-verify)",
+      "Bash(rm -rf \"c:\\\\Users\\\\KIMYONGJIN\\\\Desktop\\\\pj\\\\.tmp-verify\")",
+      "Bash(cd /c/Users/KIMYONGJIN/Desktop/pj && pwd && rmdir .tmp-verify)"
     ],
     "additionalDirectories": [
       "c:\\Users\\KIMYONGJIN\\.claude\\projects\\c--Users-KIMYONGJIN-Desktop-pj\\memory",
       "c:\\Users\\KIMYONGJIN\\Desktop\\pj\\game image",
-      "C:\\Users\\KIMYONGJIN\\Desktop\\pj"
+      "C:\\Users\\KIMYONGJIN\\Desktop\\pj",
+      "c:\\c\\Users\\KIMYONGJIN\\Desktop\\pj"
     ]
   }
 }
