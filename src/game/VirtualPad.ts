@@ -26,6 +26,7 @@ export class VirtualPad {
   private choiceJustPressed: number | null = null;
 
   private choiceButtons: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text }[] = [];
+  private choiceVisibleCount = 0;
   private dpadButtons: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text }[] = [];
   private actionButton?: { circle: Phaser.GameObjects.Arc; text: Phaser.GameObjects.Text };
 
@@ -67,14 +68,23 @@ export class VirtualPad {
       this.actionButton.text.setPosition(x, y);
     }
 
-    const choicePos = [
-      { x: w - 220, y: h - 140 },
-      { x: w - 150, y: h - 140 },
-      { x: w - 80, y: h - 140 },
-    ];
+    this.layoutChoiceButtons(w, h);
+  }
+
+  /**
+   * Choice buttons support 1-5 options (some incidents now offer 4 or 5
+   * choices). Up to 3 sit on one row; a 4th/5th button wraps to a second
+   * row above it so they never overlap the D-pad/A button.
+   */
+  private layoutChoiceButtons(w: number, h: number) {
+    const n = this.choiceVisibleCount;
+    const row1 = [{ x: w - 220, y: h - 140 }, { x: w - 150, y: h - 140 }, { x: w - 80, y: h - 140 }];
+    const row2 = [{ x: w - 185, y: h - 200 }, { x: w - 115, y: h - 200 }, { x: w - 45, y: h - 200 }];
+    const positions = n <= 3 ? row1.slice(0, n) : [...row1, ...row2.slice(0, n - 3)];
     this.choiceButtons.forEach((b, i) => {
-      b.circle.setPosition(choicePos[i].x, choicePos[i].y);
-      b.text.setPosition(choicePos[i].x, choicePos[i].y);
+      if (i >= positions.length) return;
+      b.circle.setPosition(positions[i].x, positions[i].y);
+      b.text.setPosition(positions[i].x, positions[i].y);
     });
   }
 
@@ -123,9 +133,9 @@ export class VirtualPad {
   }
 
   private buildChoiceButtons() {
-    const r = 24;
-    for (let i = 0; i < 3; i++) {
-      const { circle, text } = this.addButton(r, String(i + 1), '20px',
+    const r = 22;
+    for (let i = 0; i < 5; i++) {
+      const { circle, text } = this.addButton(r, String(i + 1), '18px',
         () => { this.choiceJustPressed = i + 1; });
       circle.setVisible(false);
       text.setVisible(false);
@@ -133,12 +143,16 @@ export class VirtualPad {
     }
   }
 
-  setChoiceButtonsVisible(visible: boolean) {
+  /** count: 0 hides all choice buttons; 1-5 shows that many, laid out for that count. */
+  setChoiceButtonsVisible(count: number) {
     if (!this.enabled) return;
-    for (const b of this.choiceButtons) {
+    this.choiceVisibleCount = count;
+    this.layoutChoiceButtons(this.scene.scale.width, this.scene.scale.height);
+    this.choiceButtons.forEach((b, i) => {
+      const visible = i < count;
       b.circle.setVisible(visible);
       b.text.setVisible(visible);
-    }
+    });
   }
 
   setDpadVisible(visible: boolean) {

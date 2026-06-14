@@ -71,6 +71,7 @@ const CHOICES: Record<'m1' | 'm2', Choice[]> = {
     { text: '設計書に忠実に、テストも書きながら実装',     score: 10, result: '「コードの品質が高いね」と木村先輩も感心した様子。[+10点]' },
     { text: 'とりあえず動くものを最速で作る',             score: -5, result: '「バグが多くて手戻りが発生しちゃったね…」と木村先輩に指摘された。[-5点]' },
     { text: '木村先輩のコードを参考にしながら実装',       score:  5, result: '「先輩のノウハウ、しっかり吸収できたね」と褒められた。[+5点]' },
+    { text: 'とりあえず動くものを作り、テストは後回し',   score:  0, result: '実装は早く終わったが、後からテストを書く時間が必要になり、結局トータルの時間は変わらなかった。「最初から一緒に書いておくと安心だよ」と木村先輩に言われた。[±0点]' },
   ],
   m2: [
     { text: '指摘理由を理解して改善案も一緒に考える',     score: 10, result: '「成長が見えるね」と木村先輩も嬉しそう。[+10点]' },
@@ -149,6 +150,8 @@ export class EasyChapter3Scene extends Phaser.Scene {
   private key1!: Phaser.Input.Keyboard.Key;
   private key2!: Phaser.Input.Keyboard.Key;
   private key3!: Phaser.Input.Keyboard.Key;
+  private key4!: Phaser.Input.Keyboard.Key;
+  private key5!: Phaser.Input.Keyboard.Key;
   private virtualPad!: VirtualPad;
 
   // HUD
@@ -175,6 +178,7 @@ export class EasyChapter3Scene extends Phaser.Scene {
   private choiceGfx!: Phaser.GameObjects.Graphics;
   private choiceTitle!: Phaser.GameObjects.Text;
   private choiceOpts: Phaser.GameObjects.Text[] = [];
+  private currentChoiceCount = 3;
   private resultText!: Phaser.GameObjects.Text;
   private resultCue!: Phaser.GameObjects.Text;
 
@@ -241,6 +245,8 @@ export class EasyChapter3Scene extends Phaser.Scene {
     this.key1 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+    this.key4 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+    this.key5 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE);
 
     this.showNotice('「画面設計が決まった。いよいよ実装フェーズ、Next.jsで作っていこう」', 4500);
   }
@@ -445,7 +451,7 @@ export class EasyChapter3Scene extends Phaser.Scene {
 
   private buildHintBar() {
     this.hintBarBg = this.add.graphics().setScrollFactor(0);
-    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
+    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-5：選択', {
       fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
     }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
     this.layoutHintBar();
@@ -558,7 +564,7 @@ export class EasyChapter3Scene extends Phaser.Scene {
     this.npcSprites.get(npc.name)?.setFrame(NPC_FRAME.down);
     if (npc.name === '山田課長' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n💻 掲示板機能を実装してください\n自分の机（青いタイル）へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n💻 掲示板機能を実装してください\n自分の机へ行こう', 3000);
     } else if (npc.name === '木村先輩' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
       this.showNotice('ミッション受諾！\n🔍 コードレビュー対応をしてください\n自分の机へ行こう', 3000);
@@ -573,7 +579,7 @@ export class EasyChapter3Scene extends Phaser.Scene {
     this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.choiceOpts = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       this.choiceOpts.push(
         this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2),
       );
@@ -592,8 +598,10 @@ export class EasyChapter3Scene extends Phaser.Scene {
   }
 
   private layoutChoicePanel() {
+    const n = this.currentChoiceCount;
+    const optGap = n <= 3 ? 46 : n === 4 ? 40 : 35;
     const PW = Math.min(580, this.canvasW - 40);
-    const PH = Math.min(210, this.canvasH - 40);
+    const PH = Math.min(56 + n * optGap + 30, this.canvasH - 40);
     const PX = (this.canvasW - PW) / 2;
     const PY = (this.canvasH - PH) / 2;
     const fontSize = this.canvasW < 500 ? '12px' : '14px';
@@ -605,8 +613,8 @@ export class EasyChapter3Scene extends Phaser.Scene {
 
     this.choiceTitle.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + 18).setWordWrapWidth(PW - 40, true);
 
-    for (let i = 0; i < 3; i++) {
-      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40, true);
+    for (let i = 0; i < 5; i++) {
+      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * optGap).setWordWrapWidth(PW - 40, true);
     }
 
     this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
@@ -619,22 +627,29 @@ export class EasyChapter3Scene extends Phaser.Scene {
     const title = key === 'm1' ? '💻 掲示板機能をどう実装しますか？'
       : key === 'm2' ? '🔍 コードレビュー対応をどう進めますか？'
       : INCIDENT.title;
+    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
+    this.currentChoiceCount = choices.length;
+    this.layoutChoicePanel();
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     const maxScore = Math.max(...choices.map(c => c.score));
-    for (let i = 0; i < 3; i++) {
-      const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
-      this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+    for (let i = 0; i < 5; i++) {
+      if (i < choices.length) {
+        const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
+        this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+      } else {
+        this.choiceOpts[i].setVisible(false);
+      }
     }
     this.resultText.setVisible(false);
     this.proximityHint.setText('').setVisible(false);
-    this.virtualPad.setChoiceButtonsVisible(true);
+    this.virtualPad.setChoiceButtonsVisible(choices.length);
   }
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
     const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    if (idx >= choices.length) return;
     const c = choices[idx];
     const mult = c.score >= 0 ? this.diffCfg.bonusMult : this.diffCfg.penaltyMult;
     this.score += Math.round(c.score * mult);
@@ -692,7 +707,7 @@ export class EasyChapter3Scene extends Phaser.Scene {
     for (const o of this.choiceOpts) o.setVisible(false);
     this.resultText.setVisible(false);
     this.resultCue.setVisible(false);
-    this.virtualPad.setChoiceButtonsVisible(false);
+    this.virtualPad.setChoiceButtonsVisible(0);
   }
 
   // ── Chapter clear ─────────────────────────────────────────────
@@ -859,6 +874,8 @@ export class EasyChapter3Scene extends Phaser.Scene {
       if (Phaser.Input.Keyboard.JustDown(this.key1) || padChoice === 1) this.handleChoice(0);
       if (Phaser.Input.Keyboard.JustDown(this.key2) || padChoice === 2) this.handleChoice(1);
       if (Phaser.Input.Keyboard.JustDown(this.key3) || padChoice === 3) this.handleChoice(2);
+      if (Phaser.Input.Keyboard.JustDown(this.key4) || padChoice === 4) this.handleChoice(3);
+      if (Phaser.Input.Keyboard.JustDown(this.key5) || padChoice === 5) this.handleChoice(4);
       return;
     }
     if (this.choiceState === 'result') {

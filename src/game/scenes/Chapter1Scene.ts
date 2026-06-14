@@ -89,6 +89,10 @@ const CHOICES: Record<'kickoff' | 'chain', Choice[]> = {
       result: '「大丈夫です」と即答したが、後日、自分の担当範囲を勘違いしていたことが発覚。佐藤先輩に「最初に聞いておけばよかったのに…」と苦笑いされた。[-5点]' },
     { text: '「客先常駐って何ですか？」と素朴に聞く', score: 5,
       result: '佐藤先輩は「聞いてくれて助かるよ、説明するね」と丁寧に教えてくれた。ただ「基本用語は資料にも書いてあるから、自分でも調べる癖をつけてね」と一言。[+5点]' },
+    { text: '資料は読んだが、メモを取らずに説明を聞く', score: 0,
+      result: '田中PMの説明はちゃんと聞けたが、後で内容を思い出せず、佐藤先輩に同じ質問を何度も聞き返す羽目になった。「メモを取る習慣、つけた方がいいよ」と優しく注意された。[±0点]' },
+    { text: '資料を読む前に「初日キツい…」とSNSに投稿してしまう', score: -10,
+      result: '田中PMがたまたまその投稿を見つけてしまい、気まずい空気が漂う。「会社の話は外で言わない方がいいよ…」と静かに諭された。社会人としての基本を、初日から身をもって学んだ。[-10点]' },
   ],
   chain: [
     { text: 'まず指示系統（誰の指示で動くか）を確認する', score: 10,
@@ -111,6 +115,13 @@ const INCIDENT = {
       result: '勢いよく飛び込んだら、別プロジェクトの会議だった。「すみません、人違いでした…！」と退出することに。田中PMに「まず誰が呼んでるか確認してね」と笑われた。[-5点]' },
     { text: '佐藤先輩に「これ、行った方がいいですか？」と確認する', score: 5,
       result: '佐藤先輩が一緒に確認してくれて、無事に正しい会議室にたどり着けた。「最初はみんなこうやって覚えるものだよ」と優しく言われた。[+5点]' },
+  ] as Choice[],
+  // ハードモード限定の追加分岐（多重下請けの面倒さがより濃く出る2択）
+  hardChoices: [
+    { text: 'ノートを持参し、議事録担当として手を挙げる', score: 5,
+      result: '会議室に着くと、ちょうど議事録担当が決まっていなかった。「やります」と手を挙げると、二次請けのリーダーに「お、助かるよ」と言われ、会議の内容が一気に頭に入った。[+5点]（ハード限定）' },
+    { text: '「自分も呼ばれてるかも」と、鈴木さんも一緒に連れて行く', score: -5,
+      result: '会議室に二人で入ると、「あの、呼んだのは一人だけなんですが…」と二次請けのリーダーが困惑。鈴木さんと気まずい空気のまま退出することに。「誰が呼ばれているか」も多重下請けでは重要な情報だと学んだ。[-5点]（ハード限定）' },
   ] as Choice[],
 };
 
@@ -180,6 +191,8 @@ export class Chapter1Scene extends Phaser.Scene {
   private key1!: Phaser.Input.Keyboard.Key;
   private key2!: Phaser.Input.Keyboard.Key;
   private key3!: Phaser.Input.Keyboard.Key;
+  private key4!: Phaser.Input.Keyboard.Key;
+  private key5!: Phaser.Input.Keyboard.Key;
   private keyZ!: Phaser.Input.Keyboard.Key;
   private virtualPad!: VirtualPad;
 
@@ -207,6 +220,7 @@ export class Chapter1Scene extends Phaser.Scene {
   private choiceGfx!: Phaser.GameObjects.Graphics;
   private choiceTitle!: Phaser.GameObjects.Text;
   private choiceOpts: Phaser.GameObjects.Text[] = [];
+  private currentChoiceCount = 3;
   private resultText!: Phaser.GameObjects.Text;
   private resultCue!: Phaser.GameObjects.Text;
 
@@ -273,6 +287,8 @@ export class Chapter1Scene extends Phaser.Scene {
     this.key1 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+    this.key4 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+    this.key5 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE);
     this.keyZ = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
 
     window.addEventListener('sier-doc-image-closed', this.onDocImageClosed);
@@ -487,7 +503,7 @@ export class Chapter1Scene extends Phaser.Scene {
 
   private buildHintBar() {
     this.hintBarBg = this.add.graphics().setScrollFactor(0);
-    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
+    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-5：選択', {
       fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
     }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
     this.layoutHintBar();
@@ -665,7 +681,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.choiceOpts = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       this.choiceOpts.push(
         this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2),
       );
@@ -683,9 +699,14 @@ export class Chapter1Scene extends Phaser.Scene {
     this.layoutChoicePanel();
   }
 
+  // Choice sets can have 3-5 options; the panel grows (and rows pack tighter)
+  // to fit them. currentChoiceCount is updated by openChoices() and this is
+  // re-run so the resize handler and openChoices share one layout function.
   private layoutChoicePanel() {
+    const n = this.currentChoiceCount;
+    const optGap = n <= 3 ? 46 : n === 4 ? 40 : 35;
     const PW = Math.min(580, this.canvasW - 40);
-    const PH = Math.min(210, this.canvasH - 40);
+    const PH = Math.min(56 + n * optGap + 30, this.canvasH - 40);
     const PX = (this.canvasW - PW) / 2;
     const PY = (this.canvasH - PH) / 2;
     const fontSize = this.canvasW < 500 ? '12px' : '14px';
@@ -697,12 +718,18 @@ export class Chapter1Scene extends Phaser.Scene {
 
     this.choiceTitle.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + 18).setWordWrapWidth(PW - 40, true);
 
-    for (let i = 0; i < 3; i++) {
-      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40, true);
+    for (let i = 0; i < 5; i++) {
+      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * optGap).setWordWrapWidth(PW - 40, true);
     }
 
     this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
     this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
+  }
+
+  // ハードモードでは炎上イベントに専用の追加分岐(hardChoices)が2つ加わり、5択になる
+  private getChoices(key: 'kickoff' | 'chain' | 'incident'): Choice[] {
+    if (key !== 'incident') return CHOICES[key];
+    return this.diffLevel === 'hard' ? [...INCIDENT.choices, ...INCIDENT.hardChoices] : INCIDENT.choices;
   }
 
   private openChoices(key: 'kickoff' | 'chain' | 'incident') {
@@ -711,22 +738,29 @@ export class Chapter1Scene extends Phaser.Scene {
     const title = key === 'kickoff' ? '🤝 田中PMの説明に、どう応じますか？'
       : key === 'chain' ? '🏢 客先常駐の指示系統について、どう動きますか？'
       : INCIDENT.title;
+    const choices = this.getChoices(key);
+    this.currentChoiceCount = choices.length;
+    this.layoutChoicePanel();
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     const maxScore = Math.max(...choices.map(c => c.score));
-    for (let i = 0; i < 3; i++) {
-      const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
-      this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+    for (let i = 0; i < 5; i++) {
+      if (i < choices.length) {
+        const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
+        this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+      } else {
+        this.choiceOpts[i].setVisible(false);
+      }
     }
     this.resultText.setVisible(false);
     this.proximityHint.setText('').setVisible(false);
-    this.virtualPad.setChoiceButtonsVisible(true);
+    this.virtualPad.setChoiceButtonsVisible(choices.length);
   }
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const choices = this.getChoices(this.missionKey);
+    if (idx >= choices.length) return;
     const c = choices[idx];
     const mult = c.score >= 0 ? this.diffCfg.bonusMult : this.diffCfg.penaltyMult;
     this.score += Math.round(c.score * mult);
@@ -793,7 +827,7 @@ export class Chapter1Scene extends Phaser.Scene {
     for (const o of this.choiceOpts) o.setVisible(false);
     this.resultText.setVisible(false);
     this.resultCue.setVisible(false);
-    this.virtualPad.setChoiceButtonsVisible(false);
+    this.virtualPad.setChoiceButtonsVisible(0);
   }
 
   // ── Chapter clear ─────────────────────────────────────────────
@@ -966,6 +1000,8 @@ export class Chapter1Scene extends Phaser.Scene {
       if (Phaser.Input.Keyboard.JustDown(this.key1) || padChoice === 1) this.handleChoice(0);
       if (Phaser.Input.Keyboard.JustDown(this.key2) || padChoice === 2) this.handleChoice(1);
       if (Phaser.Input.Keyboard.JustDown(this.key3) || padChoice === 3) this.handleChoice(2);
+      if (Phaser.Input.Keyboard.JustDown(this.key4) || padChoice === 4) this.handleChoice(3);
+      if (Phaser.Input.Keyboard.JustDown(this.key5) || padChoice === 5) this.handleChoice(4);
       return;
     }
     if (this.choiceState === 'result') {

@@ -71,6 +71,8 @@ const CHOICES: Record<'coding' | 'progress90', Choice[]> = {
     { text: '設計書を見ながら丁寧に実装', score: 10, result: '設計書通りに丁寧に実装。レビューでの指摘はほぼゼロで「バグの少ないコードだね」と褒められた。[+10点]' },
     { text: 'とりあえず動けばOKで実装',     score: -5, result: 'とりあえず動くものは完成。だが2日後、想定外の入力でエラーが続出し、深夜まで原因調査することに。[-5点]' },
     { text: '先輩のコードを参考にする',     score:  5, result: '先輩の過去のコードを参考に実装。「ちゃんと読んで理解してるね」と効率の良さを褒められた。[+5点]' },
+    { text: '複雑な部分はTODOコメントだけ書いて後回しにする', score: 0, result: 'シンプルな部分から手をつけたのでペースは速かったが、結局複雑な部分を後回しにしただけで終盤に一気にしわ寄せが来た。「先に難しいところからやった方がいいかもね」と言われた。[±0点]' },
+    { text: 'コピペで量産し、変数名は a, b, c のまま提出する', score: -10, result: '動くものはできたが、レビューで佐藤先輩が「これ…誰が読んでも分からないよ」と頭を抱えた。命名を全部やり直すことになり、結果的に倍以上の時間がかかった。[-10点]' },
   ],
   progress90: [
     { text: '正直に遅れを報告する',         score: 10, result: '「実は遅れています」と正直に報告。早めに人員調整が行われ、影響は最小限で済んだ。[+10点]' },
@@ -87,6 +89,13 @@ const INCIDENT = {
     { text: '影響と工数を説明して交渉する',     score: 10, result: '現状のタスクと工数への影響を整理して佐藤先輩に共有。「それなら優先度を見直そう」と元請けとの交渉に持ち込んでもらえた。[+10点]' },
     { text: '黙って引き受けて徹夜で対応する',   score: -5, result: '「やります…」と一人で抱え込み、土日返上で対応。月曜には動くものができたが、佐藤先輩に「先に相談してよ…」と心配された。[-5点]' },
     { text: '一旦持ち帰り、週明けに回答する',   score:  5, result: '「持ち帰って確認します」とその場での即答は避けた。週明けチームで分担して対応できたが、金曜のうちに動けなかった分スケジュールはタイトに。[+5点]' },
+  ] as Choice[],
+  // ハードモード限定の追加分岐（下請け会社との連携がより濃く出る2択）
+  hardChoices: [
+    { text: '影響範囲を整理し、自社（二次請け）にも同時に状況を共有する', score: 5,
+      result: '元請けとの交渉だけでなく、自社にも同時に状況を報告。後で「報告が早くて助かった、こっちでも調整しておくよ」と会社側からもフォローが入った。[+5点]（ハード限定）' },
+    { text: '「今回だけなら」と個人の判断で安請け合いする', score: -5,
+      result: '「今回だけなら…」と個人で引き受けたことが、いつの間にか『前例』として定着。翌月から毎週金曜に追加要望が来るようになってしまった。「最初の対応が基準になるんだよ…」と佐藤先輩にしみじみ言われた。[-5点]（ハード限定）' },
   ] as Choice[],
 };
 
@@ -149,6 +158,8 @@ export class Chapter4Scene extends Phaser.Scene {
   private key1!: Phaser.Input.Keyboard.Key;
   private key2!: Phaser.Input.Keyboard.Key;
   private key3!: Phaser.Input.Keyboard.Key;
+  private key4!: Phaser.Input.Keyboard.Key;
+  private key5!: Phaser.Input.Keyboard.Key;
   private virtualPad!: VirtualPad;
 
   // HUD
@@ -175,6 +186,7 @@ export class Chapter4Scene extends Phaser.Scene {
   private choiceGfx!: Phaser.GameObjects.Graphics;
   private choiceTitle!: Phaser.GameObjects.Text;
   private choiceOpts: Phaser.GameObjects.Text[] = [];
+  private currentChoiceCount = 3;
   private resultText!: Phaser.GameObjects.Text;
   private resultCue!: Phaser.GameObjects.Text;
 
@@ -241,6 +253,8 @@ export class Chapter4Scene extends Phaser.Scene {
     this.key1 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
     this.key2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
     this.key3 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+    this.key4 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+    this.key5 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE);
 
     this.showNotice('「動けば正義」\nそのコード、半年後の自分が泣きます。', 4500);
   }
@@ -445,7 +459,7 @@ export class Chapter4Scene extends Phaser.Scene {
 
   private buildHintBar() {
     this.hintBarBg = this.add.graphics().setScrollFactor(0);
-    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-3：選択', {
+    this.hintBarText = this.add.text(0, 0, '矢印/WASD：移動　Space：話す/作業　1-5：選択', {
       fontSize: '12px', color: '#3a4a5a', fontFamily: 'monospace',
     }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
     this.layoutHintBar();
@@ -560,7 +574,7 @@ export class Chapter4Scene extends Phaser.Scene {
     this.npcSprites.get(npc.name)?.setFrame(NPC_FRAME.down);
     if (npc.name === '田中PM' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n💻 担当モジュールのコーディングをしてください\n自分の机（青いタイル）へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n💻 担当モジュールのコーディングをしてください\n自分の机へ行こう', 3000);
     } else if (npc.name === '佐藤先輩' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
       this.showNotice('ミッション受諾！\n📊 進捗を報告してください\n自分の机へ行こう', 3000);
@@ -575,7 +589,7 @@ export class Chapter4Scene extends Phaser.Scene {
     this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0).setResolution(2);
 
     this.choiceOpts = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       this.choiceOpts.push(
         this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2),
       );
@@ -594,8 +608,10 @@ export class Chapter4Scene extends Phaser.Scene {
   }
 
   private layoutChoicePanel() {
+    const n = this.currentChoiceCount;
+    const optGap = n <= 3 ? 46 : n === 4 ? 40 : 35;
     const PW = Math.min(580, this.canvasW - 40);
-    const PH = Math.min(210, this.canvasH - 40);
+    const PH = Math.min(56 + n * optGap + 30, this.canvasH - 40);
     const PX = (this.canvasW - PW) / 2;
     const PY = (this.canvasH - PH) / 2;
     const fontSize = this.canvasW < 500 ? '12px' : '14px';
@@ -607,12 +623,18 @@ export class Chapter4Scene extends Phaser.Scene {
 
     this.choiceTitle.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + 18).setWordWrapWidth(PW - 40, true);
 
-    for (let i = 0; i < 3; i++) {
-      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * 46).setWordWrapWidth(PW - 40, true);
+    for (let i = 0; i < 5; i++) {
+      this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * optGap).setWordWrapWidth(PW - 40, true);
     }
 
     this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
     this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
+  }
+
+  // ハードモードでは炎上イベントに専用の追加分岐(hardChoices)が2つ加わり、5択になる
+  private getChoices(key: 'coding' | 'progress90' | 'incident'): Choice[] {
+    if (key !== 'incident') return CHOICES[key];
+    return this.diffLevel === 'hard' ? [...INCIDENT.choices, ...INCIDENT.hardChoices] : INCIDENT.choices;
   }
 
   private openChoices(key: 'coding' | 'progress90' | 'incident') {
@@ -621,22 +643,29 @@ export class Chapter4Scene extends Phaser.Scene {
     const title = key === 'coding' ? '💻 どうやって実装しますか？'
       : key === 'progress90' ? '📊 進捗をどう報告しますか？'
       : INCIDENT.title;
+    const choices = this.getChoices(key);
+    this.currentChoiceCount = choices.length;
+    this.layoutChoicePanel();
     this.choiceGfx.setVisible(true);
     this.choiceTitle.setText(title).setVisible(true);
-    const choices = key === 'incident' ? INCIDENT.choices : CHOICES[key];
     const maxScore = Math.max(...choices.map(c => c.score));
-    for (let i = 0; i < 3; i++) {
-      const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
-      this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+    for (let i = 0; i < 5; i++) {
+      if (i < choices.length) {
+        const hint = this.diffCfg.showHints && choices[i].score === maxScore ? '  💡推奨' : '';
+        this.choiceOpts[i].setText(`[${i + 1}]  ${choices[i].text}${hint}`).setVisible(true);
+      } else {
+        this.choiceOpts[i].setVisible(false);
+      }
     }
     this.resultText.setVisible(false);
     this.proximityHint.setText('').setVisible(false);
-    this.virtualPad.setChoiceButtonsVisible(true);
+    this.virtualPad.setChoiceButtonsVisible(choices.length);
   }
 
   private handleChoice(idx: number) {
     if (this.choiceState !== 'open' || !this.missionKey) return;
-    const choices = this.missionKey === 'incident' ? INCIDENT.choices : CHOICES[this.missionKey];
+    const choices = this.getChoices(this.missionKey);
+    if (idx >= choices.length) return;
     const c = choices[idx];
     const mult = c.score >= 0 ? this.diffCfg.bonusMult : this.diffCfg.penaltyMult;
     this.score += Math.round(c.score * mult);
@@ -694,7 +723,7 @@ export class Chapter4Scene extends Phaser.Scene {
     for (const o of this.choiceOpts) o.setVisible(false);
     this.resultText.setVisible(false);
     this.resultCue.setVisible(false);
-    this.virtualPad.setChoiceButtonsVisible(false);
+    this.virtualPad.setChoiceButtonsVisible(0);
   }
 
   // ── Chapter clear ─────────────────────────────────────────────
@@ -861,6 +890,8 @@ export class Chapter4Scene extends Phaser.Scene {
       if (Phaser.Input.Keyboard.JustDown(this.key1) || padChoice === 1) this.handleChoice(0);
       if (Phaser.Input.Keyboard.JustDown(this.key2) || padChoice === 2) this.handleChoice(1);
       if (Phaser.Input.Keyboard.JustDown(this.key3) || padChoice === 3) this.handleChoice(2);
+      if (Phaser.Input.Keyboard.JustDown(this.key4) || padChoice === 4) this.handleChoice(3);
+      if (Phaser.Input.Keyboard.JustDown(this.key5) || padChoice === 5) this.handleChoice(4);
       return;
     }
     if (this.choiceState === 'result') {
