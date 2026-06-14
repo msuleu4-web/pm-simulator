@@ -32,22 +32,29 @@ const TILE_MAP: number[][] = [
   [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
   [W,F,F,F,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,F,F,D,D,D,W],
   [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
-  [W,F,F,F,F,F,P,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W], // P = col6
-  [W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
+  [W,F,F,F,F,F,P,P,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W], // P = col6-7 (jibun no desk, 2x2)
+  [W,F,F,F,F,F,P,P,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W],
   [W,W,W,W,W,W,W,W,W,W,W,W,E,W,W,W,W,W,W,W,W,W,W,W,W],
 ];
 
 const WALKABLE = new Set([F, E, P]);
 
 const TILE_COLORS: Record<number, number> = {
-  0: 0xE8E4D9, 1: 0x4A4A4A, 2: 0x8B6914, 3: 0x2a7a40, 5: 0x2a5aaa,
+  0: 0xE8E4D9, 1: 0x4A4A4A, 3: 0x2a7a40,
 };
 
 interface NpcDef { name: string; col: number; row: number; lines: string[]; }
 interface Choice  { text: string; score: number; result: string; }
 
 type Facing = 'down' | 'left' | 'right' | 'up';
-const PLAYER_FRAME: Record<Facing, number> = { down: 0, left: 1, right: 2, up: 3 };
+const PLAYER_FRAME: Record<Facing, number> = { right: 0, up: 1, left: 2, down: 3 };
+const PLAYER_WALK_FRAMES: Record<Facing, number[]> = {
+  right: [24, 25, 26, 27, 28, 29],
+  up: [30, 31, 32, 33, 34, 35],
+  left: [36, 37, 38, 39, 40, 41],
+  down: [42, 43, 44, 45, 46, 47],
+};
+const NPC_FRAME: Record<Facing, number> = { right: 0, up: 1, left: 2, down: 3 };
 const NPC_SPRITE_KEY: Record<string, string> = { '田中PM': 'npc-tanaka', '佐藤先輩': 'npc-sato', '鈴木さん': 'npc-suzuki' };
 
 const NPCS: NpcDef[] = [
@@ -268,18 +275,10 @@ export class Chapter7Scene extends Phaser.Scene {
     this.mapGfx.fillRect(x, y, TILE, TILE);
     if (type === 0) { this.mapGfx.lineStyle(1, 0x000000, 0.07); this.mapGfx.strokeRect(x, y, TILE, TILE); }
     if (type === 1) { this.mapGfx.fillStyle(0x686868, 1); this.mapGfx.fillRect(x, y, TILE, 4); }
-    if (type === 2) {
-      this.mapGfx.fillStyle(0x6b4f0e, 1); this.mapGfx.fillRect(x+2, y+2, TILE-4, TILE-4);
-      this.mapGfx.fillStyle(0xc8a030, 0.35); this.mapGfx.fillRect(x+5, y+5, TILE-10, TILE-10);
-    }
     if (type === 3) {
       this.mapGfx.fillStyle(0x4cbb6a, 0.55); this.mapGfx.fillRect(x+4, y+4, TILE-8, TILE-8);
       this.mapGfx.fillStyle(0xffffff, 0.6);
       this.mapGfx.fillTriangle(x+16, y+TILE-6, x+10, y+TILE-14, x+22, y+TILE-14);
-    }
-    if (type === 5) {
-      this.mapGfx.fillStyle(0x1a3a88, 1); this.mapGfx.fillRect(x+2, y+2, TILE-4, TILE-4);
-      this.mapGfx.fillStyle(0x6699ee, 0.5); this.mapGfx.fillRect(x+5, y+5, TILE-10, TILE-10);
     }
   }
 
@@ -301,6 +300,7 @@ export class Chapter7Scene extends Phaser.Scene {
     const deskTop = [455, 456, 457];
     const deskBottom = [471, 472, 473];
     const monitorFrames = [712, 713];
+    const chairSets: [number, number][] = [[129, 145], [131, 147]];
     let groupIdx = 0;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -312,8 +312,9 @@ export class Chapter7Scene extends Phaser.Scene {
           const centerX = (c + 1) * TILE + TILE / 2;
           this.add.image(centerX, r * TILE + TILE / 2, 'office', monitorFrames[groupIdx % 2]);
           if (TILE_MAP[r + 2]?.[c + 1] === F) {
-            this.add.image(centerX, (r + 2) * TILE + TILE / 2, 'office', 700);
-            this.add.image(centerX, (r + 3) * TILE + TILE / 2, 'office', 716);
+            const [chairTop, chairBottom] = chairSets[Phaser.Math.Between(0, 1)];
+            this.add.image(centerX, (r + 2) * TILE + TILE / 2, 'office', chairTop);
+            this.add.image(centerX, (r + 3) * TILE + TILE / 2, 'office', chairBottom);
           }
           groupIdx++;
         }
@@ -339,6 +340,27 @@ export class Chapter7Scene extends Phaser.Scene {
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
         this.add.image((2 + j) * TILE + TILE / 2, (2 + i) * TILE + TILE / 2, 'office', tableFrames[i][j]);
+      }
+    }
+
+    // 7. Whiteboards (2x2, wall-mounted near the ceiling)
+    const whiteboardSpots = [{ col: 2, row: 0 }, { col: 9, row: 0 }, { col: 16, row: 0 }];
+    for (const { col, row } of whiteboardSpots) {
+      this.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 233);
+      this.add.image((col + 1) * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 234);
+      this.add.image(col * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 250);
+      this.add.image((col + 1) * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 251);
+    }
+
+    // 8. Player's own desk (P tiles, 2x2)
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (TILE_MAP[r][c] === P && TILE_MAP[r - 1]?.[c] !== P && TILE_MAP[r]?.[c - 1] !== P) {
+          this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, 'office', 366);
+          this.add.image((c + 1) * TILE + TILE / 2, r * TILE + TILE / 2, 'office', 367);
+          this.add.image(c * TILE + TILE / 2, (r + 1) * TILE + TILE / 2, 'office', 382);
+          this.add.image((c + 1) * TILE + TILE / 2, (r + 1) * TILE + TILE / 2, 'office', 383);
+        }
       }
     }
   }
@@ -563,6 +585,7 @@ export class Chapter7Scene extends Phaser.Scene {
     const npc = this.activeNpc;
     this.activeNpc = null;
     if (!npc) return;
+    this.npcSprites.get(npc.name)?.setFrame(NPC_FRAME.down);
     if (npc.name === '田中PM' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
       this.showNotice('ミッション受諾！\n🚀 本番環境へのデプロイ準備をしてください\n自分の机（青いタイル）へ行こう', 3000);
@@ -783,19 +806,22 @@ export class Chapter7Scene extends Phaser.Scene {
   // ── Characters ────────────────────────────────────────────────
 
   private buildCharacterSprites() {
-    if (!this.anims.exists('player-walk-down')) {
-      this.anims.create({
-        key: 'player-walk-down',
-        frames: this.anims.generateFrameNumbers('player-walk', { frames: [24, 26, 28, 30, 32, 34] }),
-        frameRate: 8,
-        repeat: -1,
-      });
-    }
+    (Object.keys(PLAYER_WALK_FRAMES) as Facing[]).forEach((dir) => {
+      const key = `player-walk-${dir}`;
+      if (!this.anims.exists(key)) {
+        this.anims.create({
+          key,
+          frames: this.anims.generateFrameNumbers('player-walk', { frames: PLAYER_WALK_FRAMES[dir] }),
+          frameRate: 8,
+          repeat: -1,
+        });
+      }
+    });
     for (const npc of NPCS) {
-      const sprite = this.add.image(npc.col * TILE + 16, npc.row * TILE + 16, NPC_SPRITE_KEY[npc.name], 0).setScale(2);
+      const sprite = this.add.image(npc.col * TILE + 16, npc.row * TILE + 16, NPC_SPRITE_KEY[npc.name], NPC_FRAME.down).setScale(2);
       this.npcSprites.set(npc.name, sprite);
     }
-    this.playerSprite = this.add.sprite(this.player.x, this.player.y, 'player-walk', 0).setScale(2);
+    this.playerSprite = this.add.sprite(this.player.x, this.player.y, 'player-walk', PLAYER_FRAME.down).setScale(2);
   }
 
   private drawChars() {
@@ -806,16 +832,20 @@ export class Chapter7Scene extends Phaser.Scene {
   }
 
   private updatePlayerAnimation() {
-    const sprite = this.playerSprite;
-    sprite.setFlipX(this.facing === 'left');
-    sprite.play('player-walk-down', true);
+    this.playerSprite.play(`player-walk-${this.facing}`, true);
   }
 
   private faceNpcToPlayer(npc: NpcDef) {
     const sprite = this.npcSprites.get(npc.name);
     if (!sprite) return;
-    const playerRow = this.player.y / TILE;
-    sprite.setFrame(playerRow >= npc.row ? 0 : 1);
+    const { col: playerCol, row: playerRow } = this.playerTile();
+    const dx = playerCol - npc.col;
+    const dy = playerRow - npc.row;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      sprite.setFrame(dx > 0 ? NPC_FRAME.right : NPC_FRAME.left);
+    } else {
+      sprite.setFrame(dy > 0 ? NPC_FRAME.down : NPC_FRAME.up);
+    }
   }
 
   // ── Collision ─────────────────────────────────────────────────
@@ -940,7 +970,6 @@ export class Chapter7Scene extends Phaser.Scene {
     if (dx === 0 && dy === 0) {
       if (this.playerSprite.anims.isPlaying) {
         this.playerSprite.anims.stop();
-        this.playerSprite.setFlipX(false);
         this.playerSprite.setFrame(PLAYER_FRAME[this.facing]);
       }
       return;
