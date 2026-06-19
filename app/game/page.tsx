@@ -11,6 +11,7 @@ const JP_FONT = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo
 const IMPLEMENTED_SCENES = new Set([
   'Chapter1Scene', 'Chapter2Scene', 'Chapter3Scene', 'Chapter4Scene', 'Chapter5Scene', 'Chapter6Scene', 'Chapter7Scene',
   'EasyChapter1Scene', 'EasyChapter2Scene', 'EasyChapter3Scene', 'EasyChapter4Scene', 'EasyChapter5Scene', 'EasyChapter6Scene', 'EasyChapter7Scene',
+  'HardChapter1Scene', 'HardChapter2Scene', 'HardChapter3Scene', 'HardChapter4Scene',
 ]);
 
 // ── SIer道場 title screen (Phaser) ─────────────────────────────
@@ -165,9 +166,12 @@ function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
         {CHAPTERS.map((ch, i) => {
           const isCleared = cleared.includes(getModeChapterId(ch.id, difficulty));
           const unlocked = isChapterUnlocked(i, cleared, difficulty);
-          const sceneName = difficulty === 'easy' ? ch.easySceneName : ch.sceneName;
-          const title = difficulty === 'easy' ? ch.easyTitle : ch.title;
-          const description = difficulty === 'easy' ? ch.easyDescription : ch.description;
+          const sceneName = difficulty === 'easy' ? ch.easySceneName
+            : difficulty === 'hard' ? ch.hardSceneName : ch.sceneName;
+          const title = difficulty === 'easy' ? ch.easyTitle
+            : difficulty === 'hard' ? ch.hardTitle : ch.title;
+          const description = difficulty === 'easy' ? ch.easyDescription
+            : difficulty === 'hard' ? ch.hardDescription : ch.description;
           const playable = unlocked && IMPLEMENTED_SCENES.has(sceneName);
           return (
             <div

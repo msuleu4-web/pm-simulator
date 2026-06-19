@@ -13,11 +13,16 @@ import { EasyChapter4Scene } from './scenes/easy/EasyChapter4Scene';
 import { EasyChapter5Scene } from './scenes/easy/EasyChapter5Scene';
 import { EasyChapter6Scene } from './scenes/easy/EasyChapter6Scene';
 import { EasyChapter7Scene } from './scenes/easy/EasyChapter7Scene';
+import { HardChapter1Scene } from './scenes/hard/HardChapter1Scene';
+import { HardChapter2Scene } from './scenes/hard/HardChapter2Scene';
+import { HardChapter3Scene } from './scenes/hard/HardChapter3Scene';
+import { HardChapter4Scene } from './scenes/hard/HardChapter4Scene';
 import { TitleScene } from './scenes/TitleScene';
 
 const NORMAL_CHAPTER_SCENES = [Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, Chapter6Scene, Chapter7Scene];
 const EASY_CHAPTER_SCENES = [EasyChapter1Scene, EasyChapter2Scene, EasyChapter3Scene, EasyChapter4Scene, EasyChapter5Scene, EasyChapter6Scene, EasyChapter7Scene];
-const ALL_CHAPTER_SCENES = [...NORMAL_CHAPTER_SCENES, ...EASY_CHAPTER_SCENES];
+const HARD_CHAPTER_SCENES = [HardChapter1Scene, HardChapter2Scene, HardChapter3Scene, HardChapter4Scene];
+const ALL_CHAPTER_SCENES = [...NORMAL_CHAPTER_SCENES, ...EASY_CHAPTER_SCENES, ...HARD_CHAPTER_SCENES];
 
 // Keyed by string literal (not class.name) so scene lookup survives production minification,
 // which mangles class names but never rewrites object-literal string keys.
@@ -37,6 +42,10 @@ const SCENE_REGISTRY: Record<string, new (...args: never[]) => Phaser.Scene> = {
   'EasyChapter5Scene': EasyChapter5Scene,
   'EasyChapter6Scene': EasyChapter6Scene,
   'EasyChapter7Scene': EasyChapter7Scene,
+  'HardChapter1Scene': HardChapter1Scene,
+  'HardChapter2Scene': HardChapter2Scene,
+  'HardChapter3Scene': HardChapter3Scene,
+  'HardChapter4Scene': HardChapter4Scene,
 };
 
 export function createGame(parent: HTMLElement, startScene?: string): Phaser.Game {
