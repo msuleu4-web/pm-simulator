@@ -11,7 +11,7 @@ const JP_FONT = '"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo
 const IMPLEMENTED_SCENES = new Set([
   'Chapter1Scene', 'Chapter2Scene', 'Chapter3Scene', 'Chapter4Scene', 'Chapter5Scene', 'Chapter6Scene', 'Chapter7Scene',
   'EasyChapter1Scene', 'EasyChapter2Scene', 'EasyChapter3Scene', 'EasyChapter4Scene', 'EasyChapter5Scene', 'EasyChapter6Scene', 'EasyChapter7Scene',
-  'HardChapter1Scene', 'HardChapter2Scene', 'HardChapter3Scene', 'HardChapter4Scene',
+  'HardChapter1Scene', 'HardChapter2Scene', 'HardChapter3Scene', 'HardChapter4Scene', 'HardChapter5Scene', 'HardChapter6Scene', 'HardChapter7Scene',
 ]);
 
 // ── SIer道場 title screen (Phaser) ─────────────────────────────

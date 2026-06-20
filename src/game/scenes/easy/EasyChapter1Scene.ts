@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+﻿import * as Phaser from 'phaser';
 import { markChapterCleared, saveChapterScore } from '../../chapters';
 import { VirtualPad } from '../../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../../difficulty';
@@ -343,8 +343,8 @@ export class EasyChapter1Scene extends Phaser.Scene {
     for (const { col, row } of whiteboardSpots) {
       this.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 233);
       this.add.image((col + 1) * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 234);
-      this.add.image(col * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 250);
-      this.add.image((col + 1) * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 251);
+      this.add.image(col * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 249);
+      this.add.image((col + 1) * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 250);
     }
 
     // 8. Player's own desk (P tiles, 2x2)

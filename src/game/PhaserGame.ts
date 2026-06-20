@@ -17,11 +17,14 @@ import { HardChapter1Scene } from './scenes/hard/HardChapter1Scene';
 import { HardChapter2Scene } from './scenes/hard/HardChapter2Scene';
 import { HardChapter3Scene } from './scenes/hard/HardChapter3Scene';
 import { HardChapter4Scene } from './scenes/hard/HardChapter4Scene';
+import { HardChapter5Scene } from './scenes/hard/HardChapter5Scene';
+import { HardChapter6Scene } from './scenes/hard/HardChapter6Scene';
+import { HardChapter7Scene } from './scenes/hard/HardChapter7Scene';
 import { TitleScene } from './scenes/TitleScene';
 
 const NORMAL_CHAPTER_SCENES = [Chapter1Scene, Chapter2Scene, Chapter3Scene, Chapter4Scene, Chapter5Scene, Chapter6Scene, Chapter7Scene];
 const EASY_CHAPTER_SCENES = [EasyChapter1Scene, EasyChapter2Scene, EasyChapter3Scene, EasyChapter4Scene, EasyChapter5Scene, EasyChapter6Scene, EasyChapter7Scene];
-const HARD_CHAPTER_SCENES = [HardChapter1Scene, HardChapter2Scene, HardChapter3Scene, HardChapter4Scene];
+const HARD_CHAPTER_SCENES = [HardChapter1Scene, HardChapter2Scene, HardChapter3Scene, HardChapter4Scene, HardChapter5Scene, HardChapter6Scene, HardChapter7Scene];
 const ALL_CHAPTER_SCENES = [...NORMAL_CHAPTER_SCENES, ...EASY_CHAPTER_SCENES, ...HARD_CHAPTER_SCENES];
 
 // Keyed by string literal (not class.name) so scene lookup survives production minification,
@@ -46,6 +49,9 @@ const SCENE_REGISTRY: Record<string, new (...args: never[]) => Phaser.Scene> = {
   'HardChapter2Scene': HardChapter2Scene,
   'HardChapter3Scene': HardChapter3Scene,
   'HardChapter4Scene': HardChapter4Scene,
+  'HardChapter5Scene': HardChapter5Scene,
+  'HardChapter6Scene': HardChapter6Scene,
+  'HardChapter7Scene': HardChapter7Scene,
 };
 
 export function createGame(parent: HTMLElement, startScene?: string): Phaser.Game {

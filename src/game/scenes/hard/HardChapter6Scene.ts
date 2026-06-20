@@ -58,76 +58,76 @@ const NPC_FRAME: Record<Facing, number> = { right: 0, up: 1, left: 2, down: 3 };
 const NPC_SPRITE_KEY: Record<string, string> = { '韮沢CTO': 'npc-nirasawa', '戸田さん': 'npc-toda', 'オダギリさん': 'npc-odagiri' };
 
 const NPCS: NpcDef[] = [
-  { name: '韮沢CTO',   col: 2,  row: 1, lines: ['お、次の機能だけど、これそのまま本番に出しちゃっていいから', 'プロトタイプ？製品？うーん、動けばどっちでもいいんじゃない', '細かいエッジケースは…まあ動かしてみて、問題あったら直せばいいよ', 'とりあえず触れる状態にして、見せてもらえると嬉しいかな', 'よろしく〜、また何かあったらSlackで言うね'] },
-  { name: '戸田さん', col: 9, row: 3, lines: ['お疲れ様！さっきの機能、進んでる？', 'ここでは「プロトタイプ」と「製品」の境目がほぼ無いから、気をつけてね', 'ところで、今の進み具合、ちょっと教えてもらえる？', '正直なところで大丈夫だよ、無理に「順調です」って言わなくていいから'] },
-  { name: 'オダギリさん', col: 14, row: 9, lines: ['お疲れ様です…', 'さっき韮沢が「もう本番に出しちゃっていいよね？」って言ってたんですけど…', '正直、テストとか確認とか、ちゃんとできてるのかちょっと心配で…', 'もし「ここはまだ未確認です」みたいな情報があれば、教えてもらえると助かります'] },
+  { name: '韮沢CTO',   col: 2,  row: 1, lines: ['あ、前に頼んだやつなんだけど、ちょっと方向変えたいと思って', '細かいのは後で連絡するけど、まあ大体こんな感じで進めて', 'あと今日ふと思ったんだけど、あの機能にも追加で一個お願いしてもいい？', '品質とかはもちろん大事なんだけど、とにかく早く出したいな〜', 'よろしく！じゃあ、がんばって！'] },
+  { name: '戸田さん', col: 9, row: 3, lines: ['ねえ、正直に聞くけど…いまどのくらい大変？', 'これだけ仕様が変わると、「元々何を作るはずだったか」が分からなくなるよね', 'オダギリさんが「記録があれば交渉できるんだけど」って言ってたよ', '一緒に立て直せるか、整理してみよう'] },
+  { name: 'オダギリさん', col: 14, row: 9, lines: ['…正直、かなりまずい状況です', '韮沢が「あれも追加」「これも変更」って言い続けていて、当初の予定から全然変わっちゃってます', '記録が残っていれば「ここまでは対応できますが、これ以上はスケジュールに影響します」って言えるんですけど', '…何か残ってますか？'] },
 ];
 
 const DOCUMENTS: ChapterDocument[] = [
-  { id: 'doc-caution', col: 12, row: 8, label: '資料📄',
-    dialog: '机の脇に、「本番環境での作業について」という注意喚起ポスターが貼られている。\n\nどこかの会社の研修資料らしく、\n「検証環境で十分に確認してから本番に反映しましょう」と書かれている。\n\n「…Spireには、検証環境という概念が薄いんだよな。\nでも、せめて自分の中で『試してから出す』を意識してみよう。」',
-    imageKey: 'caution', imageLabel: '本番作業の注意喚起（参考資料）', required: true,
-    blockedHint: '机の上の資料をチェックしてみよう…\n本番リリースの進め方の参考になるかもしれない。' },
-  { id: 'doc-riskmatrix', col: 17, row: 8, label: '資料📄',
-    dialog: '本棚に挟まっていた資料に、リスクマトリクス（影響度×発生確率）の図が描かれている。\n\n「プロトタイプ」のつもりで作ったものが、そのまま「製品」として\n使われ続けるリスクは――表の右上、\n"影響度・大、発生確率・高"に位置しそうだ。\n\n「ここを意識して動くだけでも、ちょっと変わるかもしれない。」',
+  { id: 'doc-subcontract2', col: 12, row: 8, label: '資料📄',
+    dialog: '本棚に「業務委託契約書」の写しが挟まっていた。\n\n当初の契約範囲と、今やっていることを見比べてみると…\n「これ、だいぶ当初のスコープから外れてるな」と気づく。\n\n「でも、Spireには契約の話を持ち出せるような雰囲気がない。\nせめて変更内容の記録だけは残しておいて、\nもし何かあった時の手がかりにしよう。」',
+    imageKey: 'subcontract2', imageLabel: '業務委託契約書（参考資料）', required: true,
+    blockedHint: '机の上の資料をチェックしてみよう…\n炎上対応の参考になるかもしれない。' },
+  { id: 'doc-riskmatrix2', col: 17, row: 8, label: '資料📄',
+    dialog: '棚の資料を見ていたら、リスクマトリクスの図が出てきた。\n\n「仕様が変わるたびにスコープが膨らむ」リスクを、\n発生確率・影響度の両面で見ると――今がまさにそこにいる。\n\n「記録を残しておくことは、このリスクが顕在化した時の\n唯一の武器になるかもしれない。」',
     imageKey: 'risk-matrix', required: true,
-    blockedHint: '机の上の資料をチェックしてみよう…\n本番リリースの進め方の参考になるかもしれない。' },
+    blockedHint: '机の上の資料をチェックしてみよう…\n炎上対応の参考になるかもしれない。' },
 ];
 
-// スコアバランス: ミッション1(build)+ミッション2(status)+炎上イベント(INCIDENT)の
+// スコアバランス: ミッション1(record)+ミッション2(recover)+炎上イベント(INCIDENT)の
 // 計3セット、各セット{+10,-5,+5}＋あるある失敗用の0/-10オプション。本章の最大30点。
 // 全7章合計・難易度別最低点・エース判定の詳細は src/game/chapters.ts のコメント参照。
-const CHOICES: Record<'build' | 'status', Choice[]> = {
-  build: [
-    { text: '韮沢CTOの依頼内容を、想定される使い方も含めて一度自分なりに整理してから実装する', score: 10,
-      result: '整理したことで、想定外のケースにもいくつか気づけた。実装後、想定通り動くものができ、戸田さんに「丁寧だね」と言われた。[+10点]' },
-    { text: '「動けばOK」をそのまま受け取り、最短ルートだけ動くように実装する', score: -5,
-      result: '最短ルートは動いたが、少し違う使い方をするとすぐエラーになった。オダギリさんから「あの、これ動かないんですけど…」と連絡が来た。[-5点]' },
-    { text: '戸田さんに「これ、プロトタイプとして見せる感じで大丈夫ですか？」と確認してから実装する', score: 5,
-      result: '戸田さんが「うん、まずはそれでOK」と方向性を確認してくれた。安心して手を動かせた。[+5点]' },
-    { text: '同じような機能を以前作った時のコードを、ほぼそのままコピーして使う', score: 0,
-      result: '見た目は早く動いたが、今回の要件とは細かい部分がズレていて、後から調整が必要になった。「コピペは早いけど、ちゃんと見直そうね」と言われた。[±0点]' },
-    { text: '「とりあえず動くから」と、エラー処理を全部省略して実装する', score: -10,
-      result: '一見問題なく動いていたが、少し特殊な操作をすると画面が真っ白になる不具合が発生。オダギリさんが顔色を変えて「これ、お客さんが触ってるんですけど…！」と連絡してきた。[-10点]' },
+const CHOICES: Record<'record' | 'recover', Choice[]> = {
+  record: [
+    { text: '変更内容・日時をSlackに整理しながら記録し、「これで合っていますか？」と確認を送る', score: 10,
+      result: '変更の履歴が整理されたことで、オダギリさんが「これを元に説明できます！」と喜んでくれた。韮沢CTOも「あ、そうそうそんな感じ」と方向を確認してくれた。[+10点]' },
+    { text: '頭の中で整理するだけにして、記録は残さない', score: -5,
+      result: '数日後、韮沢CTOから「あれ、ちょっと違うな」と言われた。どこでズレたのかが分からず、一から確認しなおすことになった。[-5点]' },
+    { text: '変更の内容だけをメモ帳に書き留めておく', score: 5,
+      result: '最低限の記録は残せた。後で確認する際にメモが役立ったが、日時や担当者の情報が無く、少し説明に苦労した。[+5点]' },
+    { text: '変更が重なり過ぎて諦め、「最新のものだけ覚えておく」ことにする', score: 0,
+      result: '最新の変更内容は把握できていたが、「以前はどうだったか」を聞かれた時に答えられなかった。戸田さんに「残しておくと後が楽だよ」と言われた。[±0点]' },
+    { text: '忙しいので変更内容を確認せずに、「分かりました」とだけ返事する', score: -10,
+      result: '後日、実装が全く異なる方向で進んでいたことが発覚。「確認しないで進めちゃったの？」と戸田さんに驚かれた。[-10点]' },
   ],
-  status: [
-    { text: '「ここまではできているが、ここから先は未確認」と、できている部分とできていない部分を分けて伝える', score: 10,
-      result: '戸田さんから「それなら今どこに集中すればいいか分かるね」と言われた。状況が整理され、次の動き方も決めやすくなった。[+10点]' },
-    { text: '「だいたい大丈夫です」とだけ伝える', score: -5,
-      result: '後で「だいたいって、どのくらい？」と聞かれてしまい、結局細かく説明することになった。[-5点]' },
-    { text: '不安な部分について、「ここは正直自信がないです」と伝える', score: 5,
-      result: '戸田さんが「そこは私も一緒に確認するよ」と言ってくれた。一人で抱え込まずに済んだ。[+5点]' },
-    { text: '進捗の話を避けて、別の話題に変える', score: 0,
-      result: '会話は和やかに終わったが、進捗については結局何も共有されなかった。後で戸田さんに「結局どうだったのか聞きそびれちゃった」と言われた。[±0点]' },
-    { text: '聞かれる前に「順調です、問題ありません」と先に言ってしまう', score: -10,
-      result: '数日後、想定外の不具合が見つかり、「順調って言ってたのに…」という空気になってしまった。[-10点]' },
+  recover: [
+    { text: '記録を使って「当初の範囲」と「追加分」を仕分けし、対応可能なものをオダギリさんに共有する', score: 10,
+      result: '記録をもとにした仕分けで、「どれが今回必須か」を明確にできた。オダギリさんが「これで韮沢と交渉できます」と具体的に動いてくれた。[+10点]' },
+    { text: 'とにかく全部終わらせようとして、全戦線で無理をする', score: -5,
+      result: '体力と集中力が限界を超え、実装のいくつかに見落としが出てしまった。戸田さんから「無理しなくていいから、まず整理しよう」と声をかけられた。[-5点]' },
+    { text: '戸田さんに「どこから手をつけるべきか」相談して、一緒に優先順位をつける', score: 5,
+      result: '戸田さんが一緒に優先順位を整理してくれた。全部は無理でも、重要なものから確実に進める道筋が見えた。[+5点]' },
+    { text: '韮沢CTOに「もう少し時間をください」とだけ伝えて、その場をしのぐ', score: 0,
+      result: '一時的には時間ができたが、「何を、いつまでに」が整理されないまま時間が過ぎ、また追い詰められることになった。[±0点]' },
+    { text: '誰にも相談せず、「なんとかなる」と思って一人で抱え込む', score: -10,
+      result: '数日後、戸田さんから「最近どう？」と声をかけられた時、ついに限界が来ていることが表情に出てしまった。「早めに言ってよ」とやさしく、でも少し悲しそうに言われた。[-10点]' },
   ],
 };
 
 // 炎上イベント — ミッションの合間に発生する「あるある」割り込みイベント
 const INCIDENT = {
-  notice: '🔥プチ炎上アラート🔥\nオダギリさんからDM。\n「すみません、お客さんが先ほどの機能を使っていて、画面がフリーズしたと連絡がありました…」',
-  title: '🔥 本番で動いている機能が、フリーズした！？どうする？',
+  notice: '🔥炎上アラート🔥\n韮沢CTOからSlack。\n「ちょっと聞いていい？やっぱりあの機能、\n今週中にリリースできそう？」',
+  title: '🔥 「今週中にリリースできそう？」、どう答える？',
   choices: [
-    { text: 'まず韮沢CTOとオダギリさんに「確認します」と伝え、再現条件を一緒に確認する', score: 10,
-      result: '再現条件を整理したことで、原因の特定がスムーズに進んだ。オダギリさんから「落ち着いて対応してもらえて助かりました」と言われた。[+10点]' },
-    { text: 'とりあえずコードを少し直して、「直したと思います」と報告する', score: -5,
-      result: '実は別の場所が原因で、再びフリーズが発生。オダギリさんが「あの、また同じ症状が…」と再度連絡してきた。[-5点]' },
-    { text: '戸田さんに「ちょっと一緒に見てもらえますか？」と声をかける', score: 5,
-      result: '戸田さんが画面を一緒に確認してくれて、思いつかなかった視点からヒントをもらえた。一人より早く状況が整理できた。[+5点]' },
-    { text: '「お客様の環境の問題かもしれません」と、まずは様子を見ることにする', score: 0,
-      result: 'しばらく様子を見ている間に、オダギリさんから「他のお客さんからも同じ報告が来てます…」と追加の連絡が来た。[±0点]' },
-    { text: '「動いてたんで、こちらのせいじゃないかもしれないです」とオダギリさんに伝える', score: -10,
-      result: 'オダギリさんは「…そう、ですか」と少し困った様子で、その後韮沢CTOにも話が伝わり、気まずい空気になった。[-10点]' },
+    { text: 'できている部分とできていない部分を正直に伝えた上で「今週は難しいですが、〇〇まではできます」と回答する', score: 10,
+      result: '正直に状況を伝えたことで、韮沢CTOが「じゃあそこだけでいいよ」とスコープを絞ってくれた。オダギリさんからも「ちゃんと伝えてもらえて助かりました」と言われた。[+10点]' },
+    { text: 'プレッシャーに負けて「できます」と言ってしまう', score: -5,
+      result: '週末に間に合わず、「できますって言ったのに…」という空気が漂った。[-5点]' },
+    { text: '戸田さんに状況を共有した上で「今週は難しいかもしれません」と伝える', score: 5,
+      result: '戸田さんが一緒に状況を確認してくれて、韮沢CTOへの説明も少しサポートしてもらえた。一人より伝えやすかった。[+5点]' },
+    { text: '「検討します」と答えて、時間を稼ぐ', score: 0,
+      result: '翌日また「で、どうなりそう？」と聞かれて、結局同じ状況に戻った。[±0点]' },
+    { text: '返事をせずに既読スルーする', score: -10,
+      result: '韮沢CTOから「連絡きてないんだけど、どうなってる？」と追加メッセージが来た。スルーが逆に状況を悪化させた。[-10点]' },
   ] as Choice[],
 };
 
 const MISSION_LABEL = [
   'NPCに話しかけよう',
-  '💻 機能を実装しよう（自分の机へ）',
-  '💻 完了！  戸田さんに話しかけよう',
-  '📊 進み具合を伝えて（自分の机へ）',
-  '📊 全ミッション完了！',
+  '📝 仕様変更を記録しよう（自分の机へ）',
+  '📝 完了！  戸田さんに話しかけよう',
+  '🔥 立て直しを進めよう（自分の机へ）',
+  '🔥 全ミッション完了！',
 ];
 
 type DialogState = 'closed' | 'typing' | 'waiting';
@@ -135,7 +135,7 @@ type ChoiceState  = 'hidden' | 'open' | 'result';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export class HardChapter4Scene extends Phaser.Scene {
+export class HardChapter6Scene extends Phaser.Scene {
   private mapGfx!: Phaser.GameObjects.Graphics;
   private charGfx!: Phaser.GameObjects.Graphics;
 
@@ -162,7 +162,7 @@ export class HardChapter4Scene extends Phaser.Scene {
 
   // choice
   private choiceState: ChoiceState = 'hidden';
-  private missionKey: 'build' | 'status' | 'incident' | null = null;
+  private missionKey: 'record' | 'recover' | 'incident' | null = null;
 
   // 炎上イベント
   private incidentDone = false;
@@ -227,7 +227,7 @@ export class HardChapter4Scene extends Phaser.Scene {
   private clearScore!: Phaser.GameObjects.Text;
   private clearNext!: Phaser.GameObjects.Text;
 
-  constructor() { super({ key: 'HardChapter4Scene' }); }
+  constructor() { super({ key: 'HardChapter6Scene' }); }
 
   preload() {
     this.load.spritesheet('office', '/game-assets/Modern_Office_32x32.png', {
@@ -291,7 +291,7 @@ export class HardChapter4Scene extends Phaser.Scene {
     window.addEventListener('sier-doc-image-closed', this.onDocImageClosed);
     this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
 
-    this.showNotice('韮沢CTOから新しい機能の依頼が来ました。\nまずは机の上の資料を確認してみましょう。', 4500);
+    this.showNotice('仕様変更が連発しています。\nまずは机の上の資料を確認しながら状況を整理しましょう。', 4500);
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -323,7 +323,6 @@ export class HardChapter4Scene extends Phaser.Scene {
   // ── Sprite decorations (drawn over the Graphics map) ──────────
 
   private buildSprites() {
-    // 1. Floor tile variation
     const floorFrames = [77, 78, 93, 94];
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -334,7 +333,6 @@ export class HardChapter4Scene extends Phaser.Scene {
       }
     }
 
-    // 2-4. Desk groups (3x2) + chair (2-tile, in the empty row below) + monitor (desk-top center)
     const deskTop = [455, 456, 457];
     const deskBottom = [471, 472, 473];
     const monitorFrames = [712, 713];
@@ -359,7 +357,6 @@ export class HardChapter4Scene extends Phaser.Scene {
       }
     }
 
-    // 5. Plants (4 spots, 2-tile vertical stack)
     const plantSpots = [
       { col: 1, row: 1 }, { col: 23, row: 5 },
       { col: 1, row: 17 }, { col: 23, row: 17 },
@@ -369,19 +366,11 @@ export class HardChapter4Scene extends Phaser.Scene {
       this.add.image(col * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 182);
     }
 
-    // 6. Meeting table (3x3) in the meeting room
-    const tableFrames = [
-      [65, 66, 67],
-      [81, 82, 83],
-      [97, 98, 99],
-    ];
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
+    const tableFrames = [[65, 66, 67], [81, 82, 83], [97, 98, 99]];
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
         this.add.image((2 + j) * TILE + TILE / 2, (2 + i) * TILE + TILE / 2, 'office', tableFrames[i][j]);
-      }
-    }
 
-    // 7. Whiteboards (2x2, wall-mounted near the ceiling)
     const whiteboardSpots = [{ col: 2, row: 0 }, { col: 9, row: 0 }, { col: 16, row: 0 }];
     for (const { col, row } of whiteboardSpots) {
       this.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 233);
@@ -390,7 +379,6 @@ export class HardChapter4Scene extends Phaser.Scene {
       this.add.image((col + 1) * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 250);
     }
 
-    // 8. Player's own desk (P tiles, 2x2)
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (TILE_MAP[r][c] === P && TILE_MAP[r - 1]?.[c] !== P && TILE_MAP[r]?.[c - 1] !== P) {
@@ -407,7 +395,7 @@ export class HardChapter4Scene extends Phaser.Scene {
 
   private buildHud() {
     this.hudBg = this.add.graphics().setScrollFactor(0);
-    this.hudTitle = this.add.text(10, 5, '第4章　製造', { fontSize: '11px', color: '#7799aa', fontFamily: JP }).setScrollFactor(0).setResolution(2);
+    this.hudTitle = this.add.text(10, 5, '第6章　炎上と立て直し', { fontSize: '11px', color: '#7799aa', fontFamily: JP }).setScrollFactor(0).setResolution(2);
     this.hudMission = this.add.text(0, 5, MISSION_LABEL[0], { fontSize: '14px', color: '#ddcc88', fontFamily: JP }).setOrigin(0.5, 0).setScrollFactor(0).setResolution(2);
     this.hudScore   = this.add.text(0, 5, `${this.diffCfg.label} | Score: 0`, { fontSize: '14px', color: DIFFICULTY_HUD_COLOR[this.diffLevel], fontFamily: JP }).setOrigin(1, 0).setScrollFactor(0).setResolution(2);
     this.layoutHud();
@@ -416,11 +404,9 @@ export class HardChapter4Scene extends Phaser.Scene {
   private layoutHud() {
     const compact = this.canvasW < 560;
     const h = compact ? 46 : 26;
-
     this.hudBg.clear();
     this.hudBg.fillStyle(0x0a0a14, 0.93); this.hudBg.fillRect(0, 0, this.canvasW, h);
     this.hudBg.lineStyle(1, 0x223344, 1); this.hudBg.strokeRect(0, 0, this.canvasW, h);
-
     this.hudTitle.setPosition(10, 5);
     this.hudScore.setPosition(this.canvasW - 90, 5);
     if (compact) {
@@ -533,12 +519,15 @@ export class HardChapter4Scene extends Phaser.Scene {
   private getLines(npc: NpcDef): string[] {
     if (npc.name === '韮沢CTO') {
       if (this.gameStep === 0) return npc.lines;
-      if (this.gameStep === 1) return ['例の機能、できそう？', '急いでなくていいけど、見れる状態になったら教えて', '机に戻って進めてて'];
-      return ['お、見れた！ありがとう', 'こういう感じで、また色々お願いするかも', 'よろしくね〜'];
+      if (this.gameStep === 1) return ['あの件、進んでる？', '何かあったらSlackで言って〜', '机で進めといてね'];
+      return ['あ、記録してくれてたんだ！ありがとう', 'また何か追加あったら言うね〜', 'よろしく！'];
     }
     if (npc.name === '戸田さん') {
       if (this.gameStep >= 2 && this.gameStep < 3) return npc.lines;
-      if (this.gameStep >= 3) return ['状況、教えてくれてありがとう', '正直に話してくれると、こっちも動きやすいよ', '一緒に進めていこう'];
+      if (this.gameStep >= 3) return ['整理してみて、どうだった？', '一人で抱え込まなくて正解だよ', '記録って大事だね、こういう時に'];
+    }
+    if (npc.name === 'オダギリさん') {
+      if (this.gameStep >= 3) return ['ありがとうございます、記録があると動きやすいです', 'もう少し落ち着いたら、一緒に整理しましょう', '（ここの環境でやっていくには、自分で記録するしかないんだな…）'];
     }
     return npc.lines;
   }
@@ -626,10 +615,10 @@ export class HardChapter4Scene extends Phaser.Scene {
     this.npcSprites.get(npc.name)?.setFrame(NPC_FRAME.down);
     if (npc.name === '韮沢CTO' && this.gameStep === 0) {
       this.gameStep = 1; this.updateHud();
-      this.showNotice('ミッション受諾！\n💻 機能を実装してください\n自分の机へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n📝 仕様変更の内容を記録してください\n自分の机へ行こう', 3000);
     } else if (npc.name === '戸田さん' && this.gameStep === 2) {
       this.gameStep = 3; this.updateHud();
-      this.showNotice('ミッション受諾！\n📊 進み具合を伝えてください\n自分の机へ行こう', 3000);
+      this.showNotice('ミッション受諾！\n🔥 立て直しを進めてください\n自分の机へ行こう', 3000);
     }
   }
 
@@ -669,25 +658,20 @@ export class HardChapter4Scene extends Phaser.Scene {
 
   private buildChoicePanel() {
     this.choiceGfx = this.add.graphics().setVisible(false).setScrollFactor(0);
-
     this.choiceTitle = this.add.text(0, 0, '', { fontSize: '16px', color: '#aaccee', fontFamily: JP, fontStyle: 'bold' }).setOrigin(0.5, 0).setVisible(false).setScrollFactor(0).setResolution(2);
-
     this.choiceOpts = [];
     for (let i = 0; i < 5; i++) {
       this.choiceOpts.push(
         this.add.text(0, 0, '', { fontSize: '15px', color: '#ddeeff', fontFamily: JP }).setVisible(false).setScrollFactor(0).setResolution(2),
       );
     }
-
     this.resultText = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ffdd88', fontFamily: JP, align: 'center',
       backgroundColor: '#00000099', padding: { x: 14, y: 10 },
     }).setOrigin(0.5, 0.5).setVisible(false).setScrollFactor(0).setResolution(2);
-
     this.resultCue = this.add.text(0, 0, '', {
       fontSize: '12px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(1, 1).setVisible(false).setScrollFactor(0).setResolution(2);
-
     this.layoutChoicePanel();
   }
 
@@ -699,31 +683,26 @@ export class HardChapter4Scene extends Phaser.Scene {
     const PX = (this.canvasW - PW) / 2;
     const PY = (this.canvasH - PH) / 2;
     const fontSize = this.canvasW < 500 ? '12px' : '14px';
-
     this.choiceGfx.clear();
     this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, this.canvasW, this.canvasH);
     this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
     this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
-
     this.choiceTitle.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + 18).setWordWrapWidth(PW - 40, true);
-
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i++)
       this.choiceOpts[i].setFontSize(fontSize).setPosition(PX + 18, PY + 56 + i * optGap).setWordWrapWidth(PW - 40, true);
-    }
-
     this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
     this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
   }
 
-  private getChoices(key: 'build' | 'status' | 'incident'): Choice[] {
+  private getChoices(key: 'record' | 'recover' | 'incident'): Choice[] {
     return key === 'incident' ? INCIDENT.choices : CHOICES[key];
   }
 
-  private openChoices(key: 'build' | 'status' | 'incident') {
+  private openChoices(key: 'record' | 'recover' | 'incident') {
     this.missionKey = key;
     this.choiceState = 'open';
-    const title = key === 'build' ? '💻 この機能、どう実装しますか？'
-      : key === 'status' ? '📊 今の進み具合を、戸田さんにどう伝えますか？'
+    const title = key === 'record' ? '📝 韮沢CTOの仕様変更を、どう記録・管理しますか？'
+      : key === 'recover' ? '🔥 スコープが膨張した状態。どう立て直しますか？'
       : INCIDENT.title;
     const choices = this.getChoices(key);
     this.currentChoiceCount = choices.length;
@@ -761,18 +740,12 @@ export class HardChapter4Scene extends Phaser.Scene {
   private finishChoiceResult() {
     const missionKey = this.missionKey;
     this.resultCue.setVisible(false);
-
-    if (missionKey === 'incident') {
-      this.updateHud(); this.closeChoices();
-      return;
-    }
-
-    const next = missionKey === 'build' ? 2 : 4;
+    if (missionKey === 'incident') { this.updateHud(); this.closeChoices(); return; }
+    const next = missionKey === 'record' ? 2 : 4;
     this.gameStep = next; this.updateHud(); this.closeChoices();
     if (next === 2) this.scheduleIncident();
     if (next === 4) {
-      const requiredDocs = DOCUMENTS.filter(d => d.required);
-      const unread = requiredDocs.find(d => !this.docsSeen.has(d.id));
+      const unread = DOCUMENTS.filter(d => d.required).find(d => !this.docsSeen.has(d.id));
       if (unread) {
         this.finalChoiceMade = true;
         this.showNotice(unread.blockedHint ?? '必要な資料を確認してから進もう。', 2800);
@@ -784,15 +757,12 @@ export class HardChapter4Scene extends Phaser.Scene {
 
   // ── 炎上イベント ──────────────────────────────────────────────
 
-  private scheduleIncident() {
-    this.time.delayedCall(1200, () => this.tryShowIncident());
-  }
+  private scheduleIncident() { this.time.delayedCall(1200, () => this.tryShowIncident()); }
 
   private tryShowIncident() {
     if (this.incidentDone || this.chapterClearShown) return;
     if (this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
-      this.time.delayedCall(600, () => this.tryShowIncident());
-      return;
+      this.time.delayedCall(600, () => this.tryShowIncident()); return;
     }
     this.incidentDone = true;
     this.showNotice(INCIDENT.notice, 2200);
@@ -802,8 +772,7 @@ export class HardChapter4Scene extends Phaser.Scene {
   private tryOpenIncidentChoices() {
     if (this.chapterClearShown) return;
     if (this.dialogState !== 'closed' || this.choiceState !== 'hidden') {
-      this.time.delayedCall(600, () => this.tryOpenIncidentChoices());
-      return;
+      this.time.delayedCall(600, () => this.tryOpenIncidentChoices()); return;
     }
     this.openChoices('incident');
   }
@@ -812,8 +781,7 @@ export class HardChapter4Scene extends Phaser.Scene {
     this.choiceState = 'hidden'; this.missionKey = null;
     this.choiceGfx.setVisible(false); this.choiceTitle.setVisible(false);
     for (const o of this.choiceOpts) o.setVisible(false);
-    this.resultText.setVisible(false);
-    this.resultCue.setVisible(false);
+    this.resultText.setVisible(false); this.resultCue.setVisible(false);
     this.virtualPad.setChoiceButtonsVisible(0);
   }
 
@@ -821,20 +789,16 @@ export class HardChapter4Scene extends Phaser.Scene {
 
   private buildChapterClear() {
     this.clearGfx = this.add.graphics().setDepth(50).setVisible(false).setScrollFactor(0);
-
     this.clearTitle = this.add.text(0, 0, '🎉 チャプタークリア！', {
       fontSize: '30px', color: '#ffdd66', fontFamily: JP, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
-
     this.clearScore = this.add.text(0, 0, '', {
       fontSize: '17px', color: '#ddeeff', fontFamily: JP, align: 'center',
     }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
-
     this.clearNext = this.add.text(0, 0, 'Space：次のチャプターへ（準備中）', {
       fontSize: '15px', color: '#88aacc', fontFamily: JP,
       backgroundColor: '#00000099', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(51).setVisible(false).setScrollFactor(0).setResolution(2);
-
     this.layoutChapterClear();
   }
 
@@ -848,12 +812,12 @@ export class HardChapter4Scene extends Phaser.Scene {
   }
 
   private showChapterClear() {
-    saveChapterScore('hard-chapter4', this.score);
-    markChapterCleared('hard-chapter4');
+    saveChapterScore('hard-chapter6', this.score);
+    markChapterCleared('hard-chapter6');
     this.chapterClearShown = true;
     this.clearGfx.setVisible(true);
     this.clearTitle.setVisible(true);
-    this.clearScore.setText(`第4章「製造」クリア！\nスコア：${this.score}点`).setVisible(true);
+    this.clearScore.setText(`第6章「炎上と立て直し」クリア！\nスコア：${this.score}点`).setVisible(true);
     this.clearNext.setVisible(true);
   }
 
@@ -864,10 +828,8 @@ export class HardChapter4Scene extends Phaser.Scene {
       const key = `player-walk-${dir}`;
       if (!this.anims.exists(key)) {
         this.anims.create({
-          key,
-          frames: this.anims.generateFrameNumbers('player-walk', { frames: PLAYER_WALK_FRAMES[dir] }),
-          frameRate: 8,
-          repeat: -1,
+          key, frames: this.anims.generateFrameNumbers('player-walk', { frames: PLAYER_WALK_FRAMES[dir] }),
+          frameRate: 8, repeat: -1,
         });
       }
     });
@@ -885,21 +847,15 @@ export class HardChapter4Scene extends Phaser.Scene {
     this.drawDocuments();
   }
 
-  private updatePlayerAnimation() {
-    this.playerSprite.play(`player-walk-${this.facing}`, true);
-  }
+  private updatePlayerAnimation() { this.playerSprite.play(`player-walk-${this.facing}`, true); }
 
   private faceNpcToPlayer(npc: NpcDef) {
     const sprite = this.npcSprites.get(npc.name);
     if (!sprite) return;
     const { col: playerCol, row: playerRow } = this.playerTile();
-    const dx = playerCol - npc.col;
-    const dy = playerRow - npc.row;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      sprite.setFrame(dx > 0 ? NPC_FRAME.right : NPC_FRAME.left);
-    } else {
-      sprite.setFrame(dy > 0 ? NPC_FRAME.down : NPC_FRAME.up);
-    }
+    const dx = playerCol - npc.col, dy = playerRow - npc.row;
+    if (Math.abs(dx) > Math.abs(dy)) sprite.setFrame(dx > 0 ? NPC_FRAME.right : NPC_FRAME.left);
+    else sprite.setFrame(dy > 0 ? NPC_FRAME.down : NPC_FRAME.up);
   }
 
   // ── Collision ─────────────────────────────────────────────────
@@ -916,9 +872,7 @@ export class HardChapter4Scene extends Phaser.Scene {
            WALKABLE.has(this.tileAt(x-r, y+r)) && WALKABLE.has(this.tileAt(x+r, y+r));
   }
 
-  private playerTile() {
-    return { col: Math.floor(this.player.x / TILE), row: Math.floor(this.player.y / TILE) };
-  }
+  private playerTile() { return { col: Math.floor(this.player.x / TILE), row: Math.floor(this.player.y / TILE) }; }
 
   private getNearbyNpc(): NpcDef | null {
     const { col, row } = this.playerTile();
@@ -945,16 +899,10 @@ export class HardChapter4Scene extends Phaser.Scene {
   }
 
   private onResize = (gameSize: Phaser.Structs.Size) => {
-    this.canvasW = gameSize.width;
-    this.canvasH = gameSize.height;
-    this.layoutHud();
-    this.layoutProximityHint();
-    this.layoutNotice();
-    this.layoutHintBar();
-    this.layoutDialogBox();
-    this.layoutChoicePanel();
-    this.layoutChapterClear();
-    this.updateCamera();
+    this.canvasW = gameSize.width; this.canvasH = gameSize.height;
+    this.layoutHud(); this.layoutProximityHint(); this.layoutNotice();
+    this.layoutHintBar(); this.layoutDialogBox(); this.layoutChoicePanel();
+    this.layoutChapterClear(); this.updateCamera();
   };
 
   // ── Update ────────────────────────────────────────────────────
@@ -970,19 +918,16 @@ export class HardChapter4Scene extends Phaser.Scene {
       return;
     }
 
-    // 選択肢ボタン(1/2/3)は選択パネル表示中のみ有効。パネルが閉じている間の
-    // 誤タップを毎フレーム破棄し、次に開くパネルへ持ち越されないようにする。
     if (this.choiceState !== 'open') this.virtualPad.getChoicePressed();
 
     if (this.chapterClearShown) {
-      if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed()) {
-        window.dispatchEvent(new CustomEvent('sier-chapter-cleared', { detail: { chapterId: 'hard-chapter4' } }));
-      }
+      if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed())
+        window.dispatchEvent(new CustomEvent('sier-chapter-cleared', { detail: { chapterId: 'hard-chapter6' } }));
       return;
     }
 
     if (this.choiceState === 'open') {
-      this.virtualPad.isActionPressed(); // Aボタンの誤操作が次の状態へ漏れないよう破棄
+      this.virtualPad.isActionPressed();
       const padChoice = this.virtualPad.getChoicePressed();
       if (Phaser.Input.Keyboard.JustDown(this.key1) || padChoice === 1) this.handleChoice(0);
       if (Phaser.Input.Keyboard.JustDown(this.key2) || padChoice === 2) this.handleChoice(1);
@@ -1008,7 +953,7 @@ export class HardChapter4Scene extends Phaser.Scene {
     const spaceJust = Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.virtualPad.isActionPressed();
 
     if (spaceJust && nearby) { this.openDialog(nearby); return; }
-    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'build' : 'status'); return; }
+    if (spaceJust && onDesk && missionActive) { this.openChoices(this.gameStep === 1 ? 'record' : 'recover'); return; }
     if (spaceJust && nearbyDoc) { this.openDocDialog(nearbyDoc); return; }
 
     const hintText = nearby ? `【${nearby.name}】  Space で話しかける` :
