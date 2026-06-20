@@ -718,6 +718,30 @@ export class Chapter1Scene extends Phaser.Scene {
     this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
     this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
   }
+  private recalcChoiceLayout() {
+    const n = this.currentChoiceCount;
+    const GAP = 10;
+    const PW = Math.min(580, this.canvasW - 40);
+    const PX = (this.canvasW - PW) / 2;
+    const fontSize = this.canvasW < 500 ? '12px' : '14px';
+    let contentH = 56;
+    for (let i = 0; i < n; i++) contentH += this.choiceOpts[i].height + GAP;
+    contentH += 20;
+    const PH = Math.min(contentH, this.canvasH - 40);
+    const PY = (this.canvasH - PH) / 2;
+    this.choiceGfx.clear();
+    this.choiceGfx.fillStyle(0x000000, 0.80); this.choiceGfx.fillRect(0, 0, this.canvasW, this.canvasH);
+    this.choiceGfx.fillStyle(0x111a28, 1); this.choiceGfx.fillRoundedRect(PX, PY, PW, PH, 10);
+    this.choiceGfx.lineStyle(2, 0x3a5a8a, 1); this.choiceGfx.strokeRoundedRect(PX, PY, PW, PH, 10);
+    this.choiceTitle.setPosition(this.canvasW / 2, PY + 18);
+    let cy = PY + 56;
+    for (let i = 0; i < 5; i++) {
+      this.choiceOpts[i].setPosition(PX + 18, cy);
+      if (i < n) cy += this.choiceOpts[i].height + GAP;
+    }
+    this.resultText.setFontSize(fontSize).setPosition(this.canvasW / 2, PY + PH / 2 + 10).setWordWrapWidth(Math.min(520, PW - 60), true);
+    this.resultCue.setPosition(PX + PW - 14, PY + PH - 10);
+  }
 
   private getChoices(key: 'kickoff' | 'chain' | 'incident'): Choice[] {
     return key === 'incident' ? INCIDENT.choices : CHOICES[key];
@@ -743,6 +767,7 @@ export class Chapter1Scene extends Phaser.Scene {
         this.choiceOpts[i].setVisible(false);
       }
     }
+    this.recalcChoiceLayout();
     this.resultText.setVisible(false);
     this.proximityHint.setText('').setVisible(false);
     this.virtualPad.setChoiceButtonsVisible(choices.length);
