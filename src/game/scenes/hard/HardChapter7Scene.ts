@@ -429,7 +429,12 @@ export class HardChapter7Scene extends Phaser.Scene {
   }
 
   private updateHud() {
-    this.missionLabel = MISSION_LABEL[this.gameStep] ?? '';
+    const docsAllRead = DOCUMENTS.filter(d => d.required).every(d => this.docsSeen.has(d.id));
+    if (this.finalChoiceMade && !docsAllRead) {
+      this.missionLabel = '📄 室内の資料を全部確認しよう（残り' + DOCUMENTS.filter(d => d.required && !this.docsSeen.has(d.id)).length + '件）';
+    } else {
+      this.missionLabel = MISSION_LABEL[this.gameStep] ?? '';
+    }
     this.refreshMissionText();
     this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
   }
@@ -629,6 +634,8 @@ export class HardChapter7Scene extends Phaser.Scene {
     this.docImageOpen = false;
     if (this.finalChoiceMade && DOCUMENTS.filter(d => d.required).every(d => this.docsSeen.has(d.id))) {
       this.showChapterClear();
+    } else if (this.finalChoiceMade) {
+      this.updateHud();
     }
   };
 
@@ -773,6 +780,7 @@ export class HardChapter7Scene extends Phaser.Scene {
       const unread = DOCUMENTS.filter(d => d.required).find(d => !this.docsSeen.has(d.id));
       if (unread) {
         this.finalChoiceMade = true;
+        this.updateHud();
         this.showNotice(unread.blockedHint ?? '必要な資料を確認してから進もう。', 2800);
       } else {
         this.showChapterClear();
