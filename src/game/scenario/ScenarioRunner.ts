@@ -20,7 +20,7 @@ import * as Phaser from 'phaser';
 import type { ChapterId, ScenarioState, ScenarioEvent, ScenarioChoice } from './types';
 import type { DiffConfig } from '../difficulty';
 import { getScenarioEventsForChapter, applyScenarioChoice } from './scenarioEffects';
-import { loadScenarioState, saveScenarioState } from './scenarioStorage';
+import { loadScenarioState, saveScenarioState, clearScenarioState } from './scenarioStorage';
 import type { VirtualPad } from '../VirtualPad';
 
 const JP =
@@ -103,6 +103,18 @@ export class ScenarioRunner {
   }
 
   // ── Public API ───────────────────────────────────────────────
+
+  /** このチャプターのシナリオ進捗だけリセットして再プレイ可能にする */
+  resetForReplay(): void {
+    const state = loadScenarioState();
+    const allEvents = getScenarioEventsForChapter(this.chapterId, state);
+    const chapterIds = new Set(allEvents.map((e) => e.id));
+    state.clearedEventIds = state.clearedEventIds.filter((id) => !chapterIds.has(id));
+    state.totalScore = 0;
+    saveScenarioState(state);
+    this.active = false;
+    this.idx = 0;
+  }
 
   /**
    * localStorage から状態を読み込み、最初の未完了イベントを表示する。

@@ -287,9 +287,6 @@ export class Chapter2Scene extends Phaser.Scene {
       onChapterComplete: () => { this.showChapterClear(); },
     });
     // B案: create()ではシナリオを起動しない。マップゲーム完了後にstartFinalScenario()を呼ぶ。
-    if (getClearedChapters().includes('chapter2')) {
-      this.showChapterClearUiOnly();
-    }
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -805,9 +802,10 @@ export class Chapter2Scene extends Phaser.Scene {
   }
 
   private startFinalScenario(): void {
-    const started = this.scenarioRunner.init();
-    if (!started) {
-      this.showChapterClear();
+    if (!this.scenarioRunner.init()) {
+      // シナリオ済み → リセットして再プレイ
+      this.scenarioRunner.resetForReplay();
+      this.scenarioRunner.init();
     }
   }
 
