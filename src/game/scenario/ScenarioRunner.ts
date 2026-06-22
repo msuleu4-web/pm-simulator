@@ -355,7 +355,10 @@ export class ScenarioRunner {
     this.ovlSlotBadge.setText(ev.slot);
     this.ovlTitle.setText(ev.title);
 
-    const body = ev.reviewNote ? ev.body + '\n\n' + ev.reviewNote : ev.body;
+    // reviewNote は easy モード（showHints=true）のみ本文下に追記する
+    const body = (ev.reviewNote && this.diffCfg.showHints)
+      ? ev.body + '\n\n' + ev.reviewNote
+      : ev.body;
     this.ovlBody.setText(body);
 
     // easy モードは最高得点選択肢に 💡 ヒント
