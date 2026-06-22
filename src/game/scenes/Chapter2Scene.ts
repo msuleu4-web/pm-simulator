@@ -41,7 +41,7 @@ const TILE_MAP: number[][] = [
 const WALKABLE = new Set([F, E, P]);
 
 const TILE_COLORS: Record<number, number> = {
-  0: 0xE8E4D9, 1: 0x4A4A4A, 3: 0x2a7a40,
+  0: 0xA89878, 1: 0x3A3A3A, 3: 0x2a7a40,
 };
 
 interface NpcDef { name: string; col: number; row: number; lines: string[]; }
@@ -321,13 +321,13 @@ export class Chapter2Scene extends Phaser.Scene {
   // ── Sprite decorations (drawn over the Graphics map) ──────────
 
   private buildSprites() {
-    // 1. Floor tile variation
+    // 1. Floor tile variation (tinted darker to reduce brightness)
     const floorFrames = [77, 78, 93, 94];
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (TILE_MAP[r][c] === F) {
           const frame = floorFrames[Phaser.Math.Between(0, floorFrames.length - 1)];
-          this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, 'office', frame);
+          this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, 'office', frame).setTint(0xB09870);
         }
       }
     }
@@ -377,15 +377,6 @@ export class Chapter2Scene extends Phaser.Scene {
       for (let j = 0; j < 3; j++) {
         this.add.image((2 + j) * TILE + TILE / 2, (2 + i) * TILE + TILE / 2, 'office', tableFrames[i][j]);
       }
-    }
-
-    // 7. Whiteboards (2x2, wall-mounted near the ceiling)
-    const whiteboardSpots = [{ col: 2, row: 0 }, { col: 9, row: 0 }, { col: 16, row: 0 }];
-    for (const { col, row } of whiteboardSpots) {
-      this.add.image(col * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 233);
-      this.add.image((col + 1) * TILE + TILE / 2, row * TILE + TILE / 2, 'office', 234);
-      this.add.image(col * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 249);
-      this.add.image((col + 1) * TILE + TILE / 2, (row + 1) * TILE + TILE / 2, 'office', 250);
     }
 
     // 8. Player's own desk (P tiles, 2x2)
