@@ -215,17 +215,19 @@ export class ScenarioRunner {
       .text(0, 0, '', { ...base, color: '#aabb88', backgroundColor: '#1a281a' })
       .setDepth(D + 1).setScrollFactor(0).setVisible(false).setResolution(2);
 
+    const wrap = (w: number) => ({ width: w, useAdvancedWrap: true });
+
     this.ovlTitle = this.scene.add
       .text(0, 0, '', {
         fontSize: '17px', color: '#ffdd88', fontFamily: JP, fontStyle: 'bold',
-        wordWrap: { width: 540 },
+        wordWrap: wrap(540),
       })
       .setDepth(D + 1).setScrollFactor(0).setVisible(false).setResolution(2);
 
     this.ovlBody = this.scene.add
       .text(0, 0, '', {
         fontSize: '14px', color: '#ccddf0', fontFamily: JP,
-        lineSpacing: 4, wordWrap: { width: 540 },
+        lineSpacing: 4, wordWrap: wrap(540),
       })
       .setDepth(D + 1).setScrollFactor(0).setVisible(false).setResolution(2);
 
@@ -233,9 +235,9 @@ export class ScenarioRunner {
       this.ovlChoices.push(
         this.scene.add
           .text(0, 0, '', {
-            fontSize: '14px', color: '#ddeeff', fontFamily: JP,
-            backgroundColor: '#0a1a2a', padding: { x: 10, y: 6 },
-            wordWrap: { width: 520 },
+            fontSize: '13px', color: '#ddeeff', fontFamily: JP,
+            backgroundColor: '#0a1a2a', padding: { x: 8, y: 5 },
+            wordWrap: wrap(520),
           })
           .setDepth(D + 1).setScrollFactor(0).setVisible(false).setResolution(2)
       );
@@ -244,14 +246,14 @@ export class ScenarioRunner {
     this.ovlResult = this.scene.add
       .text(0, 0, '', {
         fontSize: '14px', color: '#88ffaa', fontFamily: JP, fontStyle: 'bold',
-        wordWrap: { width: 540 },
+        wordWrap: wrap(540),
       })
       .setDepth(D + 1).setScrollFactor(0).setVisible(false).setResolution(2);
 
     this.ovlExplain = this.scene.add
       .text(0, 0, '', {
         fontSize: '13px', color: '#aabbcc', fontFamily: JP,
-        lineSpacing: 3, wordWrap: { width: 540 },
+        lineSpacing: 3, wordWrap: wrap(540),
       })
       .setDepth(D + 1).setScrollFactor(0).setVisible(false).setResolution(2);
 
@@ -275,12 +277,13 @@ export class ScenarioRunner {
     // HUD の高さ (compact: 46px / normal: 26px)
     const hudH = w < 560 ? 46 : 26;
 
-    this.ovlTitle.setFontSize(small ? '15px' : '17px').setWordWrapWidth(bodyWrap);
-    this.ovlBody.setFontSize(small ? '12px' : '14px').setWordWrapWidth(bodyWrap);
-    this.ovlResult.setFontSize(small ? '12px' : '14px').setWordWrapWidth(bodyWrap);
-    this.ovlExplain.setFontSize(small ? '11px' : '13px').setWordWrapWidth(bodyWrap);
+    const aw = true; // useAdvancedWrap
+    this.ovlTitle.setFontSize(small ? '15px' : '17px').setWordWrapWidth(bodyWrap, aw);
+    this.ovlBody.setFontSize(small ? '12px' : '14px').setWordWrapWidth(bodyWrap, aw);
+    this.ovlResult.setFontSize(small ? '12px' : '14px').setWordWrapWidth(bodyWrap, aw);
+    this.ovlExplain.setFontSize(small ? '11px' : '13px').setWordWrapWidth(bodyWrap, aw);
     for (const c of this.ovlChoices) {
-      c.setFontSize(small ? '12px' : '14px').setWordWrapWidth(bodyWrap - 20);
+      c.setFontSize(small ? '11px' : '13px').setWordWrapWidth(bodyWrap - 20, aw);
     }
 
     // コンテンツ高さを計測

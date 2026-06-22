@@ -284,19 +284,11 @@ export class Chapter2Scene extends Phaser.Scene {
         this.refreshMissionText();
         this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
       },
-      onChapterComplete: () => {
-        this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
-        this.showNotice('研修シナリオ完了！\nフロアを探索しよう。まず田中PMに話しかけよう。', 4000);
-      },
+      onChapterComplete: () => { this.showChapterClear(); },
     });
-    const scenStarted = this.scenarioRunner.init();
-    if (!scenStarted) {
-      this.score = this.scenarioRunner.getSavedTotalScore();
-      if (getClearedChapters().includes('chapter2')) {
-        this.showChapterClearUiOnly();
-      } else {
-        this.showNotice('研修シナリオは完了済みです。\nフロアを探索してみよう。', 3000);
-      }
+    // B案: create()ではシナリオを起動しない。マップゲーム完了後にstartFinalScenario()を呼ぶ。
+    if (getClearedChapters().includes('chapter2')) {
+      this.showChapterClearUiOnly();
     }
   }
 
@@ -650,7 +642,7 @@ export class Chapter2Scene extends Phaser.Scene {
     if (this.pendingDocId) { this.docsSeen.add(this.pendingDocId); this.pendingDocId = null; }
     this.docImageOpen = false;
     if (this.finalChoiceMade && DOCUMENTS.filter(d => d.required).every(d => this.docsSeen.has(d.id))) {
-      this.showChapterClear();
+      this.startFinalScenario();
     } else if (this.finalChoiceMade) {
       this.updateHud();
     }
@@ -816,8 +808,15 @@ export class Chapter2Scene extends Phaser.Scene {
         this.updateHud();
         this.showNotice(unread.blockedHint ?? '必要な資料を確認してから進もう。', 2800);
       } else {
-        this.showChapterClear();
+        this.startFinalScenario();
       }
+    }
+  }
+
+  private startFinalScenario(): void {
+    const started = this.scenarioRunner.init();
+    if (!started) {
+      this.showChapterClear();
     }
   }
 
