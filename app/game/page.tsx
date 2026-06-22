@@ -293,6 +293,7 @@ function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
   const [cleared, setCleared] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<SierDifficulty>('normal');
   const [earnedTitles, setEarnedTitles] = useState<string[]>([]);
+  const [resetConfirm, setResetConfirm] = useState(false);
 
   // ── 既存ロジック: 変更なし ──
   useEffect(() => {
@@ -304,6 +305,19 @@ function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
   const handleDifficultyChange = (d: SierDifficulty) => {
     setDifficulty(d);
     saveDifficulty(d);
+  };
+
+  const handleReset = () => {
+    const KEYS = [
+      'sier-dojo-scenario-state-v1',
+      'sier-office-chapters-cleared-v2',
+      'sier-office-chapter-scores-v2',
+      'sier-office-earned-titles-v2',
+    ];
+    KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch { /* noop */ } });
+    setCleared([]);
+    setEarnedTitles([]);
+    setResetConfirm(false);
   };
 
   return (
@@ -415,12 +429,38 @@ function ChapterSelect({ onPlay }: { onPlay: (sceneName: string) => void }) {
               研修モード · プロジェクト進行管理
             </span>
           </div>
-          <button
-            onClick={() => router.push('/')}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
-          >
-            ← ホームへ
-          </button>
+          <div className="flex items-center gap-2">
+            {resetConfirm ? (
+              <>
+                <span className="text-xs text-slate-500">本当にリセット？</span>
+                <button
+                  onClick={handleReset}
+                  className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+                >
+                  リセット
+                </button>
+                <button
+                  onClick={() => setResetConfirm(false)}
+                  className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                >
+                  キャンセル
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setResetConfirm(true)}
+                className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-red-200 hover:text-red-500"
+              >
+                リセット
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/')}
+              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+            >
+              ← ホームへ
+            </button>
+          </div>
         </div>
       </header>
 
