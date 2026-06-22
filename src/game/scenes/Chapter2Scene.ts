@@ -2,6 +2,7 @@
 import { markChapterCleared, saveChapterScore, type ChapterDocument } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
+import { ScenarioRunner } from '../scenario/ScenarioRunner';
 
 const TILE = 32;
 const COLS = 25;
@@ -203,6 +204,9 @@ export class Chapter2Scene extends Phaser.Scene {
   private clearScore!: Phaser.GameObjects.Text;
   private clearNext!: Phaser.GameObjects.Text;
 
+  // ─── Scenario Engine (E01-E08) ───────────────────────────────
+  private scenarioRunner!: ScenarioRunner;
+
   constructor() { super({ key: 'Chapter2Scene' }); }
 
   preload() {
@@ -268,6 +272,25 @@ export class Chapter2Scene extends Phaser.Scene {
     this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
 
     this.showNotice('「品質・コスト・納期、全部守れ」\nでも予算は半分です。', 4500);
+
+    this.scenarioRunner = new ScenarioRunner({
+      scene: this,
+      chapterId: 2,
+      diffCfg: this.diffCfg,
+      virtualPad: this.virtualPad,
+      onScoreDelta: (delta) => { this.score += delta; },
+      onLabelChange: (label) => {
+        this.missionLabel = label;
+        this.refreshMissionText();
+        this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
+      },
+      onChapterComplete: () => { this.showChapterClear(); },
+    });
+    const scenStarted = this.scenarioRunner.init();
+    if (!scenStarted) {
+      this.score = this.scenarioRunner.getSavedTotalScore();
+      this.showChapterClearUiOnly();
+    }
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -856,6 +879,16 @@ export class Chapter2Scene extends Phaser.Scene {
     this.clearNext.setPosition(this.canvasW / 2, this.canvasH / 2 + 60).setWordWrapWidth(wrap, true);
   }
 
+  private showChapterClearUiOnly(): void {
+    this.chapterClearShown = true;
+    this.clearGfx.setVisible(true);
+    this.clearTitle.setVisible(true);
+    this.clearScore.setText(
+      `第2章「要件定義」クリア！\nスコア：${this.score}点`
+    ).setVisible(true);
+    this.clearNext.setVisible(true);
+  }
+
   private showChapterClear() {
     saveChapterScore('chapter2', this.score);
     markChapterCleared('chapter2');
@@ -963,6 +996,7 @@ export class Chapter2Scene extends Phaser.Scene {
     this.layoutDialogBox();
     this.layoutChoicePanel();
     this.layoutChapterClear();
+    this.scenarioRunner.resize(this.canvasW, this.canvasH);
     this.updateCamera();
   };
 
@@ -970,9 +1004,14 @@ export class Chapter2Scene extends Phaser.Scene {
 
   update(_t: number, delta: number) {
     this.virtualPad.setDpadVisible(
-      !this.docImageOpen && !this.chapterClearShown &&
+      !this.docImageOpen && !this.chapterClearShown && !this.scenarioRunner.isActive &&
       this.choiceState === 'hidden' && this.dialogState === 'closed',
     );
+
+    if (this.scenarioRunner.isActive) {
+      this.scenarioRunner.update();
+      return;
+    }
 
     if (this.docImageOpen) {
       if (Phaser.Input.Keyboard.JustDown(this.keyZ)) window.dispatchEvent(new CustomEvent('sier-doc-image-closed'));

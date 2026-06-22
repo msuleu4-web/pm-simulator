@@ -2,6 +2,7 @@
 import { markChapterCleared, saveChapterScore, type ChapterDocument } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
+import { ScenarioRunner } from '../scenario/ScenarioRunner';
 
 const TILE = 32;
 const COLS = 25;
@@ -223,6 +224,9 @@ export class Chapter1Scene extends Phaser.Scene {
   private clearScore!: Phaser.GameObjects.Text;
   private clearNext!: Phaser.GameObjects.Text;
 
+  // ─── Scenario Engine (E01-E08) ───────────────────────────────
+  private scenarioRunner!: ScenarioRunner;
+
   constructor() { super({ key: 'Chapter1Scene' }); }
 
   preload() {
@@ -288,6 +292,25 @@ export class Chapter1Scene extends Phaser.Scene {
     this.events.once('shutdown', () => window.removeEventListener('sier-doc-image-closed', this.onDocImageClosed));
 
     this.showNotice('本日からこの現場に配属されました。\nまずは机の上に積まれた資料に目を通してみましょう。', 4500);
+
+    this.scenarioRunner = new ScenarioRunner({
+      scene: this,
+      chapterId: 1,
+      diffCfg: this.diffCfg,
+      virtualPad: this.virtualPad,
+      onScoreDelta: (delta) => { this.score += delta; },
+      onLabelChange: (label) => {
+        this.missionLabel = label;
+        this.refreshMissionText();
+        this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
+      },
+      onChapterComplete: () => { this.showChapterClear(); },
+    });
+    const scenStarted = this.scenarioRunner.init();
+    if (!scenStarted) {
+      this.score = this.scenarioRunner.getSavedTotalScore();
+      this.showChapterClearUiOnly();
+    }
   }
 
   // ── Map ──────────────────────────────────────────────────────
@@ -953,6 +976,18 @@ export class Chapter1Scene extends Phaser.Scene {
            WALKABLE.has(this.tileAt(x-r, y+r)) && WALKABLE.has(this.tileAt(x+r, y+r));
   }
 
+
+  // リプレイ用: スコア・クリア状態は再保存せずクリア画面UIのみ表示
+  private showChapterClearUiOnly(): void {
+    this.chapterClearShown = true;
+    this.clearGfx.setVisible(true);
+    this.clearTitle.setVisible(true);
+    this.clearScore.setText(
+      `第1章「配属・キックオフ」クリア！\nスコア：${this.score}点`
+    ).setVisible(true);
+    this.clearNext.setVisible(true);
+  }
+
   private playerTile() {
     return { col: Math.floor(this.player.x / TILE), row: Math.floor(this.player.y / TILE) };
   }
@@ -991,6 +1026,7 @@ export class Chapter1Scene extends Phaser.Scene {
     this.layoutDialogBox();
     this.layoutChoicePanel();
     this.layoutChapterClear();
+    this.scenarioRunner.resize(this.canvasW, this.canvasH);
     this.updateCamera();
   };
 
@@ -998,9 +1034,14 @@ export class Chapter1Scene extends Phaser.Scene {
 
   update(_t: number, delta: number) {
     this.virtualPad.setDpadVisible(
-      !this.docImageOpen && !this.chapterClearShown &&
+      !this.docImageOpen && !this.chapterClearShown && !this.scenarioRunner.isActive &&
       this.choiceState === 'hidden' && this.dialogState === 'closed',
     );
+
+    if (this.scenarioRunner.isActive) {
+      this.scenarioRunner.update();
+      return;
+    }
 
     if (this.docImageOpen) {
       if (Phaser.Input.Keyboard.JustDown(this.keyZ)) window.dispatchEvent(new CustomEvent('sier-doc-image-closed'));
