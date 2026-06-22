@@ -1,5 +1,5 @@
 ﻿import * as Phaser from 'phaser';
-import { markChapterCleared, saveChapterScore, type ChapterDocument } from '../chapters';
+import { markChapterCleared, saveChapterScore, getClearedChapters, type ChapterDocument } from '../chapters';
 import { VirtualPad } from '../VirtualPad';
 import { getDifficulty, DIFFICULTY_CONFIG, DIFFICULTY_HUD_COLOR, type Difficulty, type DiffConfig } from '../difficulty';
 import { ScenarioRunner } from '../scenario/ScenarioRunner';
@@ -284,12 +284,19 @@ export class Chapter2Scene extends Phaser.Scene {
         this.refreshMissionText();
         this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
       },
-      onChapterComplete: () => { this.showChapterClear(); },
+      onChapterComplete: () => {
+        this.hudScore.setText(`${this.diffCfg.label} | Score: ${this.score}`);
+        this.showNotice('研修シナリオ完了！\nフロアを探索しよう。まず田中PMに話しかけよう。', 4000);
+      },
     });
     const scenStarted = this.scenarioRunner.init();
     if (!scenStarted) {
       this.score = this.scenarioRunner.getSavedTotalScore();
-      this.showChapterClearUiOnly();
+      if (getClearedChapters().includes('chapter2')) {
+        this.showChapterClearUiOnly();
+      } else {
+        this.showNotice('研修シナリオは完了済みです。\nフロアを探索してみよう。', 3000);
+      }
     }
   }
 
