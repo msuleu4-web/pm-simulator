@@ -104,7 +104,8 @@ ${issues.length > 0 ? `現在の問題: ${issues.join('、')}` : '今のとこ�
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-20b',
+        reasoning_effort: 'low',
         messages: groqMessages,
         max_tokens: 300,
         temperature: 0.85,

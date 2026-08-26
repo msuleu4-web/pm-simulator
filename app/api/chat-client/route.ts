@@ -112,7 +112,8 @@ ${isAlmostDone ? '- 結論に向けてまとめてください。' : ''}
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
+        reasoning_effort: 'low',
         messages: groqMessages,
         max_tokens: 220,
         temperature: 0.82,

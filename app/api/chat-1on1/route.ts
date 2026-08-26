@@ -238,7 +238,8 @@ ${isInitial ? `- これが最初の発言です。PMが時間を作ってくれ�
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
+        reasoning_effort: 'low',
         messages: groqMessages,
         max_tokens: 250,
         temperature: 0.88,
