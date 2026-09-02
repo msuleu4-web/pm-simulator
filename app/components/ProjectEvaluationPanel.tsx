@@ -124,7 +124,7 @@ export function ProjectEvaluationPanel({ state }: { state: GameState }) {
       <div className="mt-6 rounded-3xl border border-brand-200 bg-brand-50/70 p-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-brand-900">AIによる評価コメント</p>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Groq Llama</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Groq AI</span>
         </div>
         {isLoading ? (
           <div className="mt-3 flex items-center gap-2 text-sm text-brand-700">
